@@ -1,7 +1,3 @@
-gen/*
-libs/*
-obj/*
-bin/*
 /gen
 /libs
 /obj
