@@ -18,7 +18,7 @@
  * MA  02110-1301, USA.
  */
 
-package org.panandroid.sensor;
+package fr.ensicaen.panandroid.sensor;
 
 import android.content.Context;
 import android.hardware.Sensor;

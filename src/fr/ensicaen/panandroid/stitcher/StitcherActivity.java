@@ -1,5 +1,5 @@
-package org.panandroid.stitcher;
- 
+package fr.ensicaen.panandroid.stitcher;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.highgui.Highgui;
-import org.panandroid.R;
+import fr.ensicaen.panandroid.R;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -32,10 +32,10 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
- 
+
 public class StitcherActivity extends Activity implements CvCameraViewListener {
     private static final String TAG = "OCVSample::Activity";
- 
+
     public static final int VIEW_MODE_RGBA = 0;
     public static final int SAVE_IMAGE_MAT = 1;
     public static final int CAPT_STILL_IM = 2;
@@ -59,29 +59,29 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
     private long recordStart = new Date().getTime();
     private static final long MAX_VIDEO_INTERVAL_IN_SECONDS = 3 * 1000; // Convert milliseconds to seconds
     public final Handler mHandler = new Handler();
- 
+
     // Create runnable for posting
     final Runnable mUpdateResults = new Runnable() {
         public void run() {
             updateResultsInUi();
         }
     };
- 
+
     private void updateResultsInUi()
     {
- 
+
     }
- 
+
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
             case LoaderCallbackInterface.SUCCESS: {
                 Log.i(TAG, "OpenCV loaded successfully");
- 
+
                 // Load native library after(!) OpenCV initialization
                 System.loadLibrary("native_sample");
- 
+
                 mOpenCvCameraView.enableView();
             }
                 break;
@@ -92,11 +92,11 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
             }
         }
     };
- 
+
     public StitcherActivity() {
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
- 
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -104,30 +104,30 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
- 
+
         setContentView(R.layout.stitcherview);
- 
+
         final Button btnVidCapt = (Button) findViewById(R.id.btnVidCapt);
         btnVidCapt.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 startVidCap();
             }
         });
- 
+
         final Button btnStitch = (Button) findViewById(R.id.btnStitch);
         btnStitch.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 stitchImages();
             }
         });
- 
+
         final Button btnViewStitchedIm = (Button) findViewById(R.id.btnViewStitchedIm);
         btnViewStitchedIm.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 viewStitchImages();
             }
         });
- 
+
         final Button btnCapStil = (Button) findViewById(R.id.btnCapStil);
         btnCapStil.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -137,41 +137,41 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.tutorial4_activity_surface_view);
         mOpenCvCameraView.setCvCameraViewListener(this);
     }
- 
+
     @Override
     public void onPause() {
         if (mOpenCvCameraView != null)
             mOpenCvCameraView.disableView();
         super.onPause();
     }
- 
+
     @Override
     public void onResume() {
         super.onResume();
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_3, this,
                 mLoaderCallback);
     }
- 
+
     public void onDestroy() {
         super.onDestroy();
         if (mOpenCvCameraView != null)
             mOpenCvCameraView.disableView();
     }
- 
+
     public void onCameraViewStarted(int width, int height) {
         mRgba = new Mat(height, width, CvType.CV_8UC3);
         mGrayMat = new Mat(height, width, CvType.CV_8UC1);
         mtemp = new Mat(height, width, CvType.CV_8UC3);
         panorama = new Mat(height, width, CvType.CV_8UC3);
     }
- 
+
     public void onCameraViewStopped() {
         mRgba.release();
         mGrayMat.release();
         mtemp.release();
         panorama.release();
     }
- 
+
     public Mat onCameraFrame(Mat inputFrame) {
         inputFrame.copyTo(mRgba);
         switch (StitcherActivity.viewMode) {
@@ -184,7 +184,7 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
             Core.putText(mRgba, "Record Mode", new Point(10, 50), 3, 1, new Scalar(255, 0, 0, 255), 2);
             long timeDiff = curTime - recordStart;
             Log.i("timeDiff", Long.toString(timeDiff));
- 
+
             if ( timeDiff < MAX_VIDEO_INTERVAL_IN_SECONDS) {
                 if ((mframeNum % FRAME2GRAB) == 0) {
                     saveImageToArray(inputFrame);
@@ -207,7 +207,7 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
         }
         return mRgba;
     }
- 
+
     public void startVidCap() {
         if (StitcherActivity.viewMode == StitcherActivity.VIEW_MODE_RGBA)
         {
@@ -218,23 +218,23 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
             turnOffCapture();
         }
     }
- 
+
     private void turnOffCapture()
     {
- 
+
         StitcherActivity.viewMode = StitcherActivity.VIEW_MODE_RGBA;
     }
- 
+
     private void turnOnCapture()
     {
- 
+
         StitcherActivity.viewMode = StitcherActivity.SAVE_IMAGE_MAT;
 //      startVidCapture.setText("Stop Video Capture");
         images_to_be_stitched.clear();
         recordStart = new Date().getTime();
- 
+
     }
- 
+
     public void stitchImages() {
         if(!images_to_be_stitched.isEmpty())
         {
@@ -247,35 +247,35 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
                     panorama.getNativeObjAddr(), images_to_be_stitched.size());
         Log.i("stitchImages", "Done stitching. Writing panarama");
             writePano(panorama);
- 
+
         Log.i("stitchImages", "deleting temp files");
- 
+
             deleteTmpIm();
         }
     }
- 
+
     public void captStillImage()
     {
         StitcherActivity.viewMode = StitcherActivity.CAPT_STILL_IM;
- 
+
     }
- 
+
     private String getFullFileName( int num)
     {
         return mImageName + num + mImageExt;
     }
- 
+
     private void writeImage(Mat image, int imNum)
     {
     	System.out.println("ICI1");
         writeImage(image, getFullFileName(imNum));
     }
- 
+
     private void writeImage(Mat image, String fileName) {
     	System.out.println("ICI2");
 
     	File createDir = tempImageDir;
-        
+
         if(!createDir.exists())
         {
         	Log.i("TEST DIR", "creating dir \"" + createDir+"\"");
@@ -289,7 +289,7 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
     	System.out.println("ICI3");
 
     }
- 
+
     private void writePano(Mat image)
     {
         Date dateNow = new  Date();
@@ -300,9 +300,9 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
             StitchImageDir.mkdir();
         }
         Highgui.imwrite(StitchImageDir.getPath()+ File.separator + "panoStich"+dateFormat.format(dateNow) +mImageExt, image);
- 
+
     }
- 
+
     private void deleteTmpIm()
     {
         File curFile;
@@ -312,37 +312,37 @@ public class StitcherActivity extends Activity implements CvCameraViewListener {
         }
         images_to_be_stitched.clear();
     }
- 
+
     public void viewStitchImages()
     {
     	/*
         Intent intent = new Intent(this, GalleryActivity.class);
- 
+
         startActivity(intent);*/
     }
- 
+
     private void saveImageToArray(Mat inputFrame) {
         images_to_be_stitched.add(inputFrame.clone());
     }
- 
+
     private int FPS() {
         long curTime = new Date().getTime();
         int FPS = (int) (1000 / (curTime - mPrevTime));
         mPrevTime = curTime;
         return FPS;
     }
- 
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         return true;
- 
+
     }
- 
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
     return true;
     }
- 
+
     // public native void FindFeatures(List pano_images, Long stitch );
     public native void FindFeatures(long image1, long image2, long image3,
             int count);

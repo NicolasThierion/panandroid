@@ -1,9 +1,7 @@
-package org.panandroid.capture;
+package fr.ensicaen.panandroid.viewer;
 
-import org.panandroid.sensor.SensorFusionManager;
-import org.panandroid.sphere.Sphere;
-import org.panandroid.sphere.SphereView;
-
+import fr.ensicaen.panandroid.sphere.Sphere;
+import fr.ensicaen.panandroid.sphere.SphereView;
 import android.app.Activity;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -11,18 +9,8 @@ import android.view.Window;
 import android.view.WindowManager;
 
 
-/**
- * Activity that display a blank 3D sphere, and allow to take snapshots
- * @todo Take snaptshots
- * @todo put dots all around shpere
- * @todo use sensor to activate camera
- * @todo set snapshots as texture of the sphere
- * @todo build a JSON file with position info of each shapshots
- *  
- * @author Nicolas
- *
- */
-public class CaptureActivity extends Activity {
+
+public class SphereViewerActivity extends Activity {
 
 	/** Size of the sphere **/
 	private static final float SPHERE_RADIUS = 0.15f;
@@ -30,11 +18,10 @@ public class CaptureActivity extends Activity {
 	/** Resolution of the sphere **/
 	private static final int SPHERE_RESOLUTION = 4;
 			
+			
 	/** The OpenGL view. */
 	private SphereView mSphereView;
-	
-	
-	
+
   /**
    * Called when the activity is first created.
    * @param savedInstanceState The instance state.
@@ -55,11 +42,9 @@ public class CaptureActivity extends Activity {
     this.setContentView(this.mSphereView);
     
     
-    mSphereView.enableInertialRotation(false);
-    mSphereView.enableTouchRotation(false);
-    mSphereView.setInertiaFriction(0.0f);
-    
-    mSphereView.enableSensorialRotation(true);
+    mSphereView.enableInertialRotation(true);
+    mSphereView.enableTouchRotation(true);
+    mSphereView.setInertiaFriction(50.0f);
   }
 
   

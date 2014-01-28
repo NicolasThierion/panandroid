@@ -1,6 +1,5 @@
 #include <jni.h>
 
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -23,7 +22,6 @@ using namespace cv;
 
 extern "C" {
 //JNIEXPORT Mat JNICALL Java_org_opencv_samples_tutorial3_Sample3Native_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
-
 
 JNIEXPORT void JNICALL Java_org_panandroid_stitcher_StitcherActivity_FindFeatures(
         JNIEnv*, jobject, jlong im1, jlong im2, jlong im3, jint no_images) {
@@ -59,3 +57,4 @@ JNIEXPORT void JNICALL Java_org_panandroid_stitcher_StitcherActivity_FindFeature
 }
 
 }
+
