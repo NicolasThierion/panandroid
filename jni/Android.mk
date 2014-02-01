@@ -5,10 +5,10 @@ include $(CLEAR_VARS)
 OPENCV_LIB_TYPE:=STATIC
 OPENCV_INSTALL_MODULES:=on
 
-include ../includeOpenCV.mk
+#include ../includeOpenCV.mk
 
 
-include ../sdk/native/jni/OpenCV.mk
+include $(OPENCV_HOME)/sdk/native/jni/OpenCV.mk
 
 LOCAL_MODULE    := ocvstitcher
 LOCAL_SRC_FILES := ocvstitcher.cpp
