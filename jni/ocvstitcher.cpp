@@ -25,7 +25,7 @@ extern "C" {
 //JNIEXPORT Mat JNICALL Java_org_opencv_samples_tutorial3_Sample3Native_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
 
 
-JNIEXPORT void JNICALL Java_org_panandroid_stitcher_StitcherActivity_FindFeatures(
+JNIEXPORT void JNICALL Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_FindFeatures(
         JNIEnv*, jobject, jlong im1, jlong im2, jlong im3, jint no_images) {
 
 

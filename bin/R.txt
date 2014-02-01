@@ -3,7 +3,15 @@ int attr show_fps 0x7f010000
 int dimen activity_horizontal_margin 0x7f060000
 int dimen activity_vertical_margin 0x7f060001
 int drawable ic_launcher 0x7f020000
-int drawable icon 0x7f020001
+int drawable ic_picsphere_marker 0x7f020001
+int drawable ic_picsphere_viewfinder 0x7f020002
+int drawable icon 0x7f020003
+int drawable picsphere_sky_bk 0x7f020004
+int drawable picsphere_sky_dn 0x7f020005
+int drawable picsphere_sky_fr 0x7f020006
+int drawable picsphere_sky_lt 0x7f020007
+int drawable picsphere_sky_rt 0x7f020008
+int drawable picsphere_sky_up 0x7f020009
 int id action_settings 0x7f050008
 int id any 0x7f050000
 int id back 0x7f050001
