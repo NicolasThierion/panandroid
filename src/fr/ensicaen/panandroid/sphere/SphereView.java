@@ -1,3 +1,13 @@
+/*
+ * ENSICAEN
+ * 6 Boulevard Marechal Juin
+ * F-14050 Caen Cedex
+ *
+ * This file is owned by ENSICAEN students.
+ * No portion of this code may be reproduced, copied
+ * or revised without written permission of the authors.
+ */
+
 package fr.ensicaen.panandroid.sphere;
 
 import java.util.Stack;

@@ -235,6 +235,7 @@ public class SensorFusionManager implements SensorEventListener
         {
         	if(useGyroscope)
         		Log.w(TAG, "Device has no gyroscope... trying fallback mode");
+
         	
         	mSimulatedRotationVector = new SimulatedRotationVector(mSensorManager, this);
         	mIsRotationSupported = mSimulatedRotationVector.registerListeners(SENSOR_LISTENING_RATE);
