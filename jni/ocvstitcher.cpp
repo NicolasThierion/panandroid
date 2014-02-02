@@ -1,5 +1,14 @@
-#include <jni.h>
+/**
+ * ENSICAEN
+ * 6 Boulevard Marechal Juin
+ * F-14050 Caen Cedex
+ *
+ * This file is owned by ENSICAEN students.
+ * No portion of this code may be reproduced, copied
+ * or revised without written permission of the authors.
+ */
 
+#include <jni.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>

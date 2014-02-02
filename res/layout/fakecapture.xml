@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ENSICAEN
+6 Boulevard Marechal Juin
+F-14050 Caen Cedex
+
+This file is owned by ENSICAEN students.
+No portion of this code may be reproduced, copied
+or revised without written permission of the authors.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:opencv="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <org.opencv.android.JavaCameraView
+        android:id="@+id/camera"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="5" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <Button
+            android:id="@+id/snap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/snap" />
+        <Button
+            android:id="@+id/stitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/stitch" />
+    </LinearLayout>    
+</LinearLayout>
