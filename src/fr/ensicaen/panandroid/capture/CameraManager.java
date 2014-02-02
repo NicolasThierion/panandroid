@@ -1,10 +1,14 @@
 package fr.ensicaen.panandroid.capture;
 
 import java.io.IOException;
+
+import fr.ensicaen.panandroid.sensor.SensorFusionManager;
 import junit.framework.Assert;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.ShutterCallback;
 import android.hardware.Camera.Size;
 import android.util.Log;
 
@@ -43,6 +47,8 @@ public class CameraManager
 	///private CameraPreviewCallback mCameraCallback;
 
 	private SurfaceTexture mSurfaceTexturePreview;
+	
+
 	
 
 
@@ -176,7 +182,7 @@ public class CameraManager
 
 	/**
 	 * Camera render to display by default. Redirect the preview to a custom surtfaceTexture.
-	 * Camera has to be opened to set the preview texture. If it isn't opeed yet, the method will try to open it.
+	 * Camera has to be opened to set the preview texture. If it isn't opened yet, the method will try to open it.
 	 * @param texture
 	 * @throws IOException if camera cannot be opened.
 	 */
@@ -224,15 +230,50 @@ public class CameraManager
 		return mCamera.getParameters().getPreviewSize();
 	}
 
+	public void takeSnapshot(CameraCallback onFinishCallback)
+	{
+		mCamera.takePicture(null, null, onFinishCallback);
+	}
+
 	
+	public class CameraCallback implements PictureCallback
+	{
+
+		Snapshot mCurrentSnapshot;
+		SensorFusionManager mSensorFusionManager;
+		
+		
+		public CameraCallback(SensorFusionManager sensorFusionManager )
+		{
+			mSensorFusionManager = sensorFusionManager;
+		}
+		
+		@Override
+		public void onPictureTaken(byte[] data, Camera camera) 
+		{
+			mCurrentSnapshot = new Snapshot();
+			mCurrentSnapshot.setPitch(mSensorFusionManager.getPitch());
+			mCurrentSnapshot.setYaw(mSensorFusionManager.getYaw());
+		}
+		
+		
+		public Snapshot getSnapshot()
+		{
+			
+			return mCurrentSnapshot;
+		}
+		
+	}
 	
 	
 	
 	/* *************
 	 * PRIVATE METHODS
 	 * ************/
-
 	
+		
+	
+
 	/* *************
 	 * PRIVATE CLASS
 	 * ************/
