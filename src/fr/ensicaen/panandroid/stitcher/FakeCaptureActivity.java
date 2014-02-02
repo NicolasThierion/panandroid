@@ -83,7 +83,7 @@ public class FakeCaptureActivity extends Activity implements CvCameraViewListene
         mJavaCamera.setCvCameraViewListener(this);
         mSnap = (Button) findViewById(R.id.snap);
         mStitch = (Button) findViewById(R.id.stitch);
-        mStitch.setEnabled(false);
+        //mStitch.setEnabled(false);
 
         mSnap.setOnClickListener(new View.OnClickListener() {
             @Override
