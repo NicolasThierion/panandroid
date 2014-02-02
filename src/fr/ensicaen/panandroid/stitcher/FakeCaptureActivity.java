@@ -111,7 +111,7 @@ public class FakeCaptureActivity extends Activity implements CvCameraViewListene
     @Override
     protected void onResume() {
         super.onResume();
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_8, this,
+        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_5, this,
                 mBaseLoaderCallBack);
     }
 
