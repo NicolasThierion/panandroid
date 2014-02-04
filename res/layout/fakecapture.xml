@@ -29,7 +29,7 @@ or revised without written permission of the authors.
             android:layout_height="wrap_content"
             android:text="@string/snap" />
         <Button
-            android:id="@+id/stitch"
+            android:id="@+id/stitcho"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/stitch" />
