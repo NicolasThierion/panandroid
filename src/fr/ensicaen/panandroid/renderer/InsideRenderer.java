@@ -8,23 +8,21 @@ import junit.framework.Assert;
 
 
 import fr.ensicaen.panandroid.R;
-import fr.ensicaen.panandroid.sphere.Sphere;
+import fr.ensicaen.panandroid.meshs.Mesh;
+import fr.ensicaen.panandroid.meshs.NullMesh;
 import android.content.Context;
 import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.GLU;
 
+
 /**
- * Renderer for a GL SphereView. Draws a Sphere at the middle of the GL View.
- * Based on Frank Dürr 's OpenPanandroid, and 
- * Guillaume Lesniak's picSphere app.
- *
+ * OpenGL renderer that display a shape from inside.
  * @author Nicolas
+ *
  */
-public class SphereRenderer implements Renderer 
-{
-	
-	
-	private static final String TAG = SphereRenderer.class.getSimpleName();
+public class InsideRenderer implements Renderer
+{		
+	private static final String TAG = InsideRenderer.class.getSimpleName();
 
 	/* *************
 	 * GLOBAL RENDERING PARAMS
@@ -44,18 +42,15 @@ public class SphereRenderer implements Renderer
 	
 	/** Perspective setup, far component. */
 	private static final float Z_FAR = 100.0f;
-		
-	/** Sphere's distance on the screen. */
-	private static final float OBJECT_DISTANCE = 0.00f;
-
-	private final static float COORD = (float) Math.sin(Math.PI/4.0);
+	
+	//private final static float COORD = (float) Math.sin(Math.PI/4.0);
 	
 	/* *************
 	 * ATTRIBUTES
 	 * *************/
 	
-	/** The sphere. */
-	protected final Sphere mSphere;
+	/** The mesh. */
+	protected Mesh mMesh;
 	
 	/** The context. */
 	private final Context mContext;
@@ -63,11 +58,11 @@ public class SphereRenderer implements Renderer
 	/** Diagonal field of view **/
 	private float fovDeg; 
 	
-	/** The rotation angle of the sphere */
+	/** The rotation angle of the mesh */
 	private float mYaw; 	/* Rotation around y axis */
 	private float mPitch; 	/* Rotation around x axis */
 
-	
+	/** Rotation matrix = modelview matrix **/
 	// While accessing this matrix, the renderer object has to be locked.
 	private float[] mRotationMatrix = new float[16];
 	
@@ -93,16 +88,22 @@ public class SphereRenderer implements Renderer
 	* Constructor to set the handed over context.
 	* @param context The context.
 	*/
-	public SphereRenderer(final Context context, Sphere sphere) 
+	public InsideRenderer(final Context context, Mesh mesh) 
 	{
 		mContext = context;
-		mSphere = sphere;
+		mMesh = mesh;
 		mYaw = mPitch = 0.0f;
 	  	setRotation(mYaw, mPitch);
 	  	fovDeg = DEFAULT_FOV;	
 	}
 
 	
+	public InsideRenderer(Context context)
+	{
+		this(context, new NullMesh());
+	}
+
+
 	/* *************
 	 * RENDERER OVERRIDES
 	 * *************/
@@ -123,10 +124,11 @@ public class SphereRenderer implements Renderer
 	  	//load the rotation matrix
 	  	synchronized (this) {
 	  		gl.glLoadMatrixf(mRotationMatrix, 0);
+	  		//draw the mesh in this new referential.
+			this.mMesh.draw(gl, mRotationMatrix);
 	  	}
 
-	  	//draw the sphere in this new referential.
-		this.mSphere.draw(gl);
+	  	
 	}
 	
 	
@@ -146,7 +148,7 @@ public class SphereRenderer implements Renderer
 	{
 		
 		
-		this.mSphere.loadGLTexture(gl, mContext, R.raw.white_pano);
+		this.mMesh.loadGLTexture(gl);
 		
 		//texture mode
 		gl.glEnable(GL10.GL_TEXTURE_2D);
@@ -171,7 +173,7 @@ public class SphereRenderer implements Renderer
 		gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_NICEST);
 		
 	    
-				    /*//done in drawSphere
+				    /*//done in drawMesh
 					gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
 					gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
 					
@@ -266,7 +268,7 @@ public class SphereRenderer implements Renderer
 	 * PUBLIC METHODS
 	 * *************/
 	/**
-	 * Rotate the sphere given euler's angles.
+	 * Rotate the mesh given euler's angles.
 	 * @param pitch - rotation around y axis.
 	 * @param yaw - rotation around x axis.
 	 */
@@ -351,6 +353,16 @@ public class SphereRenderer implements Renderer
 	}
 
 	
+	public void setSurroundingMesh(Mesh mesh)
+	{
+		mMesh = mesh;
+	}
+	
+	public Mesh getSurroundingMesh()
+	{
+		return mMesh;
+	}
+	
 	/* ************
 	 * PRIVATE METHODS
 	 * ************/
@@ -403,6 +415,5 @@ public class SphereRenderer implements Renderer
   	
 		setRotation(mPitch0+deltaPitch, mYaw0+deltaYaw);
 	}
-
 
 }

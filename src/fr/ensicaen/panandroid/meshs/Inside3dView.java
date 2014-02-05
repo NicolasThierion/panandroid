@@ -8,11 +8,12 @@
  * or revised without written permission of the authors.
  */
 
-package fr.ensicaen.panandroid.sphere;
+package fr.ensicaen.panandroid.meshs;
 
 import java.util.Stack;
 
-import fr.ensicaen.panandroid.renderer.SphereRenderer;
+import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.renderer.InsideRenderer;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
 import junit.framework.Assert;
 
@@ -26,16 +27,16 @@ import android.util.Log;
 import android.view.MotionEvent;
 
 /**
- * Surface view drawing a 3D sphere at the middle of the scene.
+ * Surface view drawing a 3D mesh at the middle of the scene.
  * The view creates and starts its own openGL renderer.
  * 
  * @author Nicolas
  *
  */
-public class SphereView extends GLSurfaceView implements SensorEventListener 
+public class Inside3dView extends GLSurfaceView implements SensorEventListener 
 {
 	
-	private static final String TAG = SphereView.class.getSimpleName();
+	private static final String TAG = Inside3dView.class.getSimpleName();
     
 	/* *********
 	 * VIEW PARAMETERS
@@ -46,9 +47,9 @@ public class SphereView extends GLSurfaceView implements SensorEventListener
 	/* ***
 	 * DEFAULT PARAMETERS
 	 * ***/
-	/** Size of the sphere **/
+	/** Size of the mesh **/
 	private static final float DEFAULT_SPHERE_RADIUS = 0.15f;
-	/** Resolution of the sphere **/
+	/** Resolution of the mesh **/
 	private static final int DEFAULT_SPHERE_RESOLUTION = 4;
 	
 
@@ -56,7 +57,7 @@ public class SphereView extends GLSurfaceView implements SensorEventListener
 	 * ATTRIBUTES
 	 * ********/
 	/** GL renderer **/
-	protected SphereRenderer mRenderer;
+	protected InsideRenderer mRenderer;
 	
 	/** list of all touch events captured **/
     private Stack<EventInfo> mMotionEvents;
@@ -73,60 +74,51 @@ public class SphereView extends GLSurfaceView implements SensorEventListener
 	/** The sensorFusion manager for sensorial rotation **/
 	private SensorFusionManager mSensorFusionManager = null;
 
-	/** Sphere that is drawed, given to the renderer **/
-	protected Sphere mSphere;
+	/** Mesh that is drawed, given to the renderer **/
+	protected Mesh mMesh;
 	
     /* *********
 	 * CONSTRUCTOR
 	 * *********/
 
 	/**
-	 * Creates a new SphereView to put in the given context.
-	 * Draws the sphere given in parameter.
+	 * Creates a new MeshView to put in the given context.
+	 * Draws the mesh given in parameter.
 	 * @param context - Android context owning this view.
-	 * @param sphere - Sphere to draw.
+	 * @param mesh - Mesh to draw.
 	 */
-	public SphereView(Context context, Sphere sphere)
+	public Inside3dView(Context context, Mesh mesh)
 	{
-        this(context, sphere, new SphereRenderer(context, sphere ));	 
-	}
-	/**
-	 * Creates a new SphereView to put in the given context.
-	 * Draws a sphere with default size and resolution.
-	 * @param context - Android context owning this view.
-	 */
-	public SphereView(Context context)
-	{
-		this(context, null);        
+        this(context, mesh, new InsideRenderer(context, mesh ));	 
 	}
 	
+	
 	/**
-	 * Creates a new SphereView to put in the given context.
+	 * Creates a new MeshView to put in the given context.
 	 * @param context - Android context owning this view.
-	 * @param sphere - sphere to draw in the view.
+	 * @param mesh - mesh to draw in the view.
 	 * @param renderer - renderer to use to render this scene.
-	 * If sphere is null, create a default sphere.
+	 * If mesh is null, create a default mesh.
 	 * If renderer is null, you must use setRenderer later.
 	 */
-	protected SphereView(Context context, Sphere sphere, SphereRenderer renderer)
+	protected Inside3dView(Context context, Mesh mesh, InsideRenderer renderer)
 	{
 		super(context);
-		if(sphere==null)
-		{
-			mSphere = new Sphere(DEFAULT_SPHERE_RESOLUTION , DEFAULT_SPHERE_RADIUS );
-		}
-		else
-			mSphere = sphere;
+		
+		mMesh = mesh;
+		
+		
+		
 		
 		//if renderer is set, assign the view to it.
 		if(renderer != null)
 		{
-			setSphereRenderer(renderer);
+			setMeshRenderer(renderer);
 		}
 		/*
 		//else set a dummy renderer, and don't use it.
 		else
-			mRenderer = new SphereRenderer(context, sphere);*/
+			mRenderer = new MeshRenderer(context, mesh);*/
 	}
     
     
@@ -221,7 +213,7 @@ public class SphereView extends GLSurfaceView implements SensorEventListener
 	 * ********/
 	
 	/**
-	 * Set the sphere rotation
+	 * Set the mesh rotation
 	 * @param deltaYaw - How many degree to rotate horizontally
 	 * @param deltaPitch - How many degrees to rotate vertically
 	 */
@@ -288,15 +280,15 @@ public class SphereView extends GLSurfaceView implements SensorEventListener
 	 * Must override this method if want to use a custom renderer.
 	 * Don't forget to call super.setRenderer() with the new renderer.
 	 */
-	protected void setSphereRenderer(SphereRenderer renderer)
+	protected void setMeshRenderer(InsideRenderer renderer)
 	{	
         mRenderer = renderer;
         super.setRenderer(mRenderer);
 	}
 	
-	protected void setSphere(Sphere sphere)
+	protected void setMesh(Mesh mesh)
 	{
-		mSphere = sphere;
+		mMesh = mesh;
 	}
 	
 	/**

@@ -1,8 +1,16 @@
 package fr.ensicaen.panandroid.capture;
 
-import fr.ensicaen.panandroid.sphere.Sphere;
+import junit.framework.Assert;
+import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.meshs.Cube;
+import fr.ensicaen.panandroid.meshs.Inside3dView;
+import fr.ensicaen.panandroid.meshs.Sphere;
 import android.app.Activity;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -23,18 +31,15 @@ public class CaptureActivity extends Activity
 	/* *********
 	 * CONSTANTS
 	 * *********/
-	/** Size of the sphere **/
-	private static final float SPHERE_RADIUS = 0.15f;
-	
-	/** Resolution of the sphere **/
-	private static final int SPHERE_RESOLUTION = 4;
-	
+	/** Size of the skybox **/
+	private static final float SKYBOX_SIZE = 15f;
+		
 	/* *********
 	 * ATTRIBUTES
 	 * *********/
 			
 	/** The OpenGL view where to draw the sphere. */
-	private CaptureView mSphereView;
+	private Inside3dView mCaptureView;
 	
 	/** The Camera manager **/
 	private CameraManager mCameraManager;
@@ -53,15 +58,46 @@ public class CaptureActivity extends Activity
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
-		//init the sphere
-		Sphere sphere = new Sphere(SPHERE_RESOLUTION, SPHERE_RADIUS);
+		//init the skybox
+		Cube skybox = null;
+		Resources res = super.getResources();
+		
+		int sampleSize=1;
+		boolean done = false;
+		while(!done && sampleSize<32)
+		{
+			try{
+			
+				Bitmap texFront = safeDecodeBitmap(res, R.raw.skybox_ft, sampleSize);
+				Bitmap texBack = safeDecodeBitmap(res, R.raw.skybox_bk, sampleSize);
+				Bitmap texLeft = safeDecodeBitmap(res, R.raw.skybox_lt, sampleSize);
+				Bitmap texRight = safeDecodeBitmap(res, R.raw.skybox_rt, sampleSize);
+				Bitmap texBottom = safeDecodeBitmap(res, R.raw.skybox_bt, sampleSize);
+				Bitmap texTop = safeDecodeBitmap(res, R.raw.skybox_tp, sampleSize);
+				
+				skybox = new Cube(SKYBOX_SIZE,texFront,texBack, texLeft, texRight, texBottom, texTop);
+				done = true;
+			}
+			catch (OutOfMemoryError e)
+			{
+				
+				sampleSize*=2;
+			}
+			
+		}
+		Assert.assertTrue(skybox!=null);
 		
 		//get camera manager
 		mCameraManager = CameraManager.getInstance();
 		
 		//set GL view & its renderer
-		this.mSphereView = new CaptureView(this, mCameraManager);
-		this.setContentView(this.mSphereView);		
+		this.mCaptureView = new Inside3dView(this, skybox );// new CaptureView(this,  mCameraManager);
+		this.setContentView(this.mCaptureView);	
+		
+		mCaptureView.enableSensorialRotation(true);
+		//mCaptureView.enableInertialRotation(true);
+		//mCaptureView.enableTouchRotation(true);
+		
 	}
 	
 	  
@@ -72,7 +108,7 @@ public class CaptureActivity extends Activity
 	protected void onResume()
 	{
 		super.onResume();
-		this.mSphereView.onResume();
+		this.mCaptureView.onResume();
 	}
 	
 	/**
@@ -81,7 +117,44 @@ public class CaptureActivity extends Activity
 	@Override
 	protected void onPause()
 	{
-		this.mSphereView.onPause();
+		this.mCaptureView.onPause();
 		super.onPause();
+	}
+	
+	private Bitmap safeDecodeBitmap(Resources res, int resId, int sampleSize)
+	{
+		Bitmap bmp;
+		BitmapFactory.Options bitmapOptions = new BitmapFactory.Options(); 
+		bitmapOptions.inSampleSize = sampleSize;
+		try
+		{
+			 bmp = BitmapFactory.decodeResource(res, resId, bitmapOptions);
+			 return bmp;
+		}
+		catch(OutOfMemoryError e)
+		{
+			//out of memory => launch garbage collector
+			System.gc();
+		}
+		
+		
+		while (bitmapOptions.inSampleSize<32)
+		{
+			try
+			{
+				bmp = BitmapFactory.decodeResource(res, resId, bitmapOptions);
+				return bmp;
+			}
+			catch (OutOfMemoryError e)
+			{
+				bitmapOptions.inSampleSize *= 2;
+			}
+		}
+		throw new OutOfMemoryError();
+		
+	}
+	private Bitmap safeDecodeBitmap(Resources res, int resId)
+	{
+		return safeDecodeBitmap(res, resId, 1);
 	}
 }
