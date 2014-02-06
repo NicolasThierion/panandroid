@@ -54,5 +54,10 @@ public class Snapshot
 	{
 		mYaw = yaw;
 	}
+
+	public int getId() {
+		//TODO
+		return 0;
+	}
 	
 }

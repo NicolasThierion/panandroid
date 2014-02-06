@@ -13,6 +13,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Bitmap.Config;
 import android.opengl.GLES10;
+import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
@@ -23,7 +24,9 @@ public class TexturedPlane extends Mesh
 	
 	private static final String TAG = TexturedPlane.class.getSimpleName();
 
-	
+	/* *********
+	 * DEFAULT PARAMETERS
+	 * ********/
 	private static final float DEFAULT_SCALE = 1.0f;
 	
 	private static final float DEFAULT_RATIO = 1.0f;
@@ -39,51 +42,44 @@ public class TexturedPlane extends Mesh
 	/* *********
 	 * ATTRIBUTES
 	 * ********/
-    public float[]mModelMatrix;
-    private int imTextureId;
-    private Bitmap mBitmapTexture;
-    
-    //private boolean mIsFourToThree;
-    
-    private boolean mIsVisible = true;
-    
-    ///private float mAlpha = 1.0f;
-    
-    private float mAutoAlphaX;
-    private float mAutoAlphaY;
-    
-    
-    //private int mPositionHandler ;
-    //private int mTexCoordHandler ;
-    
-    private FloatBuffer mVertexBuffer;
-    
-    //private FloatBuffer m43VertexBuffer;
-    
-    private FloatBuffer mTexCoordBuffer;
-    
-    //private float[] mViewMatrix;
-    //private float[] mProjectionMatrix = new float[16];
-    
-    
-    private float[] mMVPMatrix = new float[16];
-    
-    
-    
-    
- // x, y, z
-    private float mVertices[];
+	public float[]mModelMatrix;
+	private int imTextureId;
+	private Bitmap mBitmapTexture;
+	
+	
+	private boolean mIsVisible = true;
+	
+	///private float mAlpha = 1.0f;
+	
+	private float mAutoAlphaX;
+	private float mAutoAlphaY;
+	
+	private Axis mAxis = Axis.VERTICAL; 
+	
+	
+	
+	
+	//private int mPositionHandler ;
+	//private int mTexCoordHandler ;
+	
+	private FloatBuffer mVertexBuffer;
+	
+	//private FloatBuffer m43VertexBuffer;
+	
+	private FloatBuffer mTexCoordBuffer;
+	
+	//private float[] mViewMatrix;
+	//private float[] mProjectionMatrix = new float[16];
+	
+	
+	private float[] mMVPMatrix = new float[16];
+	
+	
+	
+	
+	// x, y, z
+	private float mVertices[];
 
-    /*
-    private final float m43VertexData[] =
-            {
-                    -SNAPSHOT_SCALE *RATIO,  -SNAPSHOT_SCALE,
-                    -SNAPSHOT_SCALE *RATIO, SNAPSHOT_SCALE,
-                    SNAPSHOT_SCALE *RATIO, SNAPSHOT_SCALE,
-                    SNAPSHOT_SCALE *RATIO, -SNAPSHOT_SCALE
-            };
-*/
-    // u,v
     private static final float mTexCoordData[] =
             {
                     0.0f, 1.0f,
@@ -93,19 +89,13 @@ public class TexturedPlane extends Mesh
             };
 
 
+	private boolean mTextureToLoad = false;;
     
-    private int mProgram;
 
-
-	private int mMVPMatrixHandler;
-
-
-	private int mTextureHandler;
-
-
-	private int mAlphaHandler;
-    
-    
+	public enum Axis{
+		VERTICAL, HORIZONTAL
+	}
+	
 
 	/* *********
 	 * CONSTRUCTORS
@@ -170,24 +160,6 @@ public class TexturedPlane extends Mesh
 	/* *********
 	 * ACCESSORS
 	 * ********/
-    /*
-    public void setGlProgram(int program,
-    						int positionHandler, 
-    						int texCoordHandler, 
-    						int MVPMatrixHandler, 
-    						int textureHandler, 
-    						int alphaHandler)
-    {
-    	mProgram = program;
-		mPositionHandler= positionHandler;
-		mTexCoordHandler = texCoordHandler;
-		mMVPMatrixHandler = MVPMatrixHandler;
-		mTextureHandler = textureHandler;
-		mAlphaHandler = alphaHandler;
-		
-		
-    }
-    */
    
     
     public void setVisible(boolean visible) {
@@ -196,11 +168,15 @@ public class TexturedPlane extends Mesh
 
 
     public void setTexture(Bitmap tex) {
-        mBitmapTexture = tex;
+        
+    	mBitmapTexture = tex;
+    	mTextureToLoad = true;
+        
     }
 
     public void setTextureId(int id) {
         imTextureId = id;
+    	mTextureToLoad = true;
     }
 
     /*
@@ -222,32 +198,19 @@ public class TexturedPlane extends Mesh
         return mAutoAlphaY;
     }
 
-  
-
-    
-    
-    
     
     
     public void draw(GL10 gl, float[] modelViewMatrix)
     {
-    	
+		gl.glEnable(GL10.GL_TEXTURE_2D);
+		GLES10.glEnable( GLES10.GL_ALPHA_TEST );
+		GLES10.glAlphaFunc( GLES10.GL_GREATER, 0 );
     	
         if (!mIsVisible) return;
 
-        if (mBitmapTexture != null) {
+        if (mTextureToLoad) {
             loadGLTexture(gl);
         }
-
-        /*
-        GLES20.glUseProgram(mProgram);
-        if (mIsFourToThree) {
-            m43VertexBuffer.position(0);
-        } else {
-            mVertexBuffer.position(0);
-        }
-        mTexCoordBuffer.position(0);
-		*/
         
         // bind the previously generated texture.
         gl.glBindTexture(GL10.GL_TEXTURE_2D, imTextureId);
@@ -256,60 +219,26 @@ public class TexturedPlane extends Mesh
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
         gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
         
-     // Set the face rotation, clockwise in this case.
-        //gl.glFrontFace(GL10.GL_CCW);
-        
-        /*
-        GLES20.glEnableVertexAttribArray(mTexCoordHandler);
-        GLES20.glEnableVertexAttribArray(mPositionHandler);
-         */
-        //if (mIsFourToThree)
-        {
-        	/*
-            GLES20.glVertexAttribPointer(mPositionHandler,
-                    2, GLES20.GL_FLOAT, false, 8, m43VertexBuffer);*/
-        	gl.glVertexPointer(3, GL10.GL_FLOAT, 0, this.mVertexBuffer);
+     
+      
+        gl.glVertexPointer(3, GL10.GL_FLOAT, 0, this.mVertexBuffer);
             
-        	
-        	//gl.glTexCoordPointer(AMOUNT_OF_NUMBERS_PER_TEXTURE_POINT, GL10.GL_FLOAT, 0, this.mTextureBuffer.get(i));
-
         
-        } 
-        /*
-        else 
-        {
-            GLES20.glVertexAttribPointer(mPositionHandler,
-                    2, GLES20.GL_FLOAT, false, 8, mVertexBuffer);
-        }
-        */
         GLES10.glTexCoordPointer(2,GLES10.GL_FLOAT, 0, mTexCoordBuffer);
 
         // This multiplies the view matrix by the model matrix, and stores the
         // result in the MVP matrix (which currently contains model * view).
-        //TODO : remove
-        Assert.assertTrue(mMVPMatrix!=null);
-        Assert.assertTrue(mModelMatrix!=null);
-        
-
         Matrix.multiplyMM(mMVPMatrix, 0, modelViewMatrix, 0, mModelMatrix, 0);
   		gl.glLoadMatrixf(mMVPMatrix, 0);
 
-        // This multiplies the modelview matrix by the projection matrix, and stores
-        // the result in the MVP matrix (which now contains model * view * projection).
-        //Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVPMatrix, 0);
-
-        // Pass in the combined matrix.
-        //GLES20.glUniformMatrix4fv(mMVPMatrixHandler, 1, false, mMVPMatrix, 0);
-
-        //GLES20.glUniform1f(mAlphaHandler, mAlpha);
-
-        GLES10.glActiveTexture(GLES10.GL_TEXTURE0);
-        GLES10.glBindTexture(GLES10.GL_TEXTURE_2D, imTextureId);
-
-        //GLES20.glUniform1i(mTextureHandler, 0);
 
         GLES10.glDrawArrays(GLES10.GL_TRIANGLE_FAN, 0, 4);
   		gl.glLoadMatrixf(modelViewMatrix, 0);
+  		
+		gl.glDisable(GL10.GL_TEXTURE_2D);
+		GLES10.glDisable( GLES10.GL_ALPHA_TEST );
+
+
 
     }
 
@@ -328,24 +257,33 @@ public class TexturedPlane extends Mesh
         //GLES10.glTexParameterf(GLES10.GL_TEXTURE_2D, GLES10.GL_TEXTURE_WRAP_T, GLES10.GL_CLAMP_TO_EDGE);
 
         GLUtils.texImage2D(GLES10.GL_TEXTURE_2D, 0, mBitmapTexture, 0);
-        mBitmapTexture.recycle();
+        //mBitmapTexture.recycle();
 
         if(texture[0] == 0){
             Log.e(TAG, "Unable to attribute texture to quad");
         }
 
         imTextureId = texture[0];
-        mBitmapTexture = null;		
+    	mTextureToLoad = false;
+
 	}
 	
 
 	public void rotate(float rx, float ry, float rz)
 	{
-		Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
-		Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+		switch(mAxis)
+		{
+		//rotate yaw first
+		case VERTICAL :
+			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
+			break;
+		default:
+			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
+			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+			
+		}
 		Matrix.rotateM(mModelMatrix, 0, rz, 0, 0, 1);
-		
-
 		
 	}
 
@@ -353,5 +291,10 @@ public class TexturedPlane extends Mesh
 	{
         Matrix.translateM(mModelMatrix, 0, -tx, -ty, -tz);
 		
+	}
+	
+	public void setAxis(Axis axis)
+	{
+		mAxis = axis;
 	}
 }

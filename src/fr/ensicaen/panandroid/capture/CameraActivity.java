@@ -1,7 +1,7 @@
 package fr.ensicaen.panandroid.capture;
 
 import android.app.Activity;
-import android.graphics.SurfaceTexture;
+
 import android.os.Bundle;
 import android.util.Log;
 

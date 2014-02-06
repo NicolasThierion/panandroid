@@ -47,6 +47,7 @@ public class CameraManager
 	///private CameraPreviewCallback mCameraCallback;
 
 	private SurfaceTexture mSurfaceTexturePreview;
+	private boolean mPreviewStarted;
 	
 
 	
@@ -119,7 +120,27 @@ public class CameraManager
 	
 	public boolean reOpen()
 	{
-		return open(mCameraId);
+		if(isOpen())
+			close();
+		boolean res = open(mCameraId);
+		if(!res)
+			return res;
+		if(this.mCameraParameters!=null)
+		{
+			mCamera.setParameters(mCameraParameters);
+		}
+		if(mSurfaceTexturePreview!=null)
+		{
+			try {
+				mCamera.setPreviewTexture(mSurfaceTexturePreview);
+			} catch (IOException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		if(mPreviewStarted)
+			startPreview();
+		return res;
 	}
 	
 	public void onResume()
@@ -145,12 +166,14 @@ public class CameraManager
 	
 	public void startPreview()
 	{
+		mPreviewStarted = true;
 		mCamera.startPreview();
 
 	}
 
 	public void stopPreview()
 	{
+		mPreviewStarted = false;
 		mCamera.stopPreview();
 
 	}
@@ -188,7 +211,6 @@ public class CameraManager
 	 */
 	public void setPreviewSurface(SurfaceTexture texture) throws IOException
 	{
-		Log.i(TAG, "redirectig preview to Texture");
 		if(!isOpen())
 		{
 			this.open();
@@ -204,14 +226,14 @@ public class CameraManager
 
         //redirect preview
         mSurfaceTexturePreview = texture;
+        
         mCamera.setPreviewTexture(mSurfaceTexturePreview);
 
         //TODO : to remove?
 		///mCameraCallback = new CameraPreviewCallback(mCamera);
 		///mCameraCallback.disable();
 		
-		mCamera.startPreview();
-		
+		startPreview();
 	}
 
 	/**

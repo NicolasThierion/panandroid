@@ -1,9 +1,9 @@
 package fr.ensicaen.panandroid.viewer;
 
 import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.insideview.Inside3dView;
 import fr.ensicaen.panandroid.meshs.Cube;
 import fr.ensicaen.panandroid.meshs.Sphere;
-import fr.ensicaen.panandroid.meshs.Inside3dView;
 import fr.ensicaen.panandroid.meshs.TexturedPlane;
 import android.app.Activity;
 import android.graphics.Bitmap;

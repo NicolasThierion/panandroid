@@ -8,12 +8,11 @@
  * or revised without written permission of the authors.
  */
 
-package fr.ensicaen.panandroid.meshs;
+package fr.ensicaen.panandroid.insideview;
 
 import java.util.Stack;
 
-import fr.ensicaen.panandroid.R;
-import fr.ensicaen.panandroid.renderer.InsideRenderer;
+import fr.ensicaen.panandroid.meshs.Mesh;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
 import junit.framework.Assert;
 
@@ -44,15 +43,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	private static final long INERTIA_TIME_INTERVAL = 200; // [ms]
 	private static final int REST_THRESHOLD = 5; // [pixel]
 	
-	/* ***
-	 * DEFAULT PARAMETERS
-	 * ***/
-	/** Size of the mesh **/
-	private static final float DEFAULT_SPHERE_RADIUS = 0.15f;
-	/** Resolution of the mesh **/
-	private static final int DEFAULT_SPHERE_RESOLUTION = 4;
-	
-
 	/* *********
 	 * ATTRIBUTES
 	 * ********/
@@ -75,24 +65,12 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	private SensorFusionManager mSensorFusionManager = null;
 
 	/** Mesh that is drawed, given to the renderer **/
-	protected Mesh mMesh;
+	//protected Mesh mMesh;
 	
     /* *********
-	 * CONSTRUCTOR
+	 * CONSTRUCTORS
 	 * *********/
 
-	/**
-	 * Creates a new MeshView to put in the given context.
-	 * Draws the mesh given in parameter.
-	 * @param context - Android context owning this view.
-	 * @param mesh - Mesh to draw.
-	 */
-	public Inside3dView(Context context, Mesh mesh)
-	{
-        this(context, mesh, new InsideRenderer(context, mesh ));	 
-	}
-	
-	
 	/**
 	 * Creates a new MeshView to put in the given context.
 	 * @param context - Android context owning this view.
@@ -105,23 +83,32 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	{
 		super(context);
 		
-		mMesh = mesh;
-		
-		
-		
-		
+		//mMesh = mesh;
+	
 		//if renderer is set, assign the view to it.
 		if(renderer != null)
 		{
-			setMeshRenderer(renderer);
+			setRenderer(renderer);
 		}
-		/*
-		//else set a dummy renderer, and don't use it.
-		else
-			mRenderer = new MeshRenderer(context, mesh);*/
+	}
+	
+	/**
+	 * Creates a new MeshView to put in the given context.
+	 * Draws the mesh given in parameter.
+	 * @param context - Android context owning this view.
+	 * @param mesh - Mesh to draw.
+	 */
+	public Inside3dView(Context context, Mesh mesh)
+	{
+        this(context, mesh, new InsideRenderer(context, mesh) );	 
 	}
     
-    
+	public Inside3dView(Context context)
+	{
+        this(context, null, null);	 
+	}
+
+
 	/* *********
 	 * GLVIEW OVERRIDES
 	 * ********/
@@ -181,13 +168,17 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	{
 		if(this.isSensorialRotationEnabled())
 			this.mSensorFusionManager.onResume();
+		super.onResume();
 	}
 	@Override 
 	public void onPause()
 	{
+		super.onPause();
 		if(this.isSensorialRotationEnabled())
 			this.mSensorFusionManager.onPauseOrStop();
 	}
+	
+	
 	
 
 	/* *********
@@ -280,16 +271,12 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	 * Must override this method if want to use a custom renderer.
 	 * Don't forget to call super.setRenderer() with the new renderer.
 	 */
-	protected void setMeshRenderer(InsideRenderer renderer)
+	protected void setRenderer(InsideRenderer renderer)
 	{	
         mRenderer = renderer;
         super.setRenderer(mRenderer);
 	}
 	
-	protected void setMesh(Mesh mesh)
-	{
-		mMesh = mesh;
-	}
 	
 	/**
 	 * 
