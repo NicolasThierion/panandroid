@@ -1,5 +1,7 @@
 package fr.ensicaen.panandroid.capture;
 
+import java.util.LinkedList;
+
 import fr.ensicaen.panandroid.sphere.Sphere;
 import android.app.Activity;
 import android.os.Bundle;
@@ -25,7 +27,8 @@ public class CaptureActivity extends Activity
 	 * *********/
 	/** Size of the sphere **/
 	private static final float SPHERE_RADIUS = 0.15f;
-	
+	/** difference **/
+	private static final float DELTA_YAW = 10, DELTA_PITCH = 10; 
 	/** Resolution of the sphere **/
 	private static final int SPHERE_RESOLUTION = 4;
 	
@@ -64,7 +67,37 @@ public class CaptureActivity extends Activity
 		this.setContentView(this.mSphereView);		
 	}
 	
-	  
+
+	/*void generateMarks(float s)
+	{
+		float radius = 1;
+		float phi = s/radius;
+		LinkedList<Mark> marks;
+		
+		
+		double theta = Math.PI; //equateur
+		phi = 0;
+		Mark mark;
+		
+		mark.mPitch = theta;
+		mark.mYaw = phi;
+		
+		marks.add(mark);
+		
+		while(   ) { //test d'arret pour recouvrir tte la sphere
+			phi += phi;
+			mark.mPitch = theta;
+			mark.mYaw = phi;
+			
+			marks.add(mark);
+					
+		}
+		
+		
+	
+		
+	}*/
+	
 	/**
 	 * Remember to resume the glSurface.
 	 */

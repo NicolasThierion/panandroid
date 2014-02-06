@@ -34,6 +34,9 @@ import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
 import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.capture.Snapshot;
+import fr.ensicaen.panandroid.capture.SnapshotManager;
+import fr.ensicaen.panandroid.sensor.SensorFusionManager;
 
 /**
  * FakeCaptureActivity class provides a simple way to takes pictures
@@ -41,12 +44,14 @@ import fr.ensicaen.panandroid.R;
  * This class is devoted to disappear in favor of the other one in
  * capture package.
  * @author Jean Marguerite <jean.marguerite@ecole.ensicaen.fr>
+ * @author Saloua Benseddik <saloua.benseddik@ecole.ensicaen.fr>
  * @version 0.0.1 - Sat Feb 01 2014
  */
 public class FakeCaptureActivity extends Activity implements CvCameraViewListener2 {
     private static final String TAG = "FakeCaptureActivity";
     private int mSnapshotNumber = 1;
     private Mat mSnapshot;
+    private SnapshotManager mSnapshotManager;
     private CameraBridgeViewBase mJavaCamera;
     private Context mContext = this;
 
@@ -66,6 +71,7 @@ public class FakeCaptureActivity extends Activity implements CvCameraViewListene
             }
         }
     };
+	private SensorFusionManager mSensorFusionManager;
 
     /**
      * Called when FakeCaptureActivity is starting.
@@ -81,17 +87,27 @@ public class FakeCaptureActivity extends Activity implements CvCameraViewListene
         mJavaCamera = (CameraBridgeViewBase) findViewById(R.id.camera);
         mJavaCamera.setVisibility(SurfaceView.VISIBLE);
         mJavaCamera.setCvCameraViewListener(this);
+        mSnapshotManager = new SnapshotManager();
+        mSensorFusionManager = new SensorFusionManager(mContext);
+
         mSnap = (Button) findViewById(R.id.snap);
         mStitch = (Button) findViewById(R.id.stitch);
         mStitch.setEnabled(false);
 
         mSnap.setOnClickListener(new View.OnClickListener() {
-            @Override
+
+			@Override
             public void onClick(View v) {
                 if (mSnapshotNumber > 1) {
                     mStitch.setEnabled(true);
                 }
-
+                
+                float pitch = mSensorFusionManager.getPitch();
+                float yaw =  mSensorFusionManager.getYaw();
+                Snapshot s = new Snapshot(pitch, yaw);
+                mSnapshotManager.addSnapshot(s);
+				
+               
                 snap();
             }
         });
@@ -100,6 +116,7 @@ public class FakeCaptureActivity extends Activity implements CvCameraViewListene
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(mContext, StitcherActivity.class);
+                mSnapshotManager.createJSONFile();
                 startActivity(intent);
             }
         });
@@ -163,4 +180,6 @@ public class FakeCaptureActivity extends Activity implements CvCameraViewListene
         Highgui.imwrite(directory + File.separator + "snap" + mSnapshotNumber++
                 + ".jpg", mStoreSnapshot);
     }
+    
+    
 }
