@@ -34,10 +34,9 @@ public class JSONTestActivity extends Activity
 		
 		for( int i = 0; i < 20; i++)
 		{
-			Snapshot s = new Snapshot();
+			Snapshot s = new Snapshot(i,i);
 			s.setFileName(i+".jpeg");
-			s.setPitch(i);
-			s.setYaw(i);
+
 			mSnapshotManager.addSnapshot(s);
 		}
 		mView = new View(this);

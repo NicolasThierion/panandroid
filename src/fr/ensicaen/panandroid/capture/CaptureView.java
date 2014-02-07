@@ -96,8 +96,10 @@ public class CaptureView extends Inside3dView
         super.setRenderer(mRenderer);
         
         //set view rotation parameters
-        super.enableSensorialRotation(true);
-        super.enableTouchRotation(false);
-        super.enableInertialRotation(false);
+        //super.enableSensorialRotation(true);
+        super.enableTouchRotation(true);
+        super.enableInertialRotation(true);
 	}
+	
+
 }

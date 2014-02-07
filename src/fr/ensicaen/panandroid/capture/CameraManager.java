@@ -273,9 +273,8 @@ public class CameraManager
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera) 
 		{
-			mCurrentSnapshot = new Snapshot();
-			mCurrentSnapshot.setPitch(mSensorFusionManager.getPitch());
-			mCurrentSnapshot.setYaw(mSensorFusionManager.getYaw());
+			mCurrentSnapshot = new Snapshot(mSensorFusionManager.getPitch(), mSensorFusionManager.getYaw());
+
 		}
 		
 		

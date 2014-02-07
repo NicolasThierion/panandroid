@@ -228,11 +228,19 @@ public class InsideRenderer implements Renderer
 	/* ************
 	 * GETTERS
 	 * ************/
+	/**
+	 * 
+	 * @return pitch of the mesh, between -90 and 90.
+	 */
 	public float getPitch() 
 	{
 	  	return mPitch;
 	}
-	  
+	
+	/**
+	 *   
+	 * @return yaw of the mesh, between -180 and 180.
+	 */
 	public float getYaw() 
 	{
 		return mYaw;
@@ -329,7 +337,10 @@ public class InsideRenderer implements Renderer
   	}
 	
 	/**
-	 * keep pitch and yaw to positive values
+	 * keep pitch and yaw between correct intervals : 
+	 * pitch  in [-180 , 180]
+	 * yaw in [-90, 90]
+	 * 
 	 */
 	private void normalizeRotation() 
 	{

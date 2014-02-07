@@ -4,16 +4,28 @@ import android.graphics.Bitmap;
 
 public class Snapshot
 {
-	Bitmap mBitmap;
-	float mYaw;
-	float mPitch;
-	//final float mRoll;
-	String mFileName;
+	private Bitmap mBitmap;
 	
-	public Snapshot(float yaw, float pitch)
+	private float mPitch;
+	private float mYaw;
+	private float mRoll;
+
+	private String mFileName;
+	
+	public Snapshot(float pitch, float yaw)
 	{
-		mYaw = yaw;
-		mPitch = pitch;
+		mYaw = yaw%360.0f;
+		mPitch = pitch%180.0f;
+
+		if(mYaw>180.0f)
+		{
+			mYaw-=360.0f;
+		}
+		
+		if(mPitch>90.0f)
+		{
+			mPitch-=180.0f;
+		}
 	}
 	
 	public Snapshot()
@@ -28,23 +40,22 @@ public class Snapshot
 	public void setBitmap(Bitmap mBitmap) {
 		this.mBitmap = mBitmap;
 	}
-	public float getYaw() {
+	public float getYaw()
+	{
 		return mYaw;
 	}
 	
-	public float getPitch() {
+	public float getPitch()
+	{
 		return mPitch;
 	}
-
-	public String getFileName() {
-		return mFileName;
+	
+	public float getRoll()
+	{
+		return mRoll;
 	}
 	
-	public void setFileName(String mFileName) {
-		this.mFileName = mFileName;
-	}
-	
-	
+	/*
 	public void setPitch(float pitch)
 	{
 		mPitch = pitch;
@@ -54,10 +65,28 @@ public class Snapshot
 	{
 		mYaw = yaw;
 	}
+	
+	public void setRoll(float roll)
+	{
+		mRoll = roll;
+	}
+	*/
+	public String getFileName() {
+		return mFileName;
+	}
+	
+	public void setFileName(String mFileName) {
+		this.mFileName = mFileName;
+	}
+	
+	
+
 
 	public int getId() {
 		//TODO
 		return 0;
 	}
+
+	
 	
 }

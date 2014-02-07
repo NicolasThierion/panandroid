@@ -54,6 +54,22 @@ public class Snapshot3D extends TexturedPlane
 	}
 
 	
+	public float getPitch()
+	{
+		return mSnapshot.getPitch();
+	}
+	
+	public float getYaw()
+	{
+		return mSnapshot.getYaw();
+	}
+	
+	//TODO;
+	public float getRoll()
+	{
+		return mSnapshot.getRoll();
+	}
+	
 }
 
 
