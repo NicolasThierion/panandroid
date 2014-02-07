@@ -34,22 +34,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<folderInfo id="com.android.toolchain.gcc.239206571.863154643" name="/" resourcePath="jni">
-						<toolChain id="com.android.toolchain.gcc.1967307895" name="com.android.toolchain.gcc" superClass="com.android.toolchain.gcc" unusedChildren="">
-							<targetPlatform binaryParser="org.eclipse.cdt.core.ELF" id="com.android.targetPlatform" isAbstract="false" superClass="com.android.targetPlatform"/>
-							<tool id="com.android.gcc.compiler.1004831431" name="Android GCC Compiler" superClass="com.android.gcc.compiler.349789931">
-								<option id="com.android.gcc.option.includePath.1533529057" superClass="com.android.gcc.option.includePath" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;D:\NVPACK\OpenCV-2.4.5-Tegra-sdk-r2\sdk\native\jni\include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;D:\NVPACK\android-ndk-r8e\sources\cxx-stl\gnu-libstdc++\4.7\include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;D:\NVPACK\android-ndk-r8e\sources\cxx-stl\gnu-libstdc++\4.7\libs\armeabi\include&quot;"/>
-								</option>
-								<inputType id="com.android.gcc.inputType.1189807161" superClass="com.android.gcc.inputType"/>
-							</tool>
-						</toolChain>
-					</folderInfo>
-					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="jni"/>
-					</sourceEntries>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
