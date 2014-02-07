@@ -49,7 +49,7 @@ public class CaptureRenderer extends InsideRenderer
 	private static final float CAMERA_DISTANCE = 55.0f;
 	
 	/** Size & distance of the markers **/
-	private static final float MARKERS_SIZE = 2.0f;
+	private static final float MARKERS_SIZE = 1.0f;
 	private static final float MARKERS_DISTANCE = 45.0f;
 		
 	/** Ratio of snapshot surfaces when in portrait/landscape mode **/

@@ -5,8 +5,6 @@ import javax.microedition.khronos.opengles.GL10;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Bitmap.Config;
-import android.opengl.Matrix;
-import fr.ensicaen.panandroid.capture.Quaternion;
 
 /**
  * Create a cube from 6 TexturedPlane objects
@@ -202,34 +200,4 @@ public class Cube extends Mesh
 			mFaces[i].loadGLTexture(gl);
 		}
 	}
-	
-	
-	//TODO : to remove
-	/**
-	 * set GL shader program.
-	 * for test purpose only
-	 */
-	/*
-	public void setProgram(int program, int positionHandler, int texCoordHandler, int MVPMatrixHandler, int textureHandler, int alphaHandler)
-	{
-		for(int i=0; i<6; ++i)
-		{
-			mFaces[i].setGlProgram(program, positionHandler, texCoordHandler, MVPMatrixHandler, textureHandler, alphaHandler);
-		}
-	}
-	*/
-	/* ********
-	 * PRIVATE METHODS
-	 * *******/
-	/*
-	private float[] matrixFromEuler(float rx, float ry, float rz, float tx, float ty, float tz) {
-        Quaternion quat = new Quaternion();
-        quat.fromEuler(rx,ry,rz);
-        float[] matrix = quat.getMatrix();
-
-        Matrix.translateM(matrix, 0, tx, ty, tz);
-
-        return matrix;
-    }*/
-	
 }

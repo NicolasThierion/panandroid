@@ -7,14 +7,10 @@ import java.util.Arrays;
 
 import javax.microedition.khronos.opengles.GL10;
 
-import fr.ensicaen.panandroid.capture.Quaternion;
-import junit.framework.Assert;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Bitmap.Config;
 import android.opengl.GLES10;
-import android.opengl.GLES11Ext;
-import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.util.Log;
@@ -202,9 +198,16 @@ public class TexturedPlane extends Mesh
     
     public void draw(GL10 gl, float[] modelViewMatrix)
     {
+    	//enter 2d texture mode
 		gl.glEnable(GL10.GL_TEXTURE_2D);
-		GLES10.glEnable( GLES10.GL_ALPHA_TEST );
-		GLES10.glAlphaFunc( GLES10.GL_GREATER, 0 );
+		
+		//enable alpha
+		gl.glAlphaFunc( GLES10.GL_GREATER, 0 );
+		gl.glEnable( GLES10.GL_ALPHA_TEST );
+
+		//enanle blending
+		gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+		gl.glEnable(GL10.GL_BLEND);
     	
         if (!mIsVisible) return;
 
@@ -224,7 +227,7 @@ public class TexturedPlane extends Mesh
         gl.glVertexPointer(3, GL10.GL_FLOAT, 0, this.mVertexBuffer);
             
         
-        GLES10.glTexCoordPointer(2,GLES10.GL_FLOAT, 0, mTexCoordBuffer);
+        gl.glTexCoordPointer(2,GLES10.GL_FLOAT, 0, mTexCoordBuffer);
 
         // This multiplies the view matrix by the model matrix, and stores the
         // result in the MVP matrix (which currently contains model * view).
@@ -232,11 +235,16 @@ public class TexturedPlane extends Mesh
   		gl.glLoadMatrixf(mMVPMatrix, 0);
 
 
-        GLES10.glDrawArrays(GLES10.GL_TRIANGLE_FAN, 0, 4);
+        gl.glDrawArrays(GLES10.GL_TRIANGLE_FAN, 0, 4);
   		gl.glLoadMatrixf(modelViewMatrix, 0);
   		
 		gl.glDisable(GL10.GL_TEXTURE_2D);
-		GLES10.glDisable( GLES10.GL_ALPHA_TEST );
+		gl.glDisable( GLES10.GL_ALPHA_TEST );
+		
+		//leave
+		gl.glDisable(GL10.GL_TEXTURE_2D);
+		gl.glDisable( GLES10.GL_ALPHA_TEST );
+		gl.glDisable(GL10.GL_BLEND);
 
 
 
@@ -257,8 +265,7 @@ public class TexturedPlane extends Mesh
         //GLES10.glTexParameterf(GLES10.GL_TEXTURE_2D, GLES10.GL_TEXTURE_WRAP_T, GLES10.GL_CLAMP_TO_EDGE);
 
         GLUtils.texImage2D(GLES10.GL_TEXTURE_2D, 0, mBitmapTexture, 0);
-        //mBitmapTexture.recycle();
-
+        
         if(texture[0] == 0){
             Log.e(TAG, "Unable to attribute texture to quad");
         }
