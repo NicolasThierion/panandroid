@@ -415,7 +415,7 @@ public class CaptureRenderer extends InsideRenderer
 		
 		//create a new TexturedPlane, that holds the camera texture.
 		mCameraSurface = new TexturedPlane(mCameraSize , mCameraRatio );
-		mCameraSurface.setTextureId(mCameraTextureId);
+		mCameraSurface.setTexture(mCameraTextureId);
 		
 		//for unknown reason, the preview is not in correct orientation
 		mCameraSurface.rotate(0, 0, rotation);

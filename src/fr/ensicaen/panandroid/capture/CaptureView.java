@@ -55,14 +55,15 @@ public class CaptureView extends Inside3dView
 	{
 		super(context);
 	
-		mCameraManager = cameraManager;
-		
+		mCameraManager = cameraManager;	
 				
 		//init the skybox
 		Cube skybox = null;
 		Resources res = super.getResources();	
 		int sampleSize=DEFAULT_SKYBOX_SAMPLE_SIZE;
 		boolean done = false;
+		
+		//try to load the best texture resolution
 		while(!done && sampleSize<32)
 		{
 			try
@@ -87,8 +88,7 @@ public class CaptureView extends Inside3dView
 		if(sampleSize!=DEFAULT_SKYBOX_SAMPLE_SIZE)
 		{
 			Log.w(TAG, "not enough memory to load skybox texture.. Forced to downscale texture by "+sampleSize);
-		}
-		
+		}		
 		
 		// set glview to use a capture renderer with the provided skybox.
 		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
@@ -99,14 +99,5 @@ public class CaptureView extends Inside3dView
         super.enableSensorialRotation(true);
         super.enableTouchRotation(false);
         super.enableInertialRotation(false);
-
 	}
-	
-	/* **********
-	 * PRIVATE METHODS
-	 * **********/
-
-	
-	
-
 }
