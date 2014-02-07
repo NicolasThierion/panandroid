@@ -1,8 +1,13 @@
 package fr.ensicaen.panandroid.viewer;
 
-import fr.ensicaen.panandroid.sphere.Sphere;
-import fr.ensicaen.panandroid.sphere.SphereView;
+import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.insideview.Inside3dView;
+import fr.ensicaen.panandroid.meshs.Cube;
+import fr.ensicaen.panandroid.meshs.Sphere;
+import fr.ensicaen.panandroid.meshs.TexturedPlane;
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.view.Window;
@@ -20,7 +25,7 @@ public class SphereViewerActivity extends Activity {
 			
 			
 	/** The OpenGL view. */
-	private SphereView mSphereView;
+	private Inside3dView mSphereView;
 
   /**
    * Called when the activity is first created.
@@ -37,8 +42,14 @@ public class SphereViewerActivity extends Activity {
     //init the sphere
     Sphere sphere = new Sphere(SPHERE_RESOLUTION, SPHERE_RADIUS);
     
+    //TODO ; remove
+    Bitmap texture = BitmapFactory.decodeResource(super.getResources(), R.raw.quito2_s2);
+    sphere.setGlTexture(texture);
+    
+    
+ 
     //set GL view & its renderer
-    this.mSphereView = new SphereView(this, sphere);
+    this.mSphereView = new Inside3dView(this, sphere);
     this.setContentView(this.mSphereView);
     
     

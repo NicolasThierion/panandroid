@@ -1,7 +1,14 @@
 package fr.ensicaen.panandroid.capture;
+import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.insideview.Inside3dView;
+import fr.ensicaen.panandroid.insideview.InsideRenderer;
+import fr.ensicaen.panandroid.meshs.Cube;
+import fr.ensicaen.panandroid.tools.BitmapDecoder;
 import junit.framework.Assert;
 import android.content.Context;
-import android.opengl.GLSurfaceView;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.util.Log;
 
 
 /**
@@ -11,10 +18,19 @@ import android.opengl.GLSurfaceView;
  * @author Nicolas
  *
  */
-public class CaptureView extends GLSurfaceView
-{
-
+public class CaptureView extends Inside3dView
+{	
+	
 	private static final String TAG = CaptureView.class.getSimpleName();
+
+	/* *********
+	 * CONSTANTS
+	 * *********/
+	/** Size of the skybox **/
+	private static final float SKYBOX_SIZE = 400f;
+	private static final int DEFAULT_SKYBOX_SAMPLE_SIZE = 8;		//[1 - 8]
+	
+
 	/* **********
 	 * ATTRIBUTES
 	 * *********/
@@ -23,7 +39,7 @@ public class CaptureView extends GLSurfaceView
 	private CameraManager mCameraManager;
 	
 	/** Sphere renderer **/
-	private CaptureRenderer mRenderer;
+	private InsideRenderer mRenderer;
 
 	/* **********
 	 * CONSTRUCTORS
@@ -38,24 +54,58 @@ public class CaptureView extends GLSurfaceView
 	public CaptureView(Context context, CameraManager cameraManager)
 	{
 		super(context);
+	
 		mCameraManager = cameraManager;
-		mRenderer = new CaptureRenderer(context, mCameraManager) ;
 		
-        // Make a new GL view using the provided renderer
-        super.setEGLContextClientVersion(2);
+				
+		//init the skybox
+		Cube skybox = null;
+		Resources res = super.getResources();	
+		int sampleSize=DEFAULT_SKYBOX_SAMPLE_SIZE;
+		boolean done = false;
+		while(!done && sampleSize<32)
+		{
+			try
+			{
+				Bitmap texFront = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_ft, sampleSize);
+				Bitmap texBack = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_bk, sampleSize);
+				Bitmap texLeft = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_lt, sampleSize);
+				Bitmap texRight = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_rt, sampleSize);
+				Bitmap texBottom = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_bt, sampleSize);
+				Bitmap texTop = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_tp, sampleSize);
+				
+				skybox = new Cube(SKYBOX_SIZE,texFront,texBack, texLeft, texRight, texBottom, texTop);
+				done = true;
+			}
+			catch (OutOfMemoryError e)
+			{
+				sampleSize*=2;
+			}
+		}
+		
+		Assert.assertTrue(skybox!=null);
+		if(sampleSize!=DEFAULT_SKYBOX_SAMPLE_SIZE)
+		{
+			Log.w(TAG, "not enough memory to load skybox texture.. Forced to downscale texture by "+sampleSize);
+		}
+		
+		
+		// set glview to use a capture renderer with the provided skybox.
+		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
+        super.setEGLContextClientVersion(1);
         super.setRenderer(mRenderer);
-	
+        
+        //set view rotation parameters
+        super.enableSensorialRotation(true);
+        super.enableTouchRotation(false);
+        super.enableInertialRotation(false);
+
 	}
-	
-	
 	
 	/* **********
 	 * PRIVATE METHODS
 	 * **********/
-	
-	
-	
-	
+
 	
 	
 

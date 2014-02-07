@@ -1,7 +1,7 @@
 /**
  *
  */
-package fr.ensicaen.panandroid.sphere;
+package fr.ensicaen.panandroid.meshs;
 
 /**
  * @author Jim Cornmell

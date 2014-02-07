@@ -1,4 +1,4 @@
-package fr.ensicaen.panandroid.sphere;
+package fr.ensicaen.panandroid.meshs;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -10,7 +10,9 @@ import javax.microedition.khronos.opengles.GL10;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.opengl.GLUtils;
 import android.util.Log;
 
@@ -20,25 +22,12 @@ import android.util.Log;
  * @author Jim Cornmell
  * @since July 2013
  */
-public class Sphere {
-  /** Maximum allowed depth. */
-  private static final int MAXIMUM_ALLOWED_DEPTH = 5;
-
-  /** Used in vertex strip calculations, related to properties of a icosahedron. */
-  private static final int VERTEX_MAGIC_NUMBER = 5;
-
-  /** Each vertex is a 2D coordinate. */
-  private static final int NUM_FLOATS_PER_VERTEX = 3;
-
-  /** Each texture is a 2D coordinate. */
-  private static final int NUM_FLOATS_PER_TEXTURE = 2;
-
-  /** Each vertex is made up of 3 points, x, y, z. */
-  private static final int AMOUNT_OF_NUMBERS_PER_VERTEX_POINT = 3;
-
-  /** Each texture point is made up of 2 points, x, y (in reference to the texture being a 2D image). */
-  private static final int AMOUNT_OF_NUMBERS_PER_TEXTURE_POINT = 2;
-
+public class Sphere extends Mesh
+{
+	
+	private static final float DEFAULT_RADIUS = 1.0f;
+	private static final int DEFAULT_DEPTH = 4;
+	
   /** Buffer holding the vertices. */
   private final List<FloatBuffer> mVertexBuffer = new ArrayList<FloatBuffer>();
 
@@ -51,12 +40,47 @@ public class Sphere {
   /** Mapping texture coordinates for the vertices. */
   private final List<float[]> mTexture = new ArrayList<float[]>();
 
-  /** The texture pointer. */
-  private final int[] mTextures = new int[1];
-
   /** Total number of strips for the given depth. */
   private final int mTotalNumStrips;
+  
+  private Bitmap mBitmapTexture;
+  
+  /** Used in vertex strip calculations, related to properties of a icosahedron. */
+  protected static final int VERTEX_MAGIC_NUMBER = 5;
 
+  /** Each vertex is a 2D coordinate. */
+  protected static final int NUM_FLOATS_PER_VERTEX = 3;
+
+  /** Each texture is a 2D coordinate. */
+  protected static final int NUM_FLOATS_PER_TEXTURE = 2;
+
+  /** Each vertex is made up of 3 points, x, y, z. */
+  protected static final int AMOUNT_OF_NUMBERS_PER_VERTEX_POINT = 3;
+
+  /** Each texture point is made up of 2 points, x, y (in reference to the texture being a 2D image). */
+  protected static final int AMOUNT_OF_NUMBERS_PER_TEXTURE_POINT = 2;
+
+  /** The texture pointer. */
+  protected final int[] mTextures = new int[1];
+  
+
+  /**
+   * Creates a sphere of radius and depth = 4.   
+   */
+  public Sphere()
+  {
+	  this(DEFAULT_DEPTH, DEFAULT_RADIUS);
+  }
+  
+  /**
+   * Create a sphere of depth 4.
+   * @param radius The sphere's radius.
+   */
+  public Sphere(float radius)
+  {
+	  this(DEFAULT_DEPTH, radius);
+  }
+  
   /**
    * Sphere constructor.
    * @param depth integer representing the split of the sphere.
@@ -115,6 +139,8 @@ public class Sphere {
         texturePoints[texturePos++] = (float) (1 - (altitude + Maths.NINETY_DEGREES) / Maths.ONE_EIGHTY_DEGREES);
 
         azimuth += azimuthStepAngle;
+        
+        
       }
 
       this.mVertices.add(vertices);
@@ -135,42 +161,20 @@ public class Sphere {
       fb.position(0);
       this.mTextureBuffer.add(fb);
     }
+    int[] colorArray = new int[]{Color.GREEN};
+    mBitmapTexture = Bitmap.createBitmap(colorArray, 1, 1, Config.RGB_565);
   }
 
-  /**
-   * Load the texture for the square.
-   *
-   * @param gl Handle.
-   * @param context Handle.
-   * @param texture Texture map for the sphere.
-   */
-  public void loadGLTexture(final GL10 gl, final Context context, final int texture) {
-    final Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), texture);
-
-    // Generate one texture pointer, and bind it to the texture array.
-    gl.glGenTextures(1, this.mTextures, 0);
-    gl.glBindTexture(GL10.GL_TEXTURE_2D, this.mTextures[0]);
-
-    // Create nearest filtered texture.
-    gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
-    gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
-
-    // Use Android GLUtils to specify a two-dimensional texture image from our bitmap.
-    GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmap, 0);
-
-    // Tidy up.
-    bitmap.recycle();
-  }
-
+  
   /**
    * The draw method for the square with the GL context.
    *
    * @param gl Graphics handle.
    */
-  public void draw(final GL10 gl) {
+  public void draw(final GL10 gl, float[] modelViewMatrix) {
 	  
     // bind the previously generated texture.
-    gl.glBindTexture(GL10.GL_TEXTURE_2D, this.mTextures[0]);
+    gl.glBindTexture(GL10.GL_TEXTURE_2D, mTextures[0]);
 
     // Point to our buffers.
     gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
@@ -192,4 +196,30 @@ public class Sphere {
     gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
     gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
   }
+
+  
+    public void setGlTexture(Bitmap texture) {
+    	mBitmapTexture = texture;
+	}
+
+	@Override
+	public void loadGLTexture(GL10 gl) 
+	{
+	    // Generate one texture pointer, and bind it to the texture array.
+	    gl.glGenTextures(1, this.mTextures, 0);
+	    gl.glBindTexture(GL10.GL_TEXTURE_2D, this.mTextures[0]);
+
+	    // Create nearest filtered texture.
+	    gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
+	    gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
+
+	    // Use Android GLUtils to specify a two-dimensional texture image from our bitmap.
+	    GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, mBitmapTexture, 0);
+
+	    // Tidy up.
+	    mBitmapTexture.recycle();
+	}
+
+	
+	
 }

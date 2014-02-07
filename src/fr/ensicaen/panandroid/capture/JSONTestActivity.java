@@ -1,6 +1,6 @@
 package fr.ensicaen.panandroid.capture;
 
-import fr.ensicaen.panandroid.sphere.Sphere;
+import fr.ensicaen.panandroid.meshs.Sphere;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;

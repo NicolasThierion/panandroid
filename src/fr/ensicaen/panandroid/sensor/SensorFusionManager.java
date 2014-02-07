@@ -497,7 +497,4 @@ public class SensorFusionManager implements SensorEventListener
 
 	};
 
-	
-
-
 }

@@ -28,17 +28,12 @@ or revised without written permission of the authors.
         android:theme="@style/AppTheme">
 
         <activity
-            android:name="fr.ensicaen.panandroid.stitcher.FakeCaptureActivity"
-            android:label="@string/app_name"
-            android:screenOrientation="landscape">
+            android:name="fr.ensicaen.panandroid.capture.CaptureActivity"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="fr.ensicaen.panandroid.stitcher.StitcherActivity"
-            android:label="@string/app_name"
-            android:screenOrientation="portrait" />
     </application>
 </manifest>

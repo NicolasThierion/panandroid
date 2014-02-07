@@ -2,6 +2,7 @@ package fr.ensicaen.panandroid.capture;
 
 import javax.microedition.khronos.opengles.GL10;
 
+import fr.ensicaen.panandroid.meshs.TexturedPlane;
 import android.graphics.Bitmap;
 import android.opengl.GLES10;
 import android.opengl.GLES20;
@@ -11,11 +12,47 @@ import android.util.Log;
 
 
 /**
- * Stores the information about each snapshot displayed in the sphere.
- * A snapshot3D is a snapshot with a modelMatrix, to be drawable in a 3d opengl context.
+ * Like snapshot, but drawable as a TexturedPlane.
  */
-public class Snapshot3D
+public class Snapshot3D extends TexturedPlane
 {
+	/* ********
+	 * ATTRIBUTES
+	 * *******/
+	private Snapshot mSnapshot;
+	
+	
+
+	/* ********
+	 * CONSTRUCTOR
+	 * *******/
+	public Snapshot3D()
+	{
+		super();
+		mSnapshot = new Snapshot();
+	}
+	
+	public Snapshot3D(float scale, float pitch, float yaw) 
+	{
+		this(scale, 1.0f, pitch, yaw, 0.0f);
+	}
+	
+	public Snapshot3D(float scale, float ratio, float pitch, float yaw)
+	{
+		this(scale, ratio, pitch, yaw, 0.0f);
+	}
+	
+	
+	public Snapshot3D(float scale, float ratio, float pitch, float yaw, float roll)
+	{
+		//TODO : roll??
+		
+		super(scale, ratio);
+		super.rotate(pitch, yaw, roll);
+		mSnapshot = new Snapshot(pitch, yaw);
+		
+	}
+
 	
 }
 

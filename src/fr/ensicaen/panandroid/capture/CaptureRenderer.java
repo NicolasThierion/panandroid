@@ -1,355 +1,663 @@
-/*
- * Copyright (C) 2013 Guillaume Lesniak
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA  02110-1301, USA.
- */
-
 package fr.ensicaen.panandroid.capture;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
+import android.opengl.GLES10;
 import android.opengl.GLES11Ext;
-import android.opengl.GLES20;
-import android.opengl.GLSurfaceView;
-import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.util.Log;
-
-
-
-
-
+import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import fr.ensicaen.panandroid.R;
-import fr.ensicaen.panandroid.sensor.SensorFusionManager;
+import fr.ensicaen.panandroid.insideview.InsideRenderer;
+import fr.ensicaen.panandroid.meshs.Cube;
+import fr.ensicaen.panandroid.meshs.TexturedPlane;
+import fr.ensicaen.panandroid.tools.BitmapDecoder;
 
 /**
- * Manages the 3D rendering of the sphere capture mode, using gyroscope to
- * orientate the camera and displays the preview at the center.
- *
- * TODO: Fallback for non-GLES2 devices?
+ * CaptureRenderer is basically an Inside3dRenderer, with a cube as preffered surrounding mesh.
+ * The surrounding mesh is drawn as a "skybox".
+ * The CaptureRenderer use a CameraManager to draw camera preview in foreground. 
+ * By default, the renderer starts the cameraManager, and route the preview to a TexturedPlane.
+ * @author Nicolas
+ * @bug : camera stops when screen rotates.
  */
-public class CaptureRenderer implements GLSurfaceView.Renderer
+public class CaptureRenderer extends InsideRenderer
 {
     public final static String TAG = CaptureRenderer.class.getSimpleName();
 
+    /* ********
+	 * CONSTANTS PARAMETERS
+	 * ********/
+    
+    /** Size & distance of the snapshots **/
+	private static final float SNAPSHOTS_SIZE = 65.5f;
+	private static final float SNAPSHOTS_DISTANCE = 135.0f;
+
+	/** Size & distance of the camera preview **/
+	private static final float CAMERA_SIZE = 10.0f;
+	private static final float CAMERA_DISTANCE = 55.0f;
+	
+	/** Size & distance of the markers **/
+	private static final float MARKERS_SIZE = 2.0f;
+	private static final float MARKERS_DISTANCE = 45.0f;
+		
+	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
+	
+	private static final float CAMERA_RATIO34 = 3.0f/4.0f;	//portait
+	private static final float CAMERA_RATIO43 = 4.0f/3.0f;	//landscape
+	
+	
+	/** angle interval between dots **/
+	private static final float PITCH_STEP = 360.0f/12.0f;;
+	private static final float YAW_STEP = 360.0f/12.0f;
+	
+	/** default textures **/
+	private static final int MARKER_RESSOURCE_ID = R.drawable.ic_picsphere_marker;
+
+	private static final boolean USE_SCREEN_RATIO = false;
+	
+	/* ********
+	 * ATTRIBUTES
+	 * ********/
+	
+	/** Camera manager in charge of the capture **/
+	private final CameraManager mCamManager;
+	
+	//TODO : implement
+	/** list of snapshot already taken **/
+	private List<Snapshot3D> mSnapshots;
+	
+	//TODO : implement
+	/** list of dots **/
+	private List<Snapshot3D> mDots;
+	   
+	/** surrounding skybox, given to parent Inside3dRenderer **/
+	private Cube mSkybox;
+	
+	/** current context of the application **/
+	private Context mContext;
+	
+	/** surface texture where is the camera preview is redirected **/
+	private SurfaceTexture mCameraSurfaceTex;
+	
+	/** ... and associated openGL texture ID **/
+	private int mCameraTextureId;
+	
+	/** 3d plane holding this texture **/
+	private TexturedPlane mCameraSurface;
+	
+	//TODO : implement
+	/** current ratio of TexturedPlanes, determined by screen orientation **/
+	private float mCameraRatio;
+	
+	//TODO : implement
+	private TexturedPlane mViewfinderBillboard;
+	
+	
+	/** 
+	 * ModelViewMatrix where the scene is drawn. 
+	 * Equals identity, as the scene don't move, and it is the parent surrounding skybox that rotates by its own modelMatrix 
+	 */
+	private final float[] mViewMatrix = new float[16];
+
+	/** Whether the captureRenderer should draw a skyBox **/
+	private boolean mUseSkybox;
+	
+	/**... and some markers **/
+	private boolean mUseMarkers;
+
+	/** sizes of camera, markers and snapshots **/
+	private float mCameraSize = CAMERA_SIZE;
+	private float mSnapshotsSize = SNAPSHOTS_SIZE;
+	private float mMarkersSize = MARKERS_SIZE;
+
+
+	//TODO : what for?
+	//private ReentrantLock mListBusy;
+
+	
+	/* ********
+	 * CONSTRUCTOR
+	 * ********/
+	
+
+	/**
+	 * Creates a new CaptureRenderer, based on an Inside3dRenderer with the given mesh as Skybox.
+	 * @param context - Context of the application.
+	 * @param skybox
+	 * @param cameraManager 
+	 */
+	public CaptureRenderer(Context context, Cube skybox, CameraManager cameraManager)
+	{
+		//based on Inside3dRenderer. We are inside a skybox.
+		super(context);
+		mSkybox = skybox;	
+		mUseSkybox = true;
+		mUseMarkers = true;
+		super.setSurroundingMesh(mSkybox);
+		
+		
+		//init attributes
+		mCamManager = cameraManager;
+		mContext = context;
+		mCameraRatio = 0;
+		
+	    Matrix.setIdentityM(mViewMatrix, 0);
+	
+		//create dots and snapshot lists
+		mSnapshots = new ArrayList<Snapshot3D>();
+		mDots = new ArrayList<Snapshot3D>();
+		
+		for(float pitch = 0; pitch < 360; pitch+=PITCH_STEP)
+		{
+			for(float yaw = 0; yaw < 360; yaw+=YAW_STEP)
+			{
+				mDots.add(createDot(pitch, yaw));
+			}
+		}
+		
+
+		
+		//TODO : trash this?
+		//mListBusy = new ReentrantLock();
+	}
+    
+	/**
+	 * @param context
+	 * @param cameraManager
+	 */
+    public CaptureRenderer(Context context, CameraManager cameraManager)
+    {	
+		this(context, null, cameraManager );
+		mUseSkybox = false;
+	}
+
     
     /* ********
-     * ATTRIBUTES
-     * ********/
-    private final CameraManager mCamManager;
-
-    private List<Snapshot> mSnapshots;
-    private List<Snapshot> mDots;
-    private ReentrantLock mListBusy;
-    private SensorFusionManager mSensorFusion;
-    private Quaternion mCameraQuat;
-    private Skybox mSkyBox;
-    private float[] mViewMatrix = new float[16];
-    private float[] mProjectionMatrix = new float[16];
-
-    private FloatBuffer mVertexBuffer;
-    private FloatBuffer m43VertexBuffer;
-    private FloatBuffer mTexCoordBuffer;
-    private final static float SNAPSHOT_SCALE = 65.5f;
-    private final static float RATIO = 4.0f/3.0f;
-    private final static float DISTANCE = 135.0f;
-
-    // x, y,
-    private final float mVertexData[] =
-            {
-                    -SNAPSHOT_SCALE,  -SNAPSHOT_SCALE,
-                    -SNAPSHOT_SCALE, SNAPSHOT_SCALE,
-                    SNAPSHOT_SCALE, SNAPSHOT_SCALE,
-                    SNAPSHOT_SCALE, -SNAPSHOT_SCALE
-            };
-
-    private final float m43VertexData[] =
-            {
-                    -SNAPSHOT_SCALE *RATIO,  -SNAPSHOT_SCALE,
-                    -SNAPSHOT_SCALE *RATIO, SNAPSHOT_SCALE,
-                    SNAPSHOT_SCALE *RATIO, SNAPSHOT_SCALE,
-                    SNAPSHOT_SCALE *RATIO, -SNAPSHOT_SCALE
-            };
-
-    // u,v
-    private final float mTexCoordData[] =
-            {
-                    0.0f, 0.0f,
-                    0.0f, 1.0f,
-                    1.0f, 1.0f,
-                    1.0f, 0.0f
-            };
-
-    private final static int CAMERA = 0;
-    private final static int SNAPSHOT = 1;
-
-    private int[] mProgram = new int[2];
-    private int[] mVertexShader = new int[2];
-    private int[] mFragmentShader = new int[2];
-    private int[] mPositionHandler = new int[2];
-    private int[] mTexCoordHandler = new int[2];
-    private int[] mTextureHandler = new int[2];
-    private int[] mAlphaHandler = new int[2];
-    private int[] mMVPMatrixHandler = new int[2];
-
-    private SurfaceTexture mCameraSurfaceTex;
-    private int mCameraTextureId;
-    private Snapshot mCameraBillboard;
-    private Snapshot mViewfinderBillboard;
-    private Context mContext;
-    private Quaternion mTempQuaternion;
-    private float[] mMVPMatrix = new float[16];
-
-    private class Skybox {
-        private float DIST = SNAPSHOT_SCALE;
-        private Snapshot[] mFaces = new Snapshot[6];
-        private int FACE_NORTH = 0;
-        private int FACE_WEST = 1;
-        private int FACE_SOUTH = 2;
-        private int FACE_EAST = 3;
-        private int FACE_UP = 4;
-        private int FACE_DOWN = 5;
-
-        public Skybox() {
-            mFaces[FACE_NORTH] = new Snapshot(false);
-            mFaces[FACE_NORTH].mModelMatrix = matrixFromEuler(0, 90, 0, 0, 0, DIST);
-            mFaces[FACE_NORTH].setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-                    R.drawable.picsphere_sky_fr));
-
-            mFaces[FACE_SOUTH] = new Snapshot(false);
-            mFaces[FACE_SOUTH].mModelMatrix = matrixFromEuler(0, 90, 0, 0, 0, -DIST);
-            mFaces[FACE_SOUTH].setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-                    R.drawable.picsphere_sky_bk));
-
-            mFaces[FACE_WEST] = new Snapshot(false);
-            mFaces[FACE_WEST].mModelMatrix = matrixFromEuler(0, 90, 90, 0, 0, DIST);
-            mFaces[FACE_WEST].setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-                    R.drawable.picsphere_sky_lt));
-
-            mFaces[FACE_EAST] = new Snapshot(false);
-            mFaces[FACE_EAST].mModelMatrix = matrixFromEuler(0, 90, 270, 0, 0, DIST);
-            mFaces[FACE_EAST].setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-                    R.drawable.picsphere_sky_rt));
-
-            mFaces[FACE_UP] = new Snapshot(false);
-            mFaces[FACE_UP].mModelMatrix = matrixFromEuler(90, 0, 270, 0, 0, DIST);
-            mFaces[FACE_UP].setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-                    R.drawable.picsphere_sky_up));
-
-            mFaces[FACE_DOWN] = new Snapshot(false);
-            mFaces[FACE_DOWN].mModelMatrix = matrixFromEuler(-90, 0, 90, 0, 0, DIST);
-            mFaces[FACE_DOWN].setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-                    R.drawable.picsphere_sky_dn));
-        }
-
-        public void draw() {
-            for (int i = 0; i < mFaces.length; i++) {
-                if (mFaces[i] != null) {
-                    mFaces[i].draw();
-                }
-            }
-        }
+	 * ACCESSORS
+	 * ********/
+	public void setCamPreviewVisible(boolean visible)
+	{
+        mCameraSurface.setVisible(visible);
     }
+	
+	public void setSkyboxEnabled(boolean enabled)
+	{
+		mUseSkybox = enabled;
+		
+		//if no skybox is set, create a dummy one
+		if(mSkybox==null)
+		{
+			mSkybox = new Cube();
+			mSkybox.setSize(SNAPSHOTS_DISTANCE*2.0f);
+		}
+	}
+	
+	public void setMarkersEnabled(boolean enabled)
+	{
+		mUseMarkers = enabled;
+	}
+	
+	public void setCameraSize(float scale)
+	{
+		mCameraSize = scale;
+	}
+	
+	public void setSnapshotsSize(float scale)
+	{
+		mSnapshotsSize = scale;
+	}
+	
+	public void setMarkersSize(float scale)
+	{
+		mMarkersSize = scale;
+	}
+    
+    
+    
+    /* ********
+	 * RENDERER OVERRIDES
+	 * ********/
+	
+	@Override
+	public void onSurfaceCreated(GL10 gl, EGLConfig config)
+	{
+		super.onSurfaceCreated(gl, config);
+		try
+		{
+			initCameraSurface();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Update camera ratio according to new screen orientation
+	 */
+	@Override
+	public void onSurfaceChanged(GL10 gl, int width, int height)
+	{
+		super.onSurfaceChanged(gl, width, height);
+		
+		
+		if(USE_SCREEN_RATIO)
+		{
+			if(width>height)
+				mCameraRatio = (float)((float)width/(float)height);
+			else
+				mCameraRatio = (float)((float)height/(float)width);
+				
+		}
+		else
+		{
+			//ratio of the camera, not the screen		
+			if(width>height)
+				mCameraRatio=CAMERA_RATIO43;
+			else
+				mCameraRatio=CAMERA_RATIO34;
+			mCameraRatio=CAMERA_RATIO34;
+
+		}
+		Log.i(TAG, "surface changed : width="+width+", height="+height+"(ratio:"+mCameraRatio+")");
+		try
+		{
+			reinitCameraSurface();
+		} 
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		//reset camera to avoid random "error 100 : server died"
+		mCamManager.reOpen();
+	}
+	
+	@Override
+	public void onDrawFrame(GL10 gl)
+	{    
+		//draws the skybox
+		if(mUseSkybox)
+			super.onDrawFrame(gl);
+		
+		//refresh camera texture
+		mCameraSurfaceTex.updateTexImage();
+		
+		//draw camera surface
+		gl.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+	    mCameraSurface.draw(gl, mViewMatrix);
+		gl.glDisable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+	
+		//TODO : draw snapshots
+	    /*
+	    mListBusy.lock();
+	    for (TexturedPlane snap : mSnapshots) {
+	        snap.draw(gl, mViewMatrix);
+	    }
+	    mListBusy.unlock();
+		*/
+		
+		if(mUseMarkers)
+		{
+		    for (TexturedPlane dot : mDots)
+		    {
+		        /*
+		    	// Set alpha based on camera distance to the point
+		        float dX = dot.getAutoAlphaX() - (rx + 180.0f);
+		        float dY = dot.getAutoAlphaY() - ry;
+		        dX = (dX + 180.0f) % 360.0f - 180.0f;
+		        
+		        dot.setAlpha(1.0f - Math.abs(dX)/180.0f * 8.0f);
+				*/
+		        dot.draw(gl, super.getRotationMatrix());
+		    }
+		}
+	
+		//TODO : 
+	    //mViewfinderBillboard.draw(gl, mViewMatrix);*/
+	}
+
+
+	/* **********
+	 * PRIVATE METHODS
+	 * *********/
+	
+	/**
+	 * Init CameraManager gl texture id, camera SurfaceTexture, bind to EXTERNAL_OES, and redirect camera preview to the surfaceTexture.
+	 * @throws IOException when camera cannot be open
+	 */
+	private void initCameraSurface() throws IOException
+	{
+	
+		//Gen openGL texture id
+		int texture[] = new int[1];
+		GLES10.glGenTextures(1, texture, 0);
+		mCameraTextureId = texture[0];
+		
+		if (mCameraTextureId == 0)
+		{
+		    throw new RuntimeException("Cannot create openGL texture (initCameraSurface())");
+		}
+		
+		//Camera preview is redirected to SurfaceTexture.
+		//SurfaceTexture works with TEXTURE_EXTERNAL_OES, so we bind this textureId so that camera
+		//will automatically fill it with its video.
+		GLES10.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mCameraTextureId);
+		
+		// Can't do mipmapping with camera source
+		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+								GLES10.GL_TEXTURE_MIN_FILTER,
+								GLES10.GL_LINEAR);
+		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+								GLES10.GL_TEXTURE_MAG_FILTER,
+								GLES10.GL_LINEAR);
+		
+		// Clamp to edge is the only option
+		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+								GLES10.GL_TEXTURE_WRAP_S,
+								GLES10.GL_CLAMP_TO_EDGE);
+		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+								GLES10.GL_TEXTURE_WRAP_T,
+								GLES10.GL_CLAMP_TO_EDGE);
+		
+				
+		//create a SurfaceTexture associated to this openGL texture...
+		mCameraSurfaceTex = new SurfaceTexture(mCameraTextureId);
+		mCameraSurfaceTex.setDefaultBufferSize(640, 480);
+		
+		
+		//... and redirect camera preview to it 		
+		mCamManager.setPreviewSurface(mCameraSurfaceTex);
+		
+		
+		
+		//TODO
+		//Setup viewfinder	
+		//mViewfinderBillboard = new TexturedPlane(2.0f);
+		//mViewfinderBillboard.setTexture(BitmapFactory.decodeResource(mContext.getResources(),
+		//        R.drawable.ic_picsphere_viewfinder));
+	}
+	
+	private void reinitCameraSurface() throws IOException
+	{
+		//for an unknown reason, the camera preview is not in correct direction by default. Need to rotate it
+		final int screenRotation = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
+		float rotation = 270;
+		switch (screenRotation)
+		{
+			case Surface.ROTATION_0:
+				rotation += 0.0f;
+				break;
+			case Surface.ROTATION_90:
+				rotation += 90.0f;
+				break;
+			case Surface.ROTATION_180:
+				rotation += 180.0f;
+				break;
+			default:
+				rotation += 270.0f;
+				break;
+		};
+		
+		rotation%=360;
+
+		
+		//create a new TexturedPlane, that holds the camera texture.
+		mCameraSurface = new TexturedPlane(mCameraSize , mCameraRatio );
+		mCameraSurface.setTextureId(mCameraTextureId);
+		
+		//for unknown reason, the preview is not in correct orientation
+		mCameraSurface.rotate(0, 0, rotation);
+		mCameraSurface.translate(0, 0, CAMERA_DISTANCE);
+		
+	}
+    
+    
+	private Snapshot3D createDot(float pitch, float yaw)
+	{
+		Snapshot3D dot = new Snapshot3D(mMarkersSize, pitch, yaw);
+		
+		dot.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), MARKER_RESSOURCE_ID));
+		dot.translate(0.0f, 0.0f, MARKERS_DISTANCE);
+		
+		//TODO : implement
+		//dot.setAutoAlphaAngle(pitch, yaw);
+		
+		return dot;
+    }
+	
+	/* **********
+     * TRASH METHODS
+     * *********/
+	
+	/*
+    public void setCameraOrientation(float rX, float rY, float rZ) {
+        // Convert angles to degrees
+        rX = (float) (rX * 180.0f/Math.PI);
+        rY = (float) (rY * 180.0f/Math.PI);
+
+        // Update quaternion from euler angles out of orientation and set it as view matrix
+        mCameraQuat.fromEuler(rY, 0.0f, rX);
+        
+        //mViewMatrix = mCameraQuat.getConjugate().getMatrix();
+    }
+	*/
+    
+    /*
+    public Vector3 getAngleAsVector() {
+        float[] orientation = mSensorFusion.getFusedOrientation();
+
+        // Convert angles to degrees
+        float rX = (float) (orientation[0] * 180.0f/Math.PI);
+        float rY = (float) (orientation[1] * 180.0f/Math.PI);
+        float rZ = (float) (orientation[2] * 180.0f/Math.PI);
+
+        return new Vector3(rX, rY, rZ);
+    }*/
 
     /**
-     * Stores the information about each snapshot displayed in the sphere
+     * Helper function to compile a shader.
+     *
+     * @param shaderType The shader type.
+     * @param shaderSource The shader source code.
+     * @return An OpenGL handle to the shader.
      */
-    private class Snapshot {
-        private float[]mModelMatrix;
-        private int mTextureData;
-        private Bitmap mBitmapToLoad;
-        private boolean mIsFourToThree;
-        private int mMode;
-        private boolean mIsVisible = true;
-        private float mAlpha = 1.0f;
-        private float mAutoAlphaX;
-        private float mAutoAlphaY;
+    /*
+    public static int compileShader(final int shaderType, final String shaderSource) {
+        int shaderHandle = GLES20.glCreateShader(shaderType);
 
-        public Snapshot() {
-            mIsFourToThree = true;
-            mMode = SNAPSHOT;
+        if (shaderHandle != 0) {
+            // Pass in the shader source.
+            GLES20.glShaderSource(shaderHandle, shaderSource);
+
+            // Compile the shader.
+            GLES20.glCompileShader(shaderHandle);
+
+            // Get the compilation status.
+            final int[] compileStatus = new int[1];
+            GLES20.glGetShaderiv(shaderHandle, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
+
+            // If the compilation failed, delete the shader.
+            if (compileStatus[0] == 0) {
+                Log.e(TAG, "Error compiling shader: " + GLES20.glGetShaderInfoLog(shaderHandle));
+                GLES20.glDeleteShader(shaderHandle);
+                shaderHandle = 0;
+            }
         }
 
-        public Snapshot(boolean isFourToThree) {
-            mIsFourToThree = isFourToThree;
-            mMode = SNAPSHOT;
+        if (shaderHandle == 0) {
+            throw new RuntimeException("Error creating shader.");
         }
 
-        public void setVisible(boolean visible) {
-            mIsVisible = visible;
-        }
+        return shaderHandle;
+    }*/
 
-        /**
-         * Sets whether to use the CAMERA shaders or the SNAPSHOT shaders
-         * @param mode CAMERA or SNAPSHOT
+    /**
+     * Adds a snapshot to the sphere
+     */
+    /*
+    public void addSnapshot(final Bitmap image) {
+        TexturedPlane snap = new TexturedPlane();
+        
+        ///snap.setGlProgram(mProgram[SNAPSHOT], mPositionHandler[SNAPSHOT], mTexCoordHandler[SNAPSHOT], mMVPMatrixHandler[SNAPSHOT], mTextureHandler[SNAPSHOT], mAlphaHandler[SNAPSHOT]);
+        
+        snap.mModelMatrix = Arrays.copyOf(mViewMatrix, mViewMatrix.length);
+        Assert.assertTrue(mViewMatrix!=null);
+        
+        Matrix.invertM(snap.mModelMatrix, 0, snap.mModelMatrix, 0);
+        Matrix.translateM(snap.mModelMatrix, 0, 0.0f, 0.0f, -DISTANCE);
+        Matrix.rotateM(snap.mModelMatrix, 0, -90, 0, 0, 1);
+
+        snap.setTexture(image);
+
+        mListBusy.lock();
+        mSnapshots.add(snap);
+        mListBusy.unlock();
+    }
+     */
+    /**
+     * Removes the last taken snapshot
+     */
+    /*
+    public void removeLastPicture() {
+        mListBusy.lock();
+        if (mSnapshots.size() > 0) {
+            mSnapshots.remove(mSnapshots.size()-1);
+        }
+        mListBusy.unlock();
+    }
+     */
+    /**
+     * Clear sphere's snapshots
+     */
+    /*
+    public void clearSnapshots() {
+        mListBusy.lock();
+        mSnapshots.clear();
+        mListBusy.unlock();
+    }
+    */
+	
+	/*
+	 @Override
+    public void onDrawFrame(GL10 gl) {
+        
+    	super.onDrawFrame(gl);
+    	
+    	mCameraSurfaceTex.updateTexImage();
+    	
+    	//GLES11.glTexParameteriv(GLES10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, mCrop, 0);
+		//GLES11Ext.glDrawTexiOES(mRect[0], mRect[1], 0, mRect[2], mRect[3]);
+
+        /*
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+        GLES20.glEnable(GLES20.GL_BLEND);
+
+        // Update camera view matrix
+        float[] orientation = mSensorFusion.getFusedOrientation();
+
+        // Convert angles to degrees
+        float rX = (float) (orientation[1] * 180.0f/Math.PI);
+        float rY = (float) (orientation[0] * 180.0f/Math.PI);
+        float rZ = (float) (orientation[2] * 180.0f/Math.PI);
          */
-        public void setMode(int mode) {
-            mMode = mode;
+    	
+    	/*
+    	float rx = super.getPitch();
+    	float ry = super.getYaw();
+    	
+        // Update quaternion from euler angles out of orientation
+        mCameraQuat.fromEuler( rx, ry, 0.0f);
+        mCameraQuat = mCameraQuat.getConjugate();
+        mCameraQuat.normalise();
+        */
+       
+    	//mViewMatrix = mCameraQuat.getMatrix();
+		
+    	
+    	/*
+        // Update camera billboard
+        mCameraBillboard.mModelMatrix = mCameraQuat.getMatrix();
+        Matrix.invertM(mCameraBillboard.mModelMatrix, 0, mCameraBillboard.mModelMatrix, 0);
+        Matrix.translateM(mCameraBillboard.mModelMatrix, 0, 0.0f, 0.0f, -DISTANCE);
+        Matrix.rotateM(mCameraBillboard.mModelMatrix, 0, -90, 0, 0, 1);
+
+        mViewfinderBillboard.mModelMatrix = Arrays.copyOf(mCameraBillboard.mModelMatrix,
+                mCameraBillboard.mModelMatrix.length);
+        Matrix.scaleM(mViewfinderBillboard.mModelMatrix, 0, 0.25f, 0.25f, 0.25f);
+
+        // Draw all teh things
+        // First the skybox, then the marker dots, then the snapshots
+        
+        //mSkyBox.draw(gl);
+		*/
+	/*
+  		gl.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+
+        mCameraSurface.draw(gl, mViewMatrix);
+  		gl.glDisable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+*/
+        /*
+        mListBusy.lock();
+        for (TexturedPlane snap : mSnapshots) {
+            snap.draw(gl, mViewMatrix);
+        }
+        mListBusy.unlock();
+
+        for (TexturedPlane dot : mDots) {
+            // Set alpha based on camera distance to the point
+            float dX = dot.getAutoAlphaX() - (rx + 180.0f);
+            float dY = dot.getAutoAlphaY() - ry;
+            dX = (dX + 180.0f) % 360.0f - 180.0f;
+            
+            ///dot.setAlpha(1.0f - Math.abs(dX)/180.0f * 8.0f);
+
+            dot.draw(gl, mViewMatrix);
         }
 
-        public void setTexture(Bitmap tex) {
-            mBitmapToLoad = tex;
-        }
-
-        public void setTextureId(int id) {
-            mTextureData = id;
-        }
-
-        public void setAlpha(float alpha) {
-            mAlpha = alpha;
-        }
-
-        public void setAutoAlphaAngle(float x, float y) {
-            mAutoAlphaX = x;
-            mAutoAlphaY = y;
-        }
-
-        public float getAutoAlphaX() {
-            return mAutoAlphaX;
-        }
-
-        public float getAutoAlphaY() {
-            return mAutoAlphaY;
-        }
-
-        private void loadTexture() {
-            // Load the snapshot bitmap as a texture to bind to our GLES20 program
-            int texture[] = new int[1];
-
-            GLES20.glGenTextures(1, texture, 0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture[0]);
-
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                    GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                    GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                    GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                    GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-
-            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, mBitmapToLoad, 0);
-            //tex.recycle();
-
-            if(texture[0] == 0){
-                Log.e(TAG, "Unable to attribute texture to quad");
-            }
-
-            mTextureData = texture[0];
-            mBitmapToLoad = null;
-        }
-
-        public void draw() {
-            if (!mIsVisible) return;
-
-            if (mBitmapToLoad != null) {
-                loadTexture();
-            }
-
-            GLES20.glUseProgram(mProgram[mMode]);
-            if (mIsFourToThree) {
-                m43VertexBuffer.position(0);
-            } else {
-                mVertexBuffer.position(0);
-            }
-            mTexCoordBuffer.position(0);
-
-            GLES20.glEnableVertexAttribArray(mTexCoordHandler[mMode]);
-            GLES20.glEnableVertexAttribArray(mPositionHandler[mMode]);
-
-            if (mIsFourToThree) {
-                GLES20.glVertexAttribPointer(mPositionHandler[mMode],
-                        2, GLES20.GL_FLOAT, false, 8, m43VertexBuffer);
-            } else {
-                GLES20.glVertexAttribPointer(mPositionHandler[mMode],
-                        2, GLES20.GL_FLOAT, false, 8, mVertexBuffer);
-            }
-            GLES20.glVertexAttribPointer(mTexCoordHandler[mMode], 2,
-                    GLES20.GL_FLOAT, false, 8, mTexCoordBuffer);
-
-            // This multiplies the view matrix by the model matrix, and stores the
-            // result in the MVP matrix (which currently contains model * view).
-            Matrix.multiplyMM(mMVPMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
-
-            // This multiplies the modelview matrix by the projection matrix, and stores
-            // the result in the MVP matrix (which now contains model * view * projection).
-            Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVPMatrix, 0);
-
-            // Pass in the combined matrix.
-            GLES20.glUniformMatrix4fv(mMVPMatrixHandler[mMode], 1, false, mMVPMatrix, 0);
-
-            GLES20.glUniform1f(mAlphaHandler[mMode], mAlpha);
-
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureData);
-
-            GLES20.glUniform1i(mTextureHandler[mMode], 0);
-
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 4);
-        }
+        mViewfinderBillboard.draw(gl, mViewMatrix);
     }
+	 */
+	
+	/*
+    @Override
+    public void onSurfaceChanged(GL10 glUnused, int width, int height) {
+        // Set the OpenGL viewport to the same size as the surface.
+        GLES20.glViewport(0, 0, width, height);
 
-    /**
-     * Initialize the model data.
-     */
-    public CaptureRenderer(Context context, CameraManager cameraManager) {
-        mSnapshots = new ArrayList<Snapshot>();
-        mDots = new ArrayList<Snapshot>();
-        mCamManager = cameraManager;
-        mListBusy = new ReentrantLock();
-        mSensorFusion = new SensorFusionManager(context);
-        mCameraQuat = new Quaternion();
-        mContext = context;
-        mTempQuaternion = new Quaternion();
+        // We use here a field of view of 40, which is mostly fine for a camera app representation
+        final float hfov = 90f;
 
-        // Position the dots every 40°
-        for (int x = 0; x < 360; x += 360/12) {
-            for (int y = 0; y < 360; y += 360/12) {
-                createDot(x, y);
-            }
-        }
+        // Create a new perspective projection matrix. The height will stay the same
+        // while the width will vary as per aspect ratio.
+        final float ratio = 640.0f / 480.0f;
+        final float near = 0.1f;
+        final float far = 1500.0f;
+        final float left = (float) Math.tan(hfov * Math.PI / 360.0f) * near;
+        final float right = -left;
+        final float bottom = ratio * right / 1.0f;
+        final float top = ratio * left / 1.0f;
 
+        Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
     }
+	
+     */	
 
-    private void createDot(float rx, float ry) {
-        Snapshot dot = new Snapshot(false);
-        dot.setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-                R.drawable.ic_picsphere_marker));
-        dot.mModelMatrix = matrixFromEuler(rx, 0, ry, 0, 0, 100);
-        Matrix.scaleM(dot.mModelMatrix, 0, 0.1f, 0.1f, 0.1f);
-        dot.setAutoAlphaAngle(rx, ry);
-        mDots.add(dot);
-    }
-
-    private float[] matrixFromEuler(float rx, float ry, float rz, float tx, float ty, float tz) {
+	/*
+	 private float[] matrixFromEuler(float rx, float ry, float rz, float tx, float ty, float tz) {
         Quaternion quat = new Quaternion();
         quat.fromEuler(rx,ry,rz);
         float[] matrix = quat.getMatrix();
@@ -360,29 +668,16 @@ public class CaptureRenderer implements GLSurfaceView.Renderer
     }
 
 
-    @Override
-    public void onSurfaceCreated(GL10 glUnused, EGLConfig config) {
-        // Set the background clear color to gray.
-        GLES20.glClearColor(0.5f, 0.5f, 0.5f, 0.5f);
+	 */
+	
+	/*
+	 * @Override
+    public void onSurfaceCreated(GL10 gl, EGLConfig config)
+    {
+        super.onSurfaceCreated(gl, config);
 
-        // Initialize plane vertex data and texcoords data
-        ByteBuffer bb_data = ByteBuffer.allocateDirect(mVertexData.length * 4);
-        bb_data.order(ByteOrder.nativeOrder());
-        ByteBuffer bb_43data = ByteBuffer.allocateDirect(m43VertexData.length * 4);
-        bb_43data.order(ByteOrder.nativeOrder());
-        ByteBuffer bb_texture = ByteBuffer.allocateDirect(mTexCoordData.length * 4);
-        bb_texture.order(ByteOrder.nativeOrder());
-
-        mVertexBuffer = bb_data.asFloatBuffer();
-        mVertexBuffer.put(mVertexData);
-        mVertexBuffer.position(0);
-        m43VertexBuffer = bb_43data.asFloatBuffer();
-        m43VertexBuffer.put(m43VertexData);
-        m43VertexBuffer.position(0);
-        mTexCoordBuffer = bb_texture.asFloatBuffer();
-        mTexCoordBuffer.put(mTexCoordData);
-        mTexCoordBuffer.position(0);
-
+        
+        /*
         // Simple GLSL vertex/fragment, as GLES2 doesn't have the classical fixed pipeline
         final String vertexShader =
                 "uniform mat4 u_MVPMatrix; \n"
@@ -444,241 +739,13 @@ public class CaptureRenderer implements GLSurfaceView.Renderer
             mTextureHandler[i]      = GLES20.glGetUniformLocation(mProgram[i], "u_Texture");
             mAlphaHandler[i]      = GLES20.glGetUniformLocation(mProgram[i], "f_Alpha");
         }
-
-        mSkyBox = new Skybox();
-
-        initCameraBillboard();
+         */
+        
+        /*
+        initCameraSurface();
     }
-
-    private void initCameraBillboard() {
-        int texture[] = new int[1];
-
-        GLES20.glGenTextures(1, texture, 0);
-        mCameraTextureId = texture[0];
-
-        if (mCameraTextureId == 0) {
-            throw new RuntimeException("CAMERA TEXTURE ID == 0");
-        }
-
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mCameraTextureId);
-        // Can't do mipmapping with camera source
-        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER,
-                GLES20.GL_LINEAR);
-        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER,
-                GLES20.GL_LINEAR);
-        // Clamp to edge is the only option
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S,
-                GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T,
-                GLES20.GL_CLAMP_TO_EDGE);
-
-        mCameraSurfaceTex = new SurfaceTexture(mCameraTextureId);
-        mCameraSurfaceTex.setDefaultBufferSize(640, 480);
-
-        mCameraBillboard = new Snapshot();
-        mCameraBillboard.setTextureId(mCameraTextureId);
-        mCameraBillboard.setMode(CAMERA);
-        try {
-			mCamManager.setPreviewSurface(mCameraSurfaceTex);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-        // Setup viewfinder billboard
-        mViewfinderBillboard = new Snapshot(false);
-        mViewfinderBillboard.setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-                R.drawable.ic_picsphere_viewfinder));
-    }
-
-    @Override
-    public void onSurfaceChanged(GL10 glUnused, int width, int height) {
-        // Set the OpenGL viewport to the same size as the surface.
-        GLES20.glViewport(0, 0, width, height);
-
-        // We use here a field of view of 40, which is mostly fine for a camera app representation
-        final float hfov = 90f;
-
-        // Create a new perspective projection matrix. The height will stay the same
-        // while the width will vary as per aspect ratio.
-        final float ratio = 640.0f / 480.0f;
-        final float near = 0.1f;
-        final float far = 1500.0f;
-        final float left = (float) Math.tan(hfov * Math.PI / 360.0f) * near;
-        final float right = -left;
-        final float bottom = ratio * right / 1.0f;
-        final float top = ratio * left / 1.0f;
-
-        Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
-    }
-
-    @Override
-    public void onDrawFrame(GL10 glUnused) {
-        mCameraSurfaceTex.updateTexImage();
-
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-
-        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-        GLES20.glEnable(GLES20.GL_BLEND);
-
-        // Update camera view matrix
-        float[] orientation = mSensorFusion.getFusedOrientation();
-
-        // Convert angles to degrees
-        float rX = (float) (orientation[1] * 180.0f/Math.PI);
-        float rY = (float) (orientation[0] * 180.0f/Math.PI);
-        float rZ = (float) (orientation[2] * 180.0f/Math.PI);
-
-        // Update quaternion from euler angles out of orientation
-        mCameraQuat.fromEuler( rX, 180.0f-rZ, rY);
-        mCameraQuat = mCameraQuat.getConjugate();
-        mCameraQuat.normalise();
-        mViewMatrix = mCameraQuat.getMatrix();
-
-        // Update camera billboard
-        mCameraBillboard.mModelMatrix = mCameraQuat.getMatrix();
-
-        Matrix.invertM(mCameraBillboard.mModelMatrix, 0, mCameraBillboard.mModelMatrix, 0);
-        Matrix.translateM(mCameraBillboard.mModelMatrix, 0, 0.0f, 0.0f, -DISTANCE);
-        Matrix.rotateM(mCameraBillboard.mModelMatrix, 0, -90, 0, 0, 1);
-
-        mViewfinderBillboard.mModelMatrix = Arrays.copyOf(mCameraBillboard.mModelMatrix,
-                mCameraBillboard.mModelMatrix.length);
-        Matrix.scaleM(mViewfinderBillboard.mModelMatrix, 0, 0.25f, 0.25f, 0.25f);
-
-        // Draw all teh things
-        // First the skybox, then the marker dots, then the snapshots
-        mSkyBox.draw();
-
-        mCameraBillboard.draw();
-
-        mListBusy.lock();
-        for (Snapshot snap : mSnapshots) {
-            snap.draw();
-        }
-        mListBusy.unlock();
-
-        for (Snapshot dot : mDots) {
-            // Set alpha based on camera distance to the point
-            float dX = dot.getAutoAlphaX() - (rX + 180.0f);
-            float dY = dot.getAutoAlphaY() - rY;
-            dX = (dX + 180.0f) % 360.0f - 180.0f;
-            dot.setAlpha(1.0f - Math.abs(dX)/180.0f * 8.0f);
-
-            dot.draw();
-        }
-
-        mViewfinderBillboard.draw();
-    }
-
-    public void setCamPreviewVisible(boolean visible) {
-        mCameraBillboard.setVisible(visible);
-    }
-
-    public void onPause() {
-        if (mSensorFusion != null) {
-            mSensorFusion.onPauseOrStop();
-        }
-    }
-
-    public void onResume() {
-        if (mSensorFusion != null) {
-            mSensorFusion.onResume();
-        }
-    }
-
-    public void setCameraOrientation(float rX, float rY, float rZ) {
-        // Convert angles to degrees
-        rX = (float) (rX * 180.0f/Math.PI);
-        rY = (float) (rY * 180.0f/Math.PI);
-
-        // Update quaternion from euler angles out of orientation and set it as view matrix
-        mCameraQuat.fromEuler(rY, 0.0f, rX);
-        mViewMatrix = mCameraQuat.getConjugate().getMatrix();
-    }
-
-    public Vector3 getAngleAsVector() {
-        float[] orientation = mSensorFusion.getFusedOrientation();
-
-        // Convert angles to degrees
-        float rX = (float) (orientation[0] * 180.0f/Math.PI);
-        float rY = (float) (orientation[1] * 180.0f/Math.PI);
-        float rZ = (float) (orientation[2] * 180.0f/Math.PI);
-
-        return new Vector3(rX, rY, rZ);
-    }
-
-    /**
-     * Helper function to compile a shader.
-     *
-     * @param shaderType The shader type.
-     * @param shaderSource The shader source code.
-     * @return An OpenGL handle to the shader.
-     */
-    public static int compileShader(final int shaderType, final String shaderSource) {
-        int shaderHandle = GLES20.glCreateShader(shaderType);
-
-        if (shaderHandle != 0) {
-            // Pass in the shader source.
-            GLES20.glShaderSource(shaderHandle, shaderSource);
-
-            // Compile the shader.
-            GLES20.glCompileShader(shaderHandle);
-
-            // Get the compilation status.
-            final int[] compileStatus = new int[1];
-            GLES20.glGetShaderiv(shaderHandle, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
-
-            // If the compilation failed, delete the shader.
-            if (compileStatus[0] == 0) {
-                Log.e(TAG, "Error compiling shader: " + GLES20.glGetShaderInfoLog(shaderHandle));
-                GLES20.glDeleteShader(shaderHandle);
-                shaderHandle = 0;
-            }
-        }
-
-        if (shaderHandle == 0) {
-            throw new RuntimeException("Error creating shader.");
-        }
-
-        return shaderHandle;
-    }
-
-    /**
-     * Adds a snapshot to the sphere
-     */
-    public void addSnapshot(final Bitmap image) {
-        Snapshot snap = new Snapshot();
-        snap.mModelMatrix = Arrays.copyOf(mViewMatrix, mViewMatrix.length);
-
-        Matrix.invertM(snap.mModelMatrix, 0, snap.mModelMatrix, 0);
-        Matrix.translateM(snap.mModelMatrix, 0, 0.0f, 0.0f, -DISTANCE);
-        Matrix.rotateM(snap.mModelMatrix, 0, -90, 0, 0, 1);
-
-        snap.setTexture(image);
-
-        mListBusy.lock();
-        mSnapshots.add(snap);
-        mListBusy.unlock();
-    }
-
-    /**
-     * Removes the last taken snapshot
-     */
-    public void removeLastPicture() {
-        mListBusy.lock();
-        if (mSnapshots.size() > 0) {
-            mSnapshots.remove(mSnapshots.size()-1);
-        }
-        mListBusy.unlock();
-    }
-
-    /**
-     * Clear sphere's snapshots
-     */
-    public void clearSnapshots() {
-        mListBusy.lock();
-        mSnapshots.clear();
-        mListBusy.unlock();
-    }
+*/
+	 
 }
+
+
