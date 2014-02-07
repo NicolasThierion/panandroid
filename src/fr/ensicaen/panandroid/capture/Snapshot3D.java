@@ -26,11 +26,7 @@ public class Snapshot3D extends TexturedPlane
 	/* ********
 	 * CONSTRUCTOR
 	 * *******/
-	public Snapshot3D()
-	{
-		super();
-		mSnapshot = new Snapshot();
-	}
+	
 	
 	public Snapshot3D(float scale, float pitch, float yaw) 
 	{

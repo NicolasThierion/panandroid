@@ -1,16 +1,7 @@
 package fr.ensicaen.panandroid.capture;
 
-import junit.framework.Assert;
-import fr.ensicaen.panandroid.R;
-import fr.ensicaen.panandroid.insideview.Inside3dView;
-import fr.ensicaen.panandroid.meshs.Cube;
-import fr.ensicaen.panandroid.meshs.Sphere;
 import android.app.Activity;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -34,8 +25,7 @@ import android.view.WindowManager;
  */
 public class CaptureActivity extends Activity
 {
-	
-		
+
 	/* *********
 	 * ATTRIBUTES
 	 * *********/
@@ -72,7 +62,37 @@ public class CaptureActivity extends Activity
 	
 	}
 	
-	  
+
+	/*void generateMarks(float s)
+	{
+		float radius = 1;
+		float phi = s/radius;
+		LinkedList<Mark> marks;
+		
+		
+		double theta = Math.PI; //equateur
+		phi = 0;
+		Mark mark;
+		
+		mark.mPitch = theta;
+		mark.mYaw = phi;
+		
+		marks.add(mark);
+		
+		while(   ) { //test d'arret pour recouvrir tte la sphere
+			phi += phi;
+			mark.mPitch = theta;
+			mark.mYaw = phi;
+			
+			marks.add(mark);
+					
+		}
+		
+		
+	
+		
+	}*/
+	
 	/**
 	 * Remember to resume the glSurface.
 	 */

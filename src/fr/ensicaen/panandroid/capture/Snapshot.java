@@ -1,10 +1,15 @@
 package fr.ensicaen.panandroid.capture;
 
-import android.graphics.Bitmap;
-
-public class Snapshot
+/**
+ *
+ * @author Saloua
+ * @author Nicolas
+ *
+ */
+public class Snapshot implements EulerAngles
 {
-	private Bitmap mBitmap;
+	private static int GLOBAL_ID = 0;
+	
 	
 	private float mPitch;
 	private float mYaw;
@@ -12,6 +17,11 @@ public class Snapshot
 
 	private String mFileName;
 	
+
+	private int mId;
+	
+
+
 	public Snapshot(float pitch, float yaw)
 	{
 		mYaw = yaw%360.0f;
@@ -26,27 +36,23 @@ public class Snapshot
 		{
 			mPitch-=180.0f;
 		}
-	}
-	
-	public Snapshot()
-	{
+		mId = GLOBAL_ID++;
+
 	}
 	
 	
 	
-	public Bitmap getBitmap() {
-		return mBitmap;
-	}
-	public void setBitmap(Bitmap mBitmap) {
-		this.mBitmap = mBitmap;
-	}
-	public float getYaw()
-	{
+	
+	
+
+	@Override
+	public float getYaw() {
 		return mYaw;
 	}
 	
-	public float getPitch()
-	{
+
+	@Override
+	public float getPitch() {
 		return mPitch;
 	}
 	
@@ -55,22 +61,13 @@ public class Snapshot
 		return mRoll;
 	}
 	
-	/*
-	public void setPitch(float pitch)
-	{
-		mPitch = pitch;
+	
+
+	public int getId() {
+		return mId;
 	}
 	
-	public void setYaw(float yaw)
-	{
-		mYaw = yaw;
-	}
-	
-	public void setRoll(float roll)
-	{
-		mRoll = roll;
-	}
-	*/
+
 	public String getFileName() {
 		return mFileName;
 	}
@@ -81,12 +78,5 @@ public class Snapshot
 	
 	
 
-
-	public int getId() {
-		//TODO
-		return 0;
-	}
-
-	
 	
 }

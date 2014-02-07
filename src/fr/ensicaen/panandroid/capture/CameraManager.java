@@ -284,6 +284,9 @@ public class CameraManager
 			return mCurrentSnapshot;
 		}
 		
+		
+		
+		
 	}
 	
 	
