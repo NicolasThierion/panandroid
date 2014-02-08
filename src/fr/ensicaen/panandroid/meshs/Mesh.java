@@ -23,12 +23,12 @@ import android.opengl.Matrix;
 public abstract class Mesh
 {
 
-	/** Master rotation axis around which one the mesh rotates first **/
-	private Axis mAxis = Axis.VERTICAL; 
-	
-	/** model matrix of the mesh. Define rotation/transformation of the mesh applied in the view matrix **/
-	protected float[] mModelMatrix = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
-	
+//	/** Master rotation axis around which one the mesh rotates first **/
+//	private Axis mAxis = Axis.VERTICAL; 
+//	
+//	/** model matrix of the mesh. Define rotation/transformation of the mesh applied in the view matrix **/
+//	protected float[] mModelMatrix = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+//	
 	/**
 	 * Load the texture for the square.
 	 *
@@ -48,32 +48,37 @@ public abstract class Mesh
 	  
 	  
 
-	public void rotate(float rx, float ry, float rz)
-	{
-		switch(mAxis)
-		{
-		//rotate yaw first
-		case VERTICAL :
-			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
-			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
-			break;
-		default:
-			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
-			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
-			
-		}
-		Matrix.rotateM(mModelMatrix, 0, rz, 0, 0, 1);
-		
-	}
-	
-	public void translate(float tx,float ty,float tz)
-	{
-	    Matrix.translateM(mModelMatrix, 0, -tx, -ty, -tz);
-		
-	}
-	
-	public void setAxis(Axis axis)
-	{
-		mAxis = axis;
-	}
+//	public void rotate(float rx, float ry, float rz)
+//	{
+//		switch(mAxis)
+//		{
+//		//rotate yaw first
+//		case VERTICAL :
+//			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+//			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
+//			break;
+//		default:
+//			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
+//			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+//		}
+//		
+//		Matrix.rotateM(mModelMatrix, 0, rz, 0, 0, 1);
+//	}
+//	
+//	/**
+//	 * Translate the mesh by the given vector
+//	 * @param tx
+//	 * @param ty
+//	 * @param tz
+//	 */
+//	public void translate(float tx,float ty,float tz)
+//	{
+//	    Matrix.translateM(mModelMatrix, 0, -tx, -ty, -tz);
+//		
+//	}
+//	
+//	public void setAxis(Axis axis)
+//	{
+//		mAxis = axis;
+//	}
 }

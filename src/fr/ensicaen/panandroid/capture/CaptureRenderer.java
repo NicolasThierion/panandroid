@@ -1,13 +1,11 @@
 package fr.ensicaen.panandroid.capture;
 
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES10;
 import android.opengl.GLES11Ext;
 import android.opengl.Matrix;
 import android.util.Log;
-import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
 
@@ -48,9 +46,15 @@ public class CaptureRenderer extends InsideRenderer
 	private static final float CAMERA_SIZE = 10.0f;
 	private static final float CAMERA_DISTANCE = 55.0f;
 	
+	/** Size & distance of the viewFinder**/
+	private static final float VIEWFINDER_SIZE = 1.0f;
+	private static final float VIEWFINDER_DISTANCE = 30.0f;
+	private static final float VIEWFINDER_ATTENUATION_ALPHA = 1.0f; 	
+	
 	/** Size & distance of the markers **/
 	private static final float MARKERS_SIZE = 1.0f;
 	private static final float MARKERS_DISTANCE = 45.0f;
+	private static final float MARKERS_ATTENUATION_FACTOR = 30.0f; 		//[ around 1]
 		
 	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
 	
@@ -59,12 +63,12 @@ public class CaptureRenderer extends InsideRenderer
 	
 	
 	/** angle interval between dots **/
-	private static final float PITCH_STEP = 360.0f/12.0f;;
-	private static final float YAW_STEP = 360.0f/12.0f;
+	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
+	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
 	
 	/** default textures **/
 	private static final int MARKER_RESSOURCE_ID = R.drawable.ic_picsphere_marker;
-
+	private static final int VIEWFINDER_RESSOURCE_ID = R.drawable.ic_picsphere_viewfinder;
 	private static final boolean USE_SCREEN_RATIO = false;
 	
 	/* ********
@@ -103,6 +107,9 @@ public class CaptureRenderer extends InsideRenderer
 	
 	//TODO : implement
 	private TexturedPlane mViewfinderBillboard;
+	
+	private float mPitchStep = DEFAULT_PITCH_STEP;
+	private float mYawStep = DEFAULT_YAW_STEP;
 	
 	
 	/** 
@@ -159,15 +166,13 @@ public class CaptureRenderer extends InsideRenderer
 		mSnapshots = new ArrayList<Snapshot3D>();
 		mDots = new ArrayList<Snapshot3D>();
 		
-		for(float pitch = 0; pitch < 360; pitch+=PITCH_STEP)
+		for(float pitch = 0; pitch < 180; pitch+=mPitchStep)
 		{
-			for(float yaw = 0; yaw < 360; yaw+=YAW_STEP)
+			for(float yaw = 0; yaw < 360; yaw+=mYawStep)
 			{
 				mDots.add(createDot(pitch, yaw));
 			}
 		}
-		
-
 		
 		//TODO : trash this?
 		//mListBusy = new ReentrantLock();
@@ -223,8 +228,25 @@ public class CaptureRenderer extends InsideRenderer
 	{
 		mMarkersSize = scale;
 	}
+
+	
+	 /**
+     * Set pitch interval between markers.
+     * @param step - pitch interval.
+     */
+    public void setPitchStep(float step)
+    {
+    	mPitchStep = step;
+    }
     
-    
+    /**
+     * Set yaw interval between markers.
+     * @param step - yaw interval.
+     */
+    public void setYawStep(float step)
+    {
+    	mYawStep = step;
+    }
     
     /* ********
 	 * RENDERER OVERRIDES
@@ -307,19 +329,26 @@ public class CaptureRenderer extends InsideRenderer
 	    }
 	    mListBusy.unlock();
 		*/
+		float oPitch = super.getPitch();
+		float oYaw = super.getYaw();
+		
+		float sPitch , sYaw, dPitch, dYaw, d;
+		
 		
 		if(mUseMarkers)
 		{
-		    for (TexturedPlane dot : mDots)
+		    for (Snapshot3D dot : mDots)
 		    {
-		        /*
-		    	// Set alpha based on camera distance to the point
-		        float dX = dot.getAutoAlphaX() - (rx + 180.0f);
-		        float dY = dot.getAutoAlphaY() - ry;
-		        dX = (dX + 180.0f) % 360.0f - 180.0f;
+		        sPitch = dot.getPitch();
+		        sYaw = dot.getYaw();
 		        
-		        dot.setAlpha(1.0f - Math.abs(dX)/180.0f * 8.0f);
-				*/
+		    	// Set alpha based on camera distance to the point
+		        dPitch = Math.abs(Math.abs(sPitch) - Math.abs(oPitch));
+		        dYaw = Math.abs(Math.abs(sYaw) - Math.abs(oYaw));
+		        d = (dPitch+dYaw)*MARKERS_ATTENUATION_FACTOR/360.0f;
+		        d = (d>1.0f?1.0f:d);	        
+		        dot.setAlpha(1.0f - d);
+		        
 		        dot.draw(gl, super.getRotationMatrix());
 		    }
 		}
@@ -370,23 +399,17 @@ public class CaptureRenderer extends InsideRenderer
 		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
 								GLES10.GL_TEXTURE_WRAP_T,
 								GLES10.GL_CLAMP_TO_EDGE);
-		
 				
 		//create a SurfaceTexture associated to this openGL texture...
 		mCameraSurfaceTex = new SurfaceTexture(mCameraTextureId);
 		mCameraSurfaceTex.setDefaultBufferSize(640, 480);
 		
-		
 		//... and redirect camera preview to it 		
 		mCamManager.setPreviewSurface(mCameraSurfaceTex);
 		
-		
-		
-		//TODO
 		//Setup viewfinder	
-		//mViewfinderBillboard = new TexturedPlane(2.0f);
-		//mViewfinderBillboard.setTexture(BitmapFactory.decodeResource(mContext.getResources(),
-		//        R.drawable.ic_picsphere_viewfinder));
+		mViewfinderBillboard = new TexturedPlane(2.0f);
+		mViewfinderBillboard.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
 	}
 	
 	private void reinitCameraSurface() throws IOException

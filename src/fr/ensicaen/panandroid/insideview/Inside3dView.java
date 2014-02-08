@@ -90,6 +90,8 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		{
 			setRenderer(renderer);
 		}
+        super.setEGLContextClientVersion(1);
+
 	}
 	
 	/**
@@ -289,7 +291,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		if(enable)
 		{
 			//create a new sensor manager
-			this.mSensorFusionManager = new SensorFusionManager(this.getContext());
+			this.mSensorFusionManager = SensorFusionManager.getInstance(this.getContext());
 			
 			//and register it to the system
 			boolean initialized = mSensorFusionManager.registerListener();

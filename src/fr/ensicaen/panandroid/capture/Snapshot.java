@@ -1,50 +1,82 @@
 package fr.ensicaen.panandroid.capture;
 
-import android.graphics.Bitmap;
-
+/**
+ *
+ * A snapshot represents an image, tagged by its position. 
+ * The position corresponds to the pitch and the yaw of the device when the picture has been captured.
+ * The image is identified by its filename.
+ * @author Saloua
+ * @author Nicolas
+ *
+ */
 public class Snapshot implements EulerAngles
 {
-	
 	private static int GLOBAL_ID = 0;
-	private Bitmap mBitmap;
-	private float mYaw;
+	
+	
 	private float mPitch;
-	//final float mRoll;
+	private float mYaw;
+	private float mRoll;
+
 	private String mFileName;
+	
+
 	private int mId;
 	
 
-
+	/**
+	 * Create a new snapshot, marged with the position given by pitch and yaw.
+	 * The pitch get normalized between -90 and 90.
+	 * The yaw get normalized between -180 and 180.
+	 * @param pitch - pitch of the snapshot.
+	 * @param yaw - yaw of the snapshot.
+	 */
 	public Snapshot(float pitch, float yaw)
 	{
-		mYaw = yaw;
-		mPitch = pitch;
+		mYaw = yaw%360.0f;
+		mPitch = pitch%180.0f;
+
+		if(mYaw>180.0f)
+		{
+			mYaw-=360.0f;
+		}
+		
+		if(mPitch>90.0f)
+		{
+			mPitch-=180.0f;
+		}
 		mId = GLOBAL_ID++;
-	}
-	
-	public Snapshot()
-	{
-		mId = GLOBAL_ID++;
+
 	}
 	
 	
 	
-	public Bitmap getBitmap() {
-		return mBitmap;
-	}
-	public void setBitmap(Bitmap mBitmap) {
-		this.mBitmap = mBitmap;
-	}
 	
+	
+
 	@Override
-	public float getYaw() {
+	public float getYaw()
+	{
 		return mYaw;
 	}
 	
+
 	@Override
 	public float getPitch() {
 		return mPitch;
 	}
+	
+	public float getRoll()
+	{
+		return mRoll;
+	}
+	
+	
+
+	public int getId() {
+		return mId;
+	}
+	
 
 	public String getFileName() {
 		return mFileName;
@@ -55,19 +87,6 @@ public class Snapshot implements EulerAngles
 	}
 	
 	
-	public void setPitch(float pitch)
-	{
-		mPitch = pitch;
-	}
-	
-	public void setYaw(float yaw)
-	{
-		mYaw = yaw;
-	}
 
-	public int getId() {
-		return mId;
-	}
-	
 	
 }

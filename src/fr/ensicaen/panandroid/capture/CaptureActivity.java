@@ -1,8 +1,11 @@
 package fr.ensicaen.panandroid.capture;
 
+import java.io.File;
+import java.io.IOException;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -27,6 +30,14 @@ import android.view.WindowManager;
 public class CaptureActivity extends Activity
 {
 
+
+	/* *********
+	 * PARAMETERS
+	 * *********/
+
+	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
+	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
+
 	/* *********
 	 * ATTRIBUTES
 	 * *********/
@@ -37,6 +48,8 @@ public class CaptureActivity extends Activity
 	/** The Camera manager **/
 	private CameraManager mCameraManager;
 	
+	/** Sensor fusion manager user to measure phone orientation during capture**/
+	//private SensorFusionManager mSensorFusionManager;
 	
 	/**
 	 * Called when the activity is first created.
@@ -51,11 +64,27 @@ public class CaptureActivity extends Activity
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
-		//get camera manager
+		//setup camera manager
 		mCameraManager = CameraManager.getInstance();
+		try
+		{
+			mCameraManager.setTargetDir(Environment.getExternalStorageDirectory() + File.separator + "Panandroid");
+			mCameraManager.open();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+			return;
+		}
 		
-		//set GL view & its renderer
+		
+		//setup GL view & its renderer
 		this.mCaptureView = new CaptureView(this, mCameraManager);
+		
+		mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
+		mCaptureView.setYawStep(DEFAULT_YAW_STEP);
+		
+		
 		this.setContentView(this.mCaptureView);	
 		
 		
@@ -88,10 +117,7 @@ public class CaptureActivity extends Activity
 			marks.add(mark);
 					
 		}
-		
-		
-	
-		
+
 	}*/
 	
 	/**
@@ -100,8 +126,9 @@ public class CaptureActivity extends Activity
 	@Override
 	protected void onResume()
 	{
-		super.onResume();
 		this.mCaptureView.onResume();
+		super.onResume();
+
 	}
 	
 	/**
@@ -114,5 +141,11 @@ public class CaptureActivity extends Activity
 		super.onPause();
 	}
 	
+	@Override 
+	protected void onDestroy()
+	{
+		mCaptureView.onDestroy();
+		super.onDestroy();
+	}
 	
 }

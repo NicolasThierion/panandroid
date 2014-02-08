@@ -9,7 +9,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
@@ -29,8 +28,10 @@ public class CameraActivity extends Activity
             + File.separator + "Panandroid").getName();
 	private String mDirectory = DEFAULT_TARGET_DIRECTORY;
 	private CameraManager mCameraManager;
+	
 	private Preview mPreview;
 	Camera mCamera;
+	
 	PictureCallback jpeg;
 	PictureCallback raw = new Camera.PictureCallback() {
 		

@@ -56,10 +56,17 @@ public class TexturedPlane extends Mesh
 	/* *********
 	 * ATTRIBUTES
 	 * ********/
+	/** Master rotation axis around which one the mesh rotates first **/
+	private Axis mAxis = Axis.VERTICAL; 
 	
+	/** model matrix of the mesh. Define rotation/transformation of the mesh applied in the view matrix **/
+	public float[]mModelMatrix;
 	
 	/** if the mesh should be drawn **/
 	private boolean mIsVisible = true;
+	
+	/** alpha (transparency) component**/
+	private float mAlpha = 1.0f;
 	
 	/** openGL texture ID applied to this plane **/
 	private int imTextureId;
@@ -202,17 +209,84 @@ public class TexturedPlane extends Mesh
 		//enter 2d texture mode
 		gl.glEnable(GL10.GL_TEXTURE_2D);
 		
+		//enable depth test
+		gl.glEnable(GL10.GL_DEPTH_TEST);
+		gl.glDepthMask(true);
+		
 		//enable alpha
 		gl.glAlphaFunc( GLES10.GL_GREATER, 0 );
 		gl.glEnable( GLES10.GL_ALPHA_TEST );
 		
-		//enanle blending
+		//apply additionnal transparency
+		gl.glColor4f(1.0f,1.0f,1.0f,mAlpha);
+		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_MODULATE);
+		
+		//enable blending
+//		gl.glBlendFunc(GL10.GL_ONE, GL10.GL_ONE_MINUS_SRC_ALPHA);
 		gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+//		gl.glBlendFunc(GL10.GL_ONE, GL10.GL_ONE);
 		gl.glEnable(GL10.GL_BLEND);
+		
 		
 		if (!mIsVisible) return;
 		
-		if (mTextureToLoad) {
+		if (mTextureToLoad)
+		{
+		    loadGLTexture(gl);
+		}
+		
+		// bind the previously generated texture.
+		gl.glBindTexture(GL10.GL_TEXTURE_2D, imTextureId);
+		
+		// Point to our buffers.
+		gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
+		gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
+		gl.glVertexPointer(3, GL10.GL_FLOAT, 0, this.mVertexBuffer);  
+		gl.glTexCoordPointer(2,GLES10.GL_FLOAT, 0, mTexCoordBuffer);
+
+		// This multiplies the view matrix by the model matrix, and stores the
+		// result in the MVP matrix (which currently contains model * view).
+		Matrix.multiplyMM(mMVMatrix, 0, modelViewMatrix, 0, mModelMatrix, 0);
+		gl.glLoadMatrixf(mMVMatrix, 0);
+		
+		gl.glDrawArrays(GLES10.GL_TRIANGLE_FAN, 0, 4);
+		gl.glLoadMatrixf(modelViewMatrix, 0);
+			
+		//leave
+		gl.glDisable(GL10.GL_TEXTURE_2D);
+		gl.glDisable( GLES10.GL_ALPHA_TEST );
+		gl.glDisable(GL10.GL_BLEND);
+		gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
+		gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
+		
+		
+		/*
+		 
+		 //enter 2d texture mode
+		gl.glEnable(GL10.GL_TEXTURE_2D);
+		
+		//enable depth test
+//		gl.glEnable(GL10.GL_DEPTH_TEST);
+//		gl.glDepthMask(true);
+		
+		//enable alpha
+		gl.glAlphaFunc( GLES10.GL_GREATER, 0 );
+		gl.glEnable( GLES10.GL_ALPHA_TEST );
+		
+		//apply additionnal transparency
+		gl.glColor4f(0.0f,0.0f,0.0f,0.5f);
+		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_MODULATE);
+		
+		//enable blending
+		gl.glBlendFunc(GL10.GL_ONE, GL10.GL_ONE_MINUS_SRC_ALPHA);
+		gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+		gl.glEnable(GL10.GL_BLEND);
+		
+		
+		if (!mIsVisible) return;
+		
+		if (mTextureToLoad)
+		{
 		    loadGLTexture(gl);
 		}
 		
@@ -241,7 +315,8 @@ public class TexturedPlane extends Mesh
 		gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
 	
 	
-	
+		 */
+
 	}
 
 	@Override
@@ -272,6 +347,43 @@ public class TexturedPlane extends Mesh
 	}
 	
 
+	public void rotate(float rx, float ry, float rz)
+	{
+		switch(mAxis)
+		{
+		//rotate yaw first
+		case VERTICAL :
+			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
+			break;
+		default:
+			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
+			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+			
+		}
+		Matrix.rotateM(mModelMatrix, 0, rz, 0, 0, 1);
+		
+	}
+
+	public void translate(float tx,float ty,float tz)
+	{
+        Matrix.translateM(mModelMatrix, 0, -tx, -ty, -tz);
+		
+	}
+	
+	public void setAxis(Axis axis)
+	{
+		mAxis = axis;
+	}
+	
+	/**
+	 * Set the alpha component (transparency) of the texture.
+	 * Only works with bitmap textures
+	 */
+	public void setAlpha(float alpha)
+	{
+		mAlpha = alpha;
+	}
 	
 	//TODO : implement or remove
 	/*
