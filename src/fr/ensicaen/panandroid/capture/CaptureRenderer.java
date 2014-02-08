@@ -1,13 +1,11 @@
 package fr.ensicaen.panandroid.capture;
 
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES10;
 import android.opengl.GLES11Ext;
 import android.opengl.Matrix;
 import android.util.Log;
-import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
 
@@ -65,8 +63,8 @@ public class CaptureRenderer extends InsideRenderer
 	
 	
 	/** angle interval between dots **/
-	private static final float PITCH_STEP = 360.0f/12.0f;;
-	private static final float YAW_STEP = 360.0f/12.0f;
+	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
+	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
 	
 	/** default textures **/
 	private static final int MARKER_RESSOURCE_ID = R.drawable.ic_picsphere_marker;
@@ -109,6 +107,9 @@ public class CaptureRenderer extends InsideRenderer
 	
 	//TODO : implement
 	private TexturedPlane mViewfinderBillboard;
+	
+	private float mPitchStep = DEFAULT_PITCH_STEP;
+	private float mYawStep = DEFAULT_YAW_STEP;
 	
 	
 	/** 
@@ -165,18 +166,13 @@ public class CaptureRenderer extends InsideRenderer
 		mSnapshots = new ArrayList<Snapshot3D>();
 		mDots = new ArrayList<Snapshot3D>();
 		
-		//mDots.add(createDot(0, YAW_STEP));
-
-		
-		for(float pitch = 0; pitch < 180; pitch+=PITCH_STEP)
+		for(float pitch = 0; pitch < 180; pitch+=mPitchStep)
 		{
-			for(float yaw = 0; yaw < 360; yaw+=YAW_STEP)
+			for(float yaw = 0; yaw < 360; yaw+=mYawStep)
 			{
 				mDots.add(createDot(pitch, yaw));
 			}
 		}
-		
-
 		
 		//TODO : trash this?
 		//mListBusy = new ReentrantLock();
@@ -232,8 +228,25 @@ public class CaptureRenderer extends InsideRenderer
 	{
 		mMarkersSize = scale;
 	}
+
+	
+	 /**
+     * Set pitch interval between markers.
+     * @param step - pitch interval.
+     */
+    public void setPitchStep(float step)
+    {
+    	mPitchStep = step;
+    }
     
-    
+    /**
+     * Set yaw interval between markers.
+     * @param step - yaw interval.
+     */
+    public void setYawStep(float step)
+    {
+    	mYawStep = step;
+    }
     
     /* ********
 	 * RENDERER OVERRIDES

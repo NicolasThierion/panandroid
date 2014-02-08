@@ -7,6 +7,7 @@ import junit.framework.Assert;
 
 
 
+import fr.ensicaen.panandroid.capture.EulerAngles;
 import fr.ensicaen.panandroid.meshs.Mesh;
 import fr.ensicaen.panandroid.meshs.NullMesh;
 import android.content.Context;
@@ -19,7 +20,7 @@ import android.opengl.GLU;
  * @author Nicolas
  *
  */
-public class InsideRenderer implements Renderer
+public class InsideRenderer implements Renderer, EulerAngles
 {		
 	@SuppressWarnings("unused")
 	private static final String TAG = InsideRenderer.class.getSimpleName();

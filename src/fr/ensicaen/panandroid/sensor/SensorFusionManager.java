@@ -26,8 +26,11 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
+
 import java.util.LinkedList;
 import java.util.List;
+
+import fr.ensicaen.panandroid.capture.EulerAngles;
 import junit.framework.Assert;
 
 /**
@@ -46,7 +49,7 @@ import junit.framework.Assert;
  * 
  *
  */
-public class SensorFusionManager implements SensorEventListener
+public class SensorFusionManager implements SensorEventListener, EulerAngles
 {
 
 	/* *********
@@ -63,6 +66,8 @@ public class SensorFusionManager implements SensorEventListener
 	/* *********
 	 * ATTRIBUTES
 	 * ********/
+	private static SensorFusionManager mInstance;
+	
 	
 	/** if device has gyroscope or have to use our simulated one **/
 	private boolean mIsGyroscopeSupported = false;
@@ -92,12 +97,28 @@ public class SensorFusionManager implements SensorEventListener
 	 * CONSTRUCTOR
 	 * ********/
 	
+    public static SensorFusionManager getInstance(Context context)
+    {
+    	if(mInstance == null)
+    	{
+    		synchronized(SensorFusionManager.class)
+    		{
+	    		if(mInstance == null)
+	    		{
+	    			mInstance = new SensorFusionManager(context);
+	    		}
+    	
+    		}
+    	}
+    	return mInstance;
+    }
+    
 	/**
 	 * Init a sensorManager and listen to TYPE_ROTATION_VECTOR events.
 	 * 
 	 * @param context
 	 */
-    public SensorFusionManager(Context context)
+    private SensorFusionManager(Context context)
     {
         // get sensorManager and initialise sensor listeners
         this(context, true);
@@ -495,6 +516,12 @@ public class SensorFusionManager implements SensorEventListener
 	    	mListener.onSensorChanged(event);
 		}
 
+	}
+
+	public float getShake()
+	{
+		//TODO
+		return 0.0f;
 	};
 
 }
