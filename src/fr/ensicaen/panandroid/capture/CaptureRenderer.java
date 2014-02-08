@@ -302,8 +302,10 @@ public class CaptureRenderer extends InsideRenderer
 		{
 			e.printStackTrace();
 		}
+		
 		//reset camera to avoid random "error 100 : server died"
-		mCamManager.reOpen();
+		//mCamManager.reOpen();
+		//fixed by added configChanged to manifest to avoid camera reopen on screen changed.
 	}
 	
 	@Override

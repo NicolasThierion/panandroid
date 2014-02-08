@@ -273,8 +273,15 @@ public class CameraManager
 	public void setTargetDir(String dir) throws IOException
 	{
 		mDirectory = new File(dir);
-		if(mDirectory == null || !mDirectory.isDirectory())
+		if(mDirectory == null)
 			throw new IOException("the directory "+dir+"is not valid");
+		
+
+		if(!mDirectory.exists())
+			mDirectory.mkdirs();
+		
+		if( !mDirectory.isDirectory())
+			throw new IOException("the file "+dir+"is not a directory");
 		
 		if(!mDirectory.canWrite())
 		{
@@ -506,6 +513,7 @@ public class CameraManager
 		filename = mTempFilename;
 		mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
 		
+		
 		return filename;
 	}
 	
@@ -670,6 +678,10 @@ public class CameraManager
 		                e.printStackTrace();       
 				}
 			}
+			
+			//for unknown reason, taking picture sometimes stops preview. Ensure that preview will keep started.
+			//reOpen();
+			mCamera.startPreview();
 		}
 		
 	}

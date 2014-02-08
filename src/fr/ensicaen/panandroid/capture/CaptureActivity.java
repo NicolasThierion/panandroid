@@ -3,6 +3,7 @@ package fr.ensicaen.panandroid.capture;
 import java.io.File;
 import java.io.IOException;
 
+import junit.framework.Assert;
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Environment;
@@ -37,6 +38,7 @@ public class CaptureActivity extends Activity
 
 	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
 	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
+	private static final String PICTURE_DIRECTORY = Environment.getExternalStorageDirectory() + File.separator + "Panandroid";
 
 	/* *********
 	 * ATTRIBUTES
@@ -48,8 +50,6 @@ public class CaptureActivity extends Activity
 	/** The Camera manager **/
 	private CameraManager mCameraManager;
 	
-	/** Sensor fusion manager user to measure phone orientation during capture**/
-	//private SensorFusionManager mSensorFusionManager;
 	
 	/**
 	 * Called when the activity is first created.
@@ -68,7 +68,7 @@ public class CaptureActivity extends Activity
 		mCameraManager = CameraManager.getInstance();
 		try
 		{
-			mCameraManager.setTargetDir(Environment.getExternalStorageDirectory() + File.separator + "Panandroid");
+			mCameraManager.setTargetDir(PICTURE_DIRECTORY);
 			mCameraManager.open();
 		}
 		catch (IOException e)
@@ -126,6 +126,7 @@ public class CaptureActivity extends Activity
 	@Override
 	protected void onResume()
 	{
+		Assert.assertTrue(mCaptureView!=null);
 		this.mCaptureView.onResume();
 		super.onResume();
 
@@ -137,6 +138,7 @@ public class CaptureActivity extends Activity
 	@Override
 	protected void onPause()
 	{
+		Assert.assertTrue(mCaptureView!=null);
 		this.mCaptureView.onPause();
 		super.onPause();
 	}

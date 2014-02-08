@@ -32,7 +32,7 @@ public class CaptureView extends Inside3dView
 	 * *********/
 	/** Size of the skybox **/
 	private static final float SKYBOX_SIZE = 400f;
-	private static final int DEFAULT_SKYBOX_SAMPLE_SIZE = 8;		//[1 - 8]
+	private static final int DEFAULT_SKYBOX_SAMPLE_SIZE = 4;		//[1 - 8] pow of 2.
 	
 	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
 	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
