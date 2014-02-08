@@ -30,7 +30,7 @@ import fr.ensicaen.panandroid.tools.BitmapDecoder;
  * @author Nicolas
  * @bug : camera stops when screen rotates.
  */
-public class CaptureRenderer extends InsideRenderer
+public class CaptureRenderer extends InsideRenderer implements SnapshotEventListener
 {
     public final static String TAG = CaptureRenderer.class.getSimpleName();
 
@@ -40,7 +40,7 @@ public class CaptureRenderer extends InsideRenderer
     
     /** Size & distance of the snapshots **/
 	private static final float SNAPSHOTS_SIZE = 65.5f;
-	private static final float SNAPSHOTS_DISTANCE = 135.0f;
+	private static final float SNAPSHOTS_DISTANCE = 50.0f;
 
 	/** Size & distance of the camera preview **/
 	private static final float CAMERA_SIZE = 10.0f;
@@ -76,7 +76,7 @@ public class CaptureRenderer extends InsideRenderer
 	 * ********/
 	
 	/** Camera manager in charge of the capture **/
-	private final CameraManager mCamManager;
+	private final CameraManager mCameraManager;
 	
 	//TODO : implement
 	/** list of snapshot already taken **/
@@ -156,7 +156,8 @@ public class CaptureRenderer extends InsideRenderer
 		
 		
 		//init attributes
-		mCamManager = cameraManager;
+		mCameraManager = cameraManager;
+		mCameraManager.addSnapshotEventListener(this);
 		mContext = context;
 		mCameraRatio = 0;
 		
@@ -170,7 +171,7 @@ public class CaptureRenderer extends InsideRenderer
 		{
 			for(float yaw = 0; yaw < 360; yaw+=mYawStep)
 			{
-				mDots.add(createDot(pitch, yaw));
+				putMarker(pitch, yaw);
 			}
 		}
 		
@@ -322,21 +323,20 @@ public class CaptureRenderer extends InsideRenderer
 		gl.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
 	    mCameraSurface.draw(gl, mViewMatrix);
 		gl.glDisable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-	
-		//TODO : draw snapshots
-	    /*
-	    mListBusy.lock();
-	    for (TexturedPlane snap : mSnapshots) {
-	        snap.draw(gl, mViewMatrix);
-	    }
-	    mListBusy.unlock();
-		*/
+		
+		//mListBusy.lock();
+		for (TexturedPlane snap : mSnapshots)
+		{
+		    snap.draw(gl, mViewMatrix);
+		}
+		//mListBusy.unlock();
+		
 		float oPitch = super.getPitch();
 		float oYaw = super.getYaw();
 		
 		float sPitch , sYaw, dPitch, dYaw, d;
 		
-		
+		//draw markers
 		if(mUseMarkers)
 		{
 		    for (Snapshot3D dot : mDots)
@@ -407,7 +407,7 @@ public class CaptureRenderer extends InsideRenderer
 		mCameraSurfaceTex.setDefaultBufferSize(640, 480);
 		
 		//... and redirect camera preview to it 		
-		mCamManager.setPreviewSurface(mCameraSurfaceTex);
+		mCameraManager.setPreviewSurface(mCameraSurfaceTex);
 		
 		//Setup viewfinder	
 		mViewfinderBillboard = new TexturedPlane(2.0f);
@@ -449,18 +449,42 @@ public class CaptureRenderer extends InsideRenderer
 	}
     
     
-	private Snapshot3D createDot(float pitch, float yaw)
+	private Snapshot3D putMarker(float pitch, float yaw)
 	{
 		Snapshot3D dot = new Snapshot3D(mMarkersSize, pitch, yaw);
 		
 		dot.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), MARKER_RESSOURCE_ID));
 		dot.translate(0.0f, 0.0f, MARKERS_DISTANCE);
 		
-		//TODO : implement
-		//dot.setAutoAlphaAngle(pitch, yaw);
-		
+		mDots.add(dot);
 		return dot;
     }
+	
+	private Snapshot3D putSnapshot(byte[] pictureData, float pitch, float yaw)
+	{
+		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, pitch, yaw);
+		
+		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData));
+		snap.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
+
+		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
+		
+		mSnapshots.add(snap);
+		return snap;
+    }
+
+	@Override
+	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
+	{
+		//a snapshot has just been taken :
+		
+		//TODO
+		//find corresponding dot and remove it.
+
+		//put a new textureSurface with the snapshot in it.
+		System.out.println(""+snapshot.getPitch()+" "+ snapshot.getYaw());
+		putSnapshot(pictureData, snapshot.getPitch(), snapshot.getYaw());
+	}
 	
 	/* **********
      * TRASH METHODS

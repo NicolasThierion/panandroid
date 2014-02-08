@@ -53,6 +53,9 @@ public class CaptureView extends Inside3dView
 	private CaptureRenderer mRenderer;
 
 	
+	/** SensorFusion used to guide capture **/
+	private SensorFusionManager mSensorManager;
+	
 	private float mPitchStep = DEFAULT_PITCH_STEP;
 	private float mYawStep = DEFAULT_YAW_STEP;
 
@@ -70,8 +73,8 @@ public class CaptureView extends Inside3dView
 		super(context);
 	
 		//setup sensors
-		SensorFusionManager sensorManager = SensorFusionManager.getInstance(context);
-		if(!sensorManager.start())
+		mSensorManager = SensorFusionManager.getInstance(context);
+		if(!mSensorManager.start())
 		{
 			//TODO : error toast
 			Log.e(TAG, "Rotation not supported");
@@ -79,10 +82,10 @@ public class CaptureView extends Inside3dView
 		
 		//setup cameraManager
 		mCameraManager = cameraManager;	
-		mCameraManager.setSensorFusionManager(sensorManager);
+		mCameraManager.setSensorFusionManager(mSensorManager);
 		
 		//adapt precision according to sensorFusion type.
-		if(sensorManager.isGyroscopeSupported())
+		if(mSensorManager.isGyroscopeSupported())
 		{
 			mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_GRYO_THREASHOLD);
 		}
@@ -198,6 +201,8 @@ public class CaptureView extends Inside3dView
 	{
 		super.onResume();
 		mCameraManager.onResume();
+		mSensorManager.onResume();
+		
 	}
 	
 	

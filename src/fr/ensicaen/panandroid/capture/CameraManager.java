@@ -27,6 +27,11 @@ import android.util.Log;
  * 
  * @author Nicolas
  * @author Saloua
+ * 
+ * @bug : raw callback stores 0 bytes files (IOException, NullPointerException)
+ * 
+ * TODO : remove automatic exposure, zoom, etc..
+ * TODO : set preview orientation according to phone orientation
  *
  */
 public class CameraManager
@@ -47,8 +52,8 @@ public class CameraManager
 	/** vibration tolerance for autoShoot **/
 	public static final float DEFAULT_AUTOSHOOT_PRECISION = 0.1f;
 	
-	/** raw callback enabled by default?? **/
-	public static final boolean DEFAULT_SAVE_RAW = true;
+	/** raw callback enabled by default?? ie : if we want to save raw picture **/
+	public static final boolean DEFAULT_SAVE_RAW = false;	//TODO : debug raw callback
 	
 	/** jpeg callback enabled by default?? **/
 	public static final boolean DEFAULT_SAVE_JPEG = true;
@@ -91,6 +96,10 @@ public class CameraManager
 	private final ShutterCallback mShutterCallback = new OnShutterCallback();
 	private final PictureCallback mRawCallback = new RawCallback();
 	private final PictureCallback mJpegCallback = new JpegCallback();
+	
+	private LinkedList<SnapshotEventListener> mListeners = new LinkedList<SnapshotEventListener>();
+	
+
 	
 	/* ***
 	 * auto shoot
@@ -546,9 +555,32 @@ public class CameraManager
 	}
 
 
+	/* *************
+	 * LISTENER STUFFS
+	 * ************/
 	
 	
+	/**
+	 * Methods triggered when a snapshot will be taken.
+	 * @param listener - listener 
+	 * @return true if the listener correctly added.
+	 */
+	public boolean addSnapshotEventListener(SnapshotEventListener listener)
+	{
+		if(listener != null && !mListeners.contains(listener))
+			return mListeners.add(listener);
+		return false;
+	}
 	
+	/**
+	 * 
+	 * @param listener
+	 * @return
+	 */
+	public boolean removeSnapshotEventListener(SnapshotEventListener listener)
+	{
+		return mListeners.remove(listener);
+	}
 	
 	
 	/* *************
@@ -581,7 +613,7 @@ public class CameraManager
 	/**
 	 * if raw callback enabled, save raw to sd.
 	 * @author Nicolas
-	 *
+	 * TODO : bug : save 0 byte raw
 	 */
 	private class RawCallback implements PictureCallback
 	{
@@ -638,14 +670,15 @@ public class CameraManager
 	 */
 	private class JpegCallback implements PictureCallback
 	{
+		
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera)
 		{
 			Assert.assertTrue(mTempFilename!=null);
-			//synchronized(mTempFilename)
+			Snapshot takenSnapshot = null;
+			
+			if(mJpegCallbackEnabled)
 			{
-				if(!mJpegCallbackEnabled)
-					return;
 				try 
 				{
 					//save to sd card
@@ -659,6 +692,7 @@ public class CameraManager
 				        fos.write(data);
 				        fos.close();
 				        mTempSnapshot.setFileName(mTempFilename);
+				        takenSnapshot = mTempSnapshot;
 						mTempFilename = null;
 
 	
@@ -682,9 +716,19 @@ public class CameraManager
 			//for unknown reason, taking picture sometimes stops preview. Ensure that preview will keep started.
 			//reOpen();
 			mCamera.startPreview();
+			
+			if(takenSnapshot!=null)
+			{
+				for (SnapshotEventListener listener : mListeners)
+					listener.onSnapshotTaken(data, takenSnapshot);
+			
+			}
+			//trigger custom post callback
 		}
 		
 	}
+	
+
 	
 	/* *************
 	 * PRIVATE SENSORLISTENER CLASS
