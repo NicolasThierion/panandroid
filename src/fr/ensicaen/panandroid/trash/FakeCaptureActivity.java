@@ -8,7 +8,7 @@
  * or revised without written permission of the authors.
  */
 
-package fr.ensicaen.panandroid.stitcher;
+package fr.ensicaen.panandroid.trash;
 
 import java.io.File;
 
@@ -37,6 +37,7 @@ import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.capture.Snapshot;
 import fr.ensicaen.panandroid.capture.SnapshotManager;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
+import fr.ensicaen.panandroid.stitcher.StitcherActivity;
 
 /**
  * FakeCaptureActivity class provides a simple way to takes pictures

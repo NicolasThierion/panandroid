@@ -1,9 +1,11 @@
-package fr.ensicaen.panandroid.capture;
+package fr.ensicaen.panandroid.trash;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import fr.ensicaen.panandroid.capture.CameraManager;
+import fr.ensicaen.panandroid.capture.Snapshot;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
 import android.app.Activity;
 import android.content.Context;
@@ -12,7 +14,6 @@ import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
-
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;

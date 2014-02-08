@@ -1,5 +1,7 @@
-package fr.ensicaen.panandroid.capture;
+package fr.ensicaen.panandroid.test;
 
+import fr.ensicaen.panandroid.capture.Snapshot;
+import fr.ensicaen.panandroid.capture.SnapshotManager;
 import fr.ensicaen.panandroid.meshs.Sphere;
 import android.app.Activity;
 import android.os.Bundle;

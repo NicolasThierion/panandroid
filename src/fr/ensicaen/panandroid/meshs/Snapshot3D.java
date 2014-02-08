@@ -1,8 +1,8 @@
-package fr.ensicaen.panandroid.capture;
+package fr.ensicaen.panandroid.meshs;
 
 import javax.microedition.khronos.opengles.GL10;
 
-import fr.ensicaen.panandroid.meshs.TexturedPlane;
+import fr.ensicaen.panandroid.capture.Snapshot;
 import android.graphics.Bitmap;
 import android.opengl.GLES10;
 import android.opengl.GLES20;

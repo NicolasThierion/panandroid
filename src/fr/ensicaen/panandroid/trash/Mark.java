@@ -1,4 +1,6 @@
-package fr.ensicaen.panandroid.capture;
+package fr.ensicaen.panandroid.trash;
+
+import fr.ensicaen.panandroid.capture.EulerAngles;
 
 public class Mark implements EulerAngles {
 
