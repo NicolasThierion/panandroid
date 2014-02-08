@@ -83,213 +83,267 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	
 	/** Internal sensor manager **/
 	private SensorManager mSensorManager = null;
-
+	
 	/** vector that represents orientation of the device **/
-    float[] mOrientation = new float[3];
-    
-    /** corresponding rotation matrix **/
-    float[] mRotationMatrix = new float[16];
-
-    float mPitch, mYaw;
-
+	float[] mOrientation = new float[3];
+	
+	/** corresponding rotation matrix **/
+	float[] mRotationMatrix = new float[16];
+	
+	float mPitch, mYaw;
+	
+	boolean mIsStarted;
 	
 	/* *********
 	 * CONSTRUCTOR
 	 * ********/
 	
-    public static SensorFusionManager getInstance(Context context)
-    {
-    	if(mInstance == null)
-    	{
-    		synchronized(SensorFusionManager.class)
-    		{
+	/**
+	 * Don't forget to call registerListeners() once to start the sensor.
+	 * @param context
+	 * @return
+	 */
+	public static SensorFusionManager getInstance(Context context)
+	{
+		if(mInstance == null)
+		{
+			synchronized(SensorFusionManager.class)
+			{
 	    		if(mInstance == null)
 	    		{
 	    			mInstance = new SensorFusionManager(context);
 	    		}
-    	
-    		}
-    	}
-    	return mInstance;
-    }
-    
+		
+			}
+		}
+		return mInstance;
+	}
+	
 	/**
 	 * Init a sensorManager and listen to TYPE_ROTATION_VECTOR events.
 	 * 
 	 * @param context
 	 */
-    private SensorFusionManager(Context context)
-    {
-        // get sensorManager and initialise sensor listeners
-        this(context, true);
-    }
-    
-    /**
-     * allow to force fallback mode.
-     * for debug purpose only.
-     * @param context
-     * @param useGyroscope
-     */
-    private SensorFusionManager(Context context, boolean useGyroscope)
-    {
-        // get sensorManager and initialise sensor listeners
-        mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        registerListener(useGyroscope);
-    }
-    
-    /* *********
-	 * SENSOREVENTLISTENER OVERRIDES
+	private SensorFusionManager(Context context)
+	{
+	    // get sensorManager and initialise sensor listeners
+	    this(context, true);
+	}
+	
+	/**
+	 * allow to force fallback mode.
+	 * for debug purpose only.
+	 * @param context
+	 * @param useGyroscope
+	 */
+	private SensorFusionManager(Context context, boolean useGyroscope)
+	{
+	    // get sensorManager and initialise sensor listeners
+	    mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+	    registerListener(useGyroscope);
+	}
+	
+	/* *********
+	 * EVENTLISTENER STUFF
 	 * ********/
-    @Override
-    public void onSensorChanged(SensorEvent event) 
-    {
-    	
-    	//don't know why this test.
-    	/*
-        if (mRotationMatrix == null) {
-            mRotationMatrix = new float[16];
-        }
-        */
-    	
-    	
-    	if(mIsGyroscopeSupported)
-    	{
-        	this.updateRotationMatrix(event);
-
-    	}
-    	else
-    	{
-    		Assert.assertTrue(mSimulatedRotationVector!=null);
-    		mSimulatedRotationVector.updateRotationMatrix(event);
-    	}
-    	
-       
-    	//throw the event to all listeners
-        for(SensorEventListener l : mListeners)
-        {
-        	l.onSensorChanged(event);
-        }
-    }
-
-    
-    public void addSensorEventListener(SensorEventListener listener)
-    {
-    	mListeners.add(listener);
-    }
-
-    
-    public boolean removeSensorEventListener(SensorEventListener listener)
-    {
-    	return mListeners.remove(listener);
-    }
-
 	@Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
-
-    
-    /* *********
+	public void onSensorChanged(SensorEvent event) 
+	{
+		
+		//don't know why this test.
+		/*
+	    if (mRotationMatrix == null) {
+	        mRotationMatrix = new float[16];
+	    }
+	    */
+		
+		
+		if(mIsGyroscopeSupported)
+		{
+	    	this.updateRotationMatrix(event);
+	
+		}
+		else
+		{
+			Assert.assertTrue(mSimulatedRotationVector!=null);
+			mSimulatedRotationVector.updateRotationMatrix(event);
+		}
+		
+	   
+		//throw the event to all listeners
+	    for(SensorEventListener l : mListeners)
+	    {
+	    	l.onSensorChanged(event);
+	    }
+	}
+	
+	
+	public void addSensorEventListener(SensorEventListener listener)
+	{
+		mListeners.add(listener);
+	}
+	
+	
+	public boolean removeSensorEventListener(SensorEventListener listener)
+	{
+		return mListeners.remove(listener);
+	}
+	
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int i) {
+	
+	}
+	
+	public boolean registerListener()
+	{
+		if(!mIsRotationSupported)
+			return this.registerListener(true);
+		return true;
+	}
+	
+	public void unregisterListener()
+	{
+    	mSensorManager.unregisterListener(this);
+    	mIsStarted = false;
+	}
+	
+	/* *********
 	 * PUBLIC METHODS
 	 * ********/	   
-
-    public float[] getFusedOrientation()
-    {
-        return mOrientation;
-    }
-
-    public float[] getRotationMatrix() {
-        return mRotationMatrix;
-    }
-
-    public void onPauseOrStop() {
-        mSensorManager.unregisterListener(this);
-    }
-
-    public void onResume() {
-        // restore the sensor listeners when user resumes the application.
-        registerListener(mIsGyroscopeSupported);
-    }
-
-    public float getPitch()
-    {
-    	return this.mPitch;
-    }
-    
-    public float getYaw()
-    {
-    	return this.mYaw;
-    }
-    public boolean registerListener()
-    {
-    	if(!mIsRotationSupported)
-    		return this.registerListener(true);
-    	return true;
-    }
-
-    
-    /* *********
+	
+	/**
+	 * Same effect as registerListener
+	 * @return
+	 */
+	public boolean start()
+	{
+		return this.registerListener(mIsGyroscopeSupported);
+	}
+	
+	public void stop()
+	{
+    	mSensorManager.unregisterListener(this);
+	} 
+	
+	public void onPauseOrStop()
+	{
+	    mSensorManager.unregisterListener(this);
+	}
+	
+	public void onResume()
+	{
+	    // restore the sensor listeners when user resumes the application.
+	    registerListener(mIsGyroscopeSupported);
+	}
+	
+	public boolean isGyroscopeSupported()
+	{
+		return mIsGyroscopeSupported;
+	}
+	/* **********
+	 * ACCESSORS
+	 * *********/
+	
+	public float getPitch()
+	{
+		return this.mPitch;
+	}
+	
+	public float getYaw()
+	{
+		return this.mYaw;
+	}
+	
+	public float[] getFusedOrientation()
+	{
+	    return mOrientation;
+	}
+	
+	public float[] getRotationMatrix() {
+	    return mRotationMatrix;
+	}
+	
+	
+	public boolean isStable(float threshold)
+	{
+		//TODO
+		return true;
+	};
+	
+	public boolean isStarted()
+	{
+		return mIsStarted;
+	}
+	
+	/* *********
 	 * PRIVATE METHODS
 	 * ********/
-
-    // This function registers sensor listeners for the accelerometer, magnetometer and gyroscope.
-    private boolean registerListener(boolean useGyroscope)
-    {
-        mIsGyroscopeSupported =false;
-        //try to init classic ROTATION_VECTOR sensor ,with gyroscope. 
-        if(useGyroscope)
-        {
-        	mIsGyroscopeSupported= mSensorManager.registerListener(
-        									this,
-        									mSensorManager.getDefaultSensor(
-        											Sensor.TYPE_ROTATION_VECTOR),
-        									SENSOR_LISTENING_RATE );
-        	Log.i(TAG, "sensor fusion avaible on this device");
-        }
-        
-        if(mIsGyroscopeSupported)
-        {
-        	mIsRotationSupported = true;
-        }
-        //no gyro avaibe.. simulates try to one
-        else
-        {
-        	if(useGyroscope)
-        		Log.w(TAG, "Device has no gyroscope... trying fallback mode");
-
-        	
-        	mSimulatedRotationVector = new SimulatedRotationVector(mSensorManager, this);
-        	mIsRotationSupported = mSimulatedRotationVector.registerListeners(SENSOR_LISTENING_RATE);
-        	
-        	if(!mIsRotationSupported)
-        	{
-        		Log.e(TAG, "device has no devices capable of handling rotation");
-        	}
-        	
-        }
-        return mIsRotationSupported;
-    }
-    
- 
-    /**
-     * Updates rotation matrix given by rotation event, coming from gyroscope.
-     * @param event
-     */
+	
+	// This function registers sensor listeners for the accelerometer, magnetometer and gyroscope.
+	private boolean registerListener(boolean useGyroscope)
+	{
+		if(mIsStarted)
+		{
+			return true;
+		}
+		
+	    mIsGyroscopeSupported = false;
+	    //try to init classic ROTATION_VECTOR sensor ,with gyroscope. 
+	    if(useGyroscope)
+	    {
+	    	mIsGyroscopeSupported= mSensorManager.registerListener(
+	    									this,
+	    									mSensorManager.getDefaultSensor(
+	    											Sensor.TYPE_ROTATION_VECTOR),
+	    									SENSOR_LISTENING_RATE );
+	    	Log.i(TAG, "sensor fusion avaible on this device");
+	    }
+	    
+	    if(mIsGyroscopeSupported)
+	    {
+	    	mIsRotationSupported = true;
+	    }
+	    //no gyro avaibe.. simulates try to one
+	    else
+	    {
+	    	if(useGyroscope)
+	    		Log.w(TAG, "Device has no gyroscope... trying fallback mode");
+	
+	    	
+	    	mSimulatedRotationVector = new SimulatedRotationVector(mSensorManager, this);
+	    	mIsRotationSupported = mSimulatedRotationVector.registerListeners(SENSOR_LISTENING_RATE);
+	    	
+	    	if(!mIsRotationSupported)
+	    	{
+	    		Log.e(TAG, "device has no devices capable of handling rotation");
+	        	}
+	        	
+	        }
+	    
+	    	mIsStarted = mIsRotationSupported;
+	    	return mIsRotationSupported;
+	    }
+	    
+	 
+	    /**
+	 * Updates rotation matrix given by rotation event, coming from gyroscope.
+	 * @param event
+	 */
 	private void updateRotationMatrix(SensorEvent event) 
 	{
 		// Get rotation matrix from angles
-        SensorManager.getRotationMatrixFromVector(mRotationMatrix, event.values);
-
-        // Remap the axes
-        SensorManager.remapCoordinateSystem(mRotationMatrix, SensorManager.AXIS_MINUS_Z,
-                SensorManager.AXIS_X, mRotationMatrix);
-
-        // save remapped orientation vector
-        SensorManager.getOrientation(mRotationMatrix, mOrientation);
-        
-        // save pitch and yaw.
-        mYaw = mOrientation[0] * RAD_TO_DEG;
-		mPitch = -mOrientation[1] * RAD_TO_DEG;
+	    SensorManager.getRotationMatrixFromVector(mRotationMatrix, event.values);
+	
+	    // Remap the axes
+	    SensorManager.remapCoordinateSystem(mRotationMatrix, SensorManager.AXIS_MINUS_Z,
+	            SensorManager.AXIS_X, mRotationMatrix);
+	
+	    // save remapped orientation vector
+	    SensorManager.getOrientation(mRotationMatrix, mOrientation);
+	    
+	    // save pitch and yaw.
+	    mYaw = mOrientation[0] * RAD_TO_DEG;
+		mPitch = mOrientation[1] * RAD_TO_DEG;
 		
 	}
 	
@@ -313,9 +367,9 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		public static final int THRESHOLD =			150;
 		public static final int PITCH_ERROR_MARGIN = 	5;
 		public static final int YAW_ERROR_MARGIN = 		5;
-
+	
 		
-
+	
 		/* **********
 		 * ATTRIBUTES
 		 * *********/
@@ -337,18 +391,18 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		/** mesured values of pitch and yaw**/
 		private float mFirstAccelerometerPitch, mLastAccelerometerPitch, mAccelerometerPitch;
 		private float mFirstMagneticHeading, mLastMagneticHeading, mMagneticHeading;
-
+	
 		
 		/** ?? **/
 		private long mThresholdTimestamp = 0;
 		private boolean mThresholdFlag = false;
 		
 		
-
-
-
+	
+	
+	
 		
-
+	
 		/**
 		 * 
 		 * @param sensorManager
@@ -389,7 +443,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 						//computes rotation matrix from compass head and accelerometer's gravity
 						SensorManager.getRotationMatrix(mRotationMatrix, null, mAccelerometerData, values);
 						
-						//translate rotation matrix to represent phone's orientation?
+						//translate rotation matrix to represent phone's orientation
 						SensorManager.remapCoordinateSystem(mRotationMatrix, SensorManager.AXIS_X, SensorManager.AXIS_Z, mRotationMatrix);
 						
 						//get device's orientation from rotation matrix
@@ -438,7 +492,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 				        }
 						this.doSimulatedGyroUpdate();
 						//mListener.onSensorChanged(event);		
-
+	
 					}
 					else
 					{
@@ -454,20 +508,20 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			
 			
 		}
-
+	
 		public boolean registerListeners(int rate)
 		{	
 			mSensorRate = rate;
 			
 			//Init accelerometer...
-        	mIsRotationSupported = mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), mSensorRate);
-    
-        	//...compass
-        	if(mIsRotationSupported)
-        		mIsRotationSupported = mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), mSensorRate);
-        	
+	    	mIsRotationSupported = mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), mSensorRate);
+	
+	    	//...compass
+	    	if(mIsRotationSupported)
+	    		mIsRotationSupported = mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), mSensorRate);
+	    	
 			
-        	return mIsRotationSupported;
+	    	return mIsRotationSupported;
 		}
 		
 		public void doSimulatedGyroUpdate()
@@ -479,49 +533,39 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			else
 			{
 				step = (offset <= 10.0f ? 0.25f : 1.0f);
-		        if(mLastAccelerometerPitch > mAccelerometerPitch)
-		        	mAccelerometerPitch += step;
-		        else if(mLastAccelerometerPitch < mAccelerometerPitch)
-		        	mAccelerometerPitch -= step;
+				if(mLastAccelerometerPitch > mAccelerometerPitch)
+					mAccelerometerPitch += step;
+				else if(mLastAccelerometerPitch < mAccelerometerPitch)
+					mAccelerometerPitch -= step;
 			}
-		    offset = Math.abs(mLastMagneticHeading - mMagneticHeading);
-		    if(offset < 0.25f)
-		    	mMagneticHeading = mLastMagneticHeading;
-		    else
-		    {
-		    	step = (offset <= 10.0f ? 0.25f : 1.0f);
-		    	if(mLastMagneticHeading > mMagneticHeading)
-		    		mMagneticHeading += step;
-		        else if(mLastMagneticHeading < mMagneticHeading)
-		        	mMagneticHeading -= step;
-		    }
-		    mPitch = -mAccelerometerPitch ;
-		    mYaw = mMagneticHeading;
-		    //mPanorama.getCamera().lookAt(this, mAccelerometerPitch, mMagneticHeading);
-
-	    	
+			offset = Math.abs(mLastMagneticHeading - mMagneticHeading);
+			if(offset < 0.25f)
+				mMagneticHeading = mLastMagneticHeading;
+			else
+			{
+				step = (offset <= 10.0f ? 0.25f : 1.0f);
+				if(mLastMagneticHeading > mMagneticHeading)
+					mMagneticHeading += step;
+			    else if(mLastMagneticHeading < mMagneticHeading)
+			    	mMagneticHeading -= step;
+			}
+			mPitch = -mAccelerometerPitch ;
+			mYaw = mMagneticHeading;
 		}
-
+	
 		@Override
 		public void onAccuracyChanged(Sensor sensor, int accuracy) 
-		{
-			// TODO Auto-generated method stub
-			
-		}
-
+		{}
+	
 		
 		@Override
 		public void onSensorChanged(SensorEvent event)
 		{
-	    	mListener.onSensorChanged(event);
+			mListener.onSensorChanged(event);
 		}
-
+	
 	}
 
-	public float getShake()
-	{
-		//TODO
-		return 0.0f;
-	};
+	
 
 }

@@ -31,12 +31,17 @@ public class CaptureView extends Inside3dView
 	 * CONSTANTS
 	 * *********/
 	/** Size of the skybox **/
-	private static final float SKYBOX_SIZE = 400f;
+	private static final float SKYBOX_SIZE 				= 400f;
 	private static final int DEFAULT_SKYBOX_SAMPLE_SIZE = 4;		//[1 - 8] pow of 2.
 	
-	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
-	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
+	private static final float DEFAULT_PITCH_STEP 		= 360.0f/12.0f;;
+	private static final float DEFAULT_YAW_STEP 		= 360.0f/12.0f;
 
+	/** angle difference before considering a picture has to be captured **/
+	private static final float DEFAULT_AUTOSHOOT_GRYO_THREASHOLD 			= 3.0f; //[deg]
+	private static final float DEFAULT_AUTOSHOOT_ACCELEROMETER_THREASHOLD 	= 8.0f; //[deg]
+
+	
 	/* **********
 	 * ATTRIBUTES
 	 * *********/
@@ -64,10 +69,28 @@ public class CaptureView extends Inside3dView
 	{
 		super(context);
 	
+		//setup sensors
+		SensorFusionManager sensorManager = SensorFusionManager.getInstance(context);
+		if(!sensorManager.start())
+		{
+			//TODO : error toast
+			Log.e(TAG, "Rotation not supported");
+		}
+		
 		//setup cameraManager
 		mCameraManager = cameraManager;	
-		mCameraManager.setSensorFusionManager(SensorFusionManager.getInstance(context));
+		mCameraManager.setSensorFusionManager(sensorManager);
 		
+		//adapt precision according to sensorFusion type.
+		if(sensorManager.isGyroscopeSupported())
+		{
+			mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_GRYO_THREASHOLD);
+		}
+		else
+		{
+			mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_ACCELEROMETER_THREASHOLD);
+		}
+
 		
 		//init the skybox
 		Cube skybox = null;

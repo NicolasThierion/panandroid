@@ -722,7 +722,7 @@ public class CameraManager
 		        distance = (float) Math.sqrt(Math.pow(dPitch, 2)+Math.pow(dYaw, 2));
 		        if(distance<mAutoShootThreshold)
 		        {
-		        	if(mSensorFusionManager.getShake()<mAutoShootPrecision)
+		        	if(mSensorFusionManager.isStable(mAutoShootPrecision))
 		        	{
 		        		Log.i(TAG, "taking snapshot at angle ("+oPitch+", "+oYaw+")");
 		        		//TODO : save snapshot
