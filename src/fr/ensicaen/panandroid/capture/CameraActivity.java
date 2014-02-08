@@ -95,7 +95,7 @@ public class CameraActivity extends Activity
 	@Override
 	public void onCreate(Bundle savedInstance)
 	{
-		mCameraManager = CameraManager.getInstance();
+		mCameraManager = CameraManager.getInstance(this);
 		if(!mCameraManager.open())
 		{
 			Log.e(TAG,  "Device has no camera");

@@ -8,6 +8,7 @@ import java.util.LinkedList;
 
 import junit.framework.Assert;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
+import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
@@ -17,6 +18,7 @@ import android.hardware.Camera.Size;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.media.AudioManager;
 import android.util.Log;
 
 
@@ -68,6 +70,12 @@ public class CameraManager
 	
 	/** Unique instance of CameraManager **/
 	private static CameraManager mInstance = null;
+	
+	/** context f the application **/
+	//private Context mContext;
+	
+	/** sound manager used to mute shutter sound **/
+	private AudioManager mSoundManager;
 	
 	/* ***
 	 * camera
@@ -155,7 +163,7 @@ public class CameraManager
 	 * get the unique instance of CameraManager
 	 * @return the CameraManager instance
 	 */
-	public synchronized static final CameraManager getInstance()
+	public synchronized static final CameraManager getInstance(Context context)
 	{
 		if(mInstance==null)
 		{
@@ -164,6 +172,8 @@ public class CameraManager
 				if(mInstance==null)
 				{
 					mInstance = new CameraManager();
+					mInstance.mSoundManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+
 				}
 			}
 		}
@@ -199,6 +209,7 @@ public class CameraManager
 				
 		mCameraId = camId;
 		mCamera = Camera.open(camId);
+		
 		
 		mCameraParameters = mCamera.getParameters();
 		
@@ -530,6 +541,10 @@ public class CameraManager
 		
 		mTempFilename = genAbsoluteFilename(filename);
 		filename = mTempFilename;
+		
+		//disable shutter sound
+		mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
+		
 		mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
 		mCamera.startPreview();
 		
@@ -608,6 +623,8 @@ public class CameraManager
 		@Override
 		public void onShutter() 
 		{
+			
+			
 			if(!isSensorialCaptureEnabled())
 				return;
 			
@@ -729,6 +746,10 @@ public class CameraManager
 			
 			//tell camera is ready now
 			mCameraIsBusy = false;
+			
+			//re-enable sound
+			//disable shutter sound
+			mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
 
 			
 			if(takenSnapshot!=null)

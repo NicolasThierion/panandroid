@@ -66,7 +66,7 @@ public class CaptureActivity extends Activity
 		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
 		//setup camera manager
-		mCameraManager = CameraManager.getInstance();
+		mCameraManager = CameraManager.getInstance(this);
 		try
 		{
 			mCameraManager.setTargetDir(PICTURE_DIRECTORY);

@@ -40,13 +40,13 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ********/
     
     /** Size & distance of the snapshots **/
-	private static final float SNAPSHOTS_SIZE = 15.5f;
-	private static final float SNAPSHOTS_DISTANCE = 55.0f;
+	private static final float SNAPSHOTS_SIZE = 1.5f;
+	private static final float SNAPSHOTS_DISTANCE = 5.0f;
 	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 4;
 
 	/** Size & distance of the camera preview **/
-	private static final float CAMERA_SIZE = 10.0f;
-	private static final float CAMERA_DISTANCE = 55.0f;
+	private static final float CAMERA_SIZE = 1.0f;
+	private static final float CAMERA_DISTANCE = 4.5f;
 	
 	/** Size & distance of the viewFinder**/
 	private static final float VIEWFINDER_SIZE = 1.0f;
@@ -54,8 +54,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private static final float VIEWFINDER_ATTENUATION_ALPHA = 1.0f; 	
 	
 	/** Size & distance of the markers **/
-	private static final float MARKERS_SIZE = 1.0f;
-	private static final float MARKERS_DISTANCE = 45.0f;
+	private static final float MARKERS_SIZE = 0.05f;
+	private static final float MARKERS_DISTANCE = 3.0f;
 	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 0.0f; 		//[ around 1]
 		
 	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
@@ -486,7 +486,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	private Snapshot3D putSnapshot(byte[] pictureData, float pitch, float yaw)
 	{
-		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, pitch, yaw);
+		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, mCameraRatio, pitch, yaw);
 		
 		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSamplingRate));
 		mSamplingRate = BitmapDecoder.getSamplingRate();

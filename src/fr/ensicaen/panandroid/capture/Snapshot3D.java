@@ -42,8 +42,8 @@ public class Snapshot3D extends TexturedPlane
 		//TODO : roll??
 		
 		super(scale, ratio);
-		super.rotate(pitch, yaw, roll);
-		mSnapshot = new Snapshot(pitch, yaw);
+		super.rotate(-pitch, -yaw, roll);
+		mSnapshot = new Snapshot(-pitch, -yaw);
 		
 	}
 	
