@@ -60,10 +60,11 @@ public class CaptureActivity extends Activity
 	{
 		super.onCreate(savedInstanceState);
 	    
-		//view in fullscreen
+		//view in fullscreen, and don't turn screen off
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		
+		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
 		//setup camera manager
 		mCameraManager = CameraManager.getInstance();
 		try

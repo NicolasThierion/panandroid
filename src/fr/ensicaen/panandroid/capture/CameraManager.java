@@ -60,7 +60,8 @@ public class CameraManager
 	
 	//tricky workaround to ensure that camera opening has finished before using it
 	public static final int CAMERA_INIT_DELAY = 3000;
-	boolean mCameraLoaded = false;
+	boolean mCameraIsBusy = true;
+	
 	/* *************
 	 * ATTRIBUTES
 	 * *************/
@@ -212,7 +213,7 @@ public class CameraManager
 				try {
 					Thread.sleep(CAMERA_INIT_DELAY);
 				} catch (InterruptedException e) {}
-				mCameraLoaded = true;
+				mCameraIsBusy = false;
 			}
 		}).start();
 		
@@ -461,7 +462,7 @@ public class CameraManager
 	
 	public void onPause()
 	{
-		mCameraLoaded = false;
+		mCameraIsBusy = false;
 		mCamera.release();
 	}
 	
@@ -474,7 +475,7 @@ public class CameraManager
 	{
 		mCamera.release();
 		mCamera = null;
-		mCameraLoaded = false;
+		mCameraIsBusy = false;
 	}
 	
 	public void startPreview()
@@ -509,6 +510,15 @@ public class CameraManager
 	 */
 	public String takePicture(String filename)
 	{
+		
+		if(mCameraIsBusy)
+		{
+			Log.e(TAG, "trying to take a picture while camera is busy");
+			return null;
+		}
+		
+		mCameraIsBusy = true;
+
 		if(mDirectory == null)
 		{
 			Log.e(TAG, "Cannot save picture : No directory has been set");
@@ -521,7 +531,7 @@ public class CameraManager
 		mTempFilename = genAbsoluteFilename(filename);
 		filename = mTempFilename;
 		mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
-		
+		mCamera.startPreview();
 		
 		return filename;
 	}
@@ -717,13 +727,17 @@ public class CameraManager
 			//reOpen();
 			mCamera.startPreview();
 			
+			//tell camera is ready now
+			mCameraIsBusy = false;
+
+			
 			if(takenSnapshot!=null)
 			{
 				for (SnapshotEventListener listener : mListeners)
 					listener.onSnapshotTaken(data, takenSnapshot);
 			
 			}
-			//trigger custom post callback
+
 		}
 		
 	}
@@ -743,7 +757,7 @@ public class CameraManager
 		@Override
 		public void onSensorChanged(SensorEvent event)
 		{
-			if(!isOpen() || !mCameraLoaded)
+			if(!isOpen() || mCameraIsBusy)
 				return;
 			
 			Assert.assertTrue(isAutoShootEnabled());

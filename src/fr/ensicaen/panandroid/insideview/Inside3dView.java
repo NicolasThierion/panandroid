@@ -294,7 +294,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 			this.mSensorFusionManager = SensorFusionManager.getInstance(this.getContext());
 			
 			//and register it to the system
-			boolean initialized = mSensorFusionManager.registerListener();
+			boolean initialized = mSensorFusionManager.start();
 			
 			if(!initialized)
 				mSensorFusionManager = null;

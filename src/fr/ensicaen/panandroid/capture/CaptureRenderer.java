@@ -12,6 +12,7 @@ import android.view.WindowManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -39,8 +40,9 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ********/
     
     /** Size & distance of the snapshots **/
-	private static final float SNAPSHOTS_SIZE = 65.5f;
-	private static final float SNAPSHOTS_DISTANCE = 50.0f;
+	private static final float SNAPSHOTS_SIZE = 15.5f;
+	private static final float SNAPSHOTS_DISTANCE = 55.0f;
+	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 4;
 
 	/** Size & distance of the camera preview **/
 	private static final float CAMERA_SIZE = 10.0f;
@@ -54,7 +56,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** Size & distance of the markers **/
 	private static final float MARKERS_SIZE = 1.0f;
 	private static final float MARKERS_DISTANCE = 45.0f;
-	private static final float MARKERS_ATTENUATION_FACTOR = 30.0f; 		//[ around 1]
+	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 0.0f; 		//[ around 1]
 		
 	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
 	
@@ -74,23 +76,36 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/* ********
 	 * ATTRIBUTES
 	 * ********/
+	/** current context of the application **/
+	private Context mContext;
 	
-	/** Camera manager in charge of the capture **/
-	private final CameraManager mCameraManager;
-	
-	//TODO : implement
-	/** list of snapshot already taken **/
-	private List<Snapshot3D> mSnapshots;
-	
-	//TODO : implement
-	/** list of dots **/
-	private List<Snapshot3D> mDots;
-	   
 	/** surrounding skybox, given to parent Inside3dRenderer **/
 	private Cube mSkybox;
 	
-	/** current context of the application **/
-	private Context mContext;
+	/** 
+	 * ModelViewMatrix where the scene is drawn. 
+	 * Equals identity, as the scene don't move, and it is the parent surrounding skybox that rotates by its own modelMatrix 
+	 */
+	private final float[] mViewMatrix = new float[16];
+
+	/** Whether the captureRenderer should draw a skyBox **/
+	private boolean mUseSkybox;
+	
+	/**... and some markers **/
+	private boolean mUseMarkers;
+	
+	/** sizes of camera, markers and snapshots **/
+	private float mCameraSize = CAMERA_SIZE;
+	private float mSnapshotsSize = SNAPSHOTS_SIZE;
+	private float mMarkersSize = MARKERS_SIZE;
+	
+	
+
+	/* ***
+	 * camera
+	 * ***/
+	/** Camera manager in charge of the capture **/
+	private final CameraManager mCameraManager;
 	
 	/** surface texture where is the camera preview is redirected **/
 	private SurfaceTexture mCameraSurfaceTex;
@@ -105,40 +120,37 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** current ratio of TexturedPlanes, determined by screen orientation **/
 	private float mCameraRatio;
 	
-	//TODO : implement
-	private TexturedPlane mViewfinderBillboard;
+	/* ***
+	 * snapshots
+	 * ***/
+	/** list of snapshot already taken **/
+	private List<Snapshot3D> mSnapshots;
+	private ReentrantLock mSnapshotsLock;
 	
+	/** snapshot quality **/
+	private int mSamplingRate = DEFAULT_SNAPSHOTS_SAMPLING_RATE;
+
+	/* ***
+	 * markers
+	 * ***/
+	/** list of dots **/
+	private List<Snapshot3D> mDots;
+	   
+	/** angle step between angles **/
 	private float mPitchStep = DEFAULT_PITCH_STEP;
 	private float mYawStep = DEFAULT_YAW_STEP;
 	
+	//TODO : implement
+	private TexturedPlane mViewfinderBillboard;
 	
-	/** 
-	 * ModelViewMatrix where the scene is drawn. 
-	 * Equals identity, as the scene don't move, and it is the parent surrounding skybox that rotates by its own modelMatrix 
-	 */
-	private final float[] mViewMatrix = new float[16];
+	/** marker attenuation factor **/
+	private float mMarkersAttenuationFactor = DEFAULT_MARKERS_ATTENUATION_FACTOR;
 
-	/** Whether the captureRenderer should draw a skyBox **/
-	private boolean mUseSkybox;
-	
-	/**... and some markers **/
-	private boolean mUseMarkers;
-
-	/** sizes of camera, markers and snapshots **/
-	private float mCameraSize = CAMERA_SIZE;
-	private float mSnapshotsSize = SNAPSHOTS_SIZE;
-	private float mMarkersSize = MARKERS_SIZE;
-
-
-	//TODO : what for?
-	//private ReentrantLock mListBusy;
 
 	
 	/* ********
 	 * CONSTRUCTOR
 	 * ********/
-	
-
 	/**
 	 * Creates a new CaptureRenderer, based on an Inside3dRenderer with the given mesh as Skybox.
 	 * @param context - Context of the application.
@@ -167,16 +179,14 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mSnapshots = new ArrayList<Snapshot3D>();
 		mDots = new ArrayList<Snapshot3D>();
 		
-		for(float pitch = 0; pitch < 180; pitch+=mPitchStep)
+		for(float pitch = -90.0f; pitch < 90.0f; pitch+=mPitchStep)
 		{
-			for(float yaw = 0; yaw < 360; yaw+=mYawStep)
+			for(float yaw = -180.0f; yaw < 180.0f; yaw+=mYawStep)
 			{
 				putMarker(pitch, yaw);
 			}
 		}
-		
-		//TODO : trash this?
-		//mListBusy = new ReentrantLock();
+		mSnapshotsLock = new ReentrantLock();
 	}
     
 	/**
@@ -230,6 +240,10 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mMarkersSize = scale;
 	}
 
+	public void setSnapshotSamplingRate(int rate)
+	{
+		mSamplingRate = rate;
+	}
 	
 	 /**
      * Set pitch interval between markers.
@@ -247,6 +261,15 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     public void setYawStep(float step)
     {
     	mYawStep = step;
+    }
+    
+    /**
+     * set how fast markers disappears when going far from them.
+     * @param factor - factor. A high value set markers to disappear quickly.
+     */
+    public void setMarkersAttenuationFactor(float factor)
+    {
+    	mMarkersAttenuationFactor = factor;
     }
     
     /* ********
@@ -324,12 +347,12 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	    mCameraSurface.draw(gl, mViewMatrix);
 		gl.glDisable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
 		
-		//mListBusy.lock();
+		mSnapshotsLock.lock();
 		for (TexturedPlane snap : mSnapshots)
 		{
-		    snap.draw(gl, mViewMatrix);
+		    snap.draw(gl, super.getRotationMatrix());
 		}
-		//mListBusy.unlock();
+		mSnapshotsLock.unlock();
 		
 		float oPitch = super.getPitch();
 		float oYaw = super.getYaw();
@@ -347,7 +370,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		    	// Set alpha based on camera distance to the point
 		        dPitch = Math.abs(Math.abs(sPitch) - Math.abs(oPitch));
 		        dYaw = Math.abs(Math.abs(sYaw) - Math.abs(oYaw));
-		        d = (dPitch+dYaw)*MARKERS_ATTENUATION_FACTOR/360.0f;
+		        d = (dPitch+dYaw)*mMarkersAttenuationFactor/360.0f;
 		        d = (d>1.0f?1.0f:d);	        
 		        dot.setAlpha(1.0f - d);
 		        
@@ -460,16 +483,21 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		return dot;
     }
 	
+	
 	private Snapshot3D putSnapshot(byte[] pictureData, float pitch, float yaw)
 	{
 		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, pitch, yaw);
 		
-		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData));
-		snap.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
+		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSamplingRate));
+		mSamplingRate = BitmapDecoder.getSamplingRate();
+		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
 
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
-		
+		snap.setVisible(true);
+		mSnapshotsLock.lock();
 		mSnapshots.add(snap);
+		mSnapshotsLock.unlock();
+
 		return snap;
     }
 
@@ -482,7 +510,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//find corresponding dot and remove it.
 
 		//put a new textureSurface with the snapshot in it.
-		System.out.println(""+snapshot.getPitch()+" "+ snapshot.getYaw());
 		putSnapshot(pictureData, snapshot.getPitch(), snapshot.getYaw());
 	}
 	

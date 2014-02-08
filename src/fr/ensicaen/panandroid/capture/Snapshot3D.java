@@ -21,8 +21,6 @@ public class Snapshot3D extends TexturedPlane
 	 * *******/
 	private Snapshot mSnapshot;
 	
-	
-
 	/* ********
 	 * CONSTRUCTOR
 	 * *******/
@@ -48,7 +46,7 @@ public class Snapshot3D extends TexturedPlane
 		mSnapshot = new Snapshot(pitch, yaw);
 		
 	}
-
+	
 	
 	public float getPitch()
 	{

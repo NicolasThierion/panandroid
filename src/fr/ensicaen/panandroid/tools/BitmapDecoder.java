@@ -8,7 +8,7 @@ public class BitmapDecoder
 {
 
 	private BitmapDecoder(){}
-	
+	private static int mSamplingRate;
 	
 	public static Bitmap safeDecodeBitmap(Resources res, int resId, int sampleSize)
 	{
@@ -31,6 +31,7 @@ public class BitmapDecoder
 			try
 			{
 				bmp = BitmapFactory.decodeResource(res, resId, bitmapOptions);
+				mSamplingRate = bitmapOptions.inSampleSize;
 				return bmp;
 			}
 			catch (OutOfMemoryError e)
@@ -55,6 +56,7 @@ public class BitmapDecoder
 		try
 		{
 			 bmp = BitmapFactory.decodeFile(filename, bitmapOptions);
+			 mSamplingRate = bitmapOptions.inSampleSize;
 			 return bmp;
 		}
 		catch(OutOfMemoryError e)
@@ -68,6 +70,7 @@ public class BitmapDecoder
 			try
 			{
 				bmp = BitmapFactory.decodeFile(filename, bitmapOptions);
+				mSamplingRate = bitmapOptions.inSampleSize;
 				return bmp;
 			}
 			catch (OutOfMemoryError e)
@@ -97,6 +100,7 @@ public class BitmapDecoder
 		try
 		{
 			 bmp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length, bitmapOptions);
+			 mSamplingRate = bitmapOptions.inSampleSize;
 			 return bmp;
 		}
 		catch(OutOfMemoryError e)
@@ -111,6 +115,7 @@ public class BitmapDecoder
 			try
 			{
 				bmp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length, bitmapOptions);
+				mSamplingRate = bitmapOptions.inSampleSize;
 				return bmp;
 			}
 			catch (OutOfMemoryError e)
@@ -126,5 +131,13 @@ public class BitmapDecoder
 	public static Bitmap safeDecodeBitmap(byte[] byteArray)
 	{
 		return safeDecodeBitmap(byteArray, 1);
+	}
+
+	/**
+	 * get the last sampling rate used
+	 * @return
+	 */
+	public static int getSamplingRate() {
+		return mSamplingRate;
 	}
 }

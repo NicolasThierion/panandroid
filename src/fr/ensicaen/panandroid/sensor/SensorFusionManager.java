@@ -42,11 +42,13 @@ import junit.framework.Assert;
  * SensorFusionManager falls back to a simulated gyroscope with compass and accelerometer in this case,
  * and fire sensorEvent like TYPE_VECTOR_ROTATION would normally have done.
  * 
- * SensorFusionManager gives information about the rotation of the phone (pitch, yaw, rotation matrix, orientation vector). * 
+ * SensorFusionManager gives real-time information about the rotation of the phone (pitch, yaw, rotation matrix, orientation vector).
+ * Reference pitch is 0 degrees (looking at horizon), and reference yaw is startup yaw.
  * 
  * Based on picSphere's SensorFusion (Guillaume Lesniak, Paul Lawitzki) for the manager and
  * PanoramaGL library for simulated accelerometer.
  * 
+ * @bug : When simulated gyro, reference pitch is startup pitch.
  *
  */
 public class SensorFusionManager implements SensorEventListener, EulerAngles
@@ -90,7 +92,12 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	/** corresponding rotation matrix **/
 	float[] mRotationMatrix = new float[16];
 	
+	/**current pitch and yaw **/
 	float mPitch, mYaw;
+	
+	/** reference pitch and yaw **/
+	float oPitch = 0.0f, oYaw = 0.0f;
+	boolean mHasToResetYaw = true, mHasToResetPitch = false;
 	
 	boolean mIsStarted;
 	
@@ -158,6 +165,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    */
 		
 		
+		
 		if(mIsGyroscopeSupported)
 		{
 	    	this.updateRotationMatrix(event);
@@ -167,6 +175,19 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		{
 			Assert.assertTrue(mSimulatedRotationVector!=null);
 			mSimulatedRotationVector.updateRotationMatrix(event);
+		}
+		
+		if(mHasToResetPitch)
+		{
+			oPitch = mPitch;
+			mPitch = 0.0f;
+			mHasToResetPitch = false;
+		}
+		if(mHasToResetYaw)
+		{
+			oYaw = mYaw;
+			mYaw = 0.0f;
+			mHasToResetYaw = false;
 		}
 		
 	   
@@ -205,6 +226,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	{
     	mSensorManager.unregisterListener(this);
     	mIsStarted = false;
+
 	}
 	
 	/* *********
@@ -212,22 +234,33 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	 * ********/	   
 	
 	/**
-	 * Same effect as registerListener
+	 * Same effect as registerListener, plus set reference yaw to current orientation.
 	 * @return
 	 */
 	public boolean start()
 	{
-		return this.registerListener(mIsGyroscopeSupported);
+		
+		boolean res =  this.registerListener(mIsGyroscopeSupported);
+		this.setReferenceYaw();
+		
+		return res;
 	}
 	
+	/**
+	 * same effect as unregisterListener, but reset pitch and yaw to 0.
+	 */
 	public void stop()
 	{
-    	mSensorManager.unregisterListener(this);
+    	unregisterListener();
+    	resetPitch();
+    	resetYaw();
 	} 
+	
+	
 	
 	public void onPauseOrStop()
 	{
-	    mSensorManager.unregisterListener(this);
+	    unregisterListener();
 	}
 	
 	public void onResume()
@@ -240,6 +273,31 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	{
 		return mIsGyroscopeSupported;
 	}
+	
+	/**
+	 * Set reference pitch to current pitch.
+	 */
+	public void setReferencePitch()
+	{
+		mHasToResetPitch = true;
+	
+	}
+	
+	public void setReferenceYaw()
+	{
+		mHasToResetYaw = true;
+	}
+	
+	public void resetPitch()
+	{
+		oPitch = 0.0f;
+	}
+	
+	public void resetYaw()
+	{
+		oYaw = 0.0f;
+	}
+	
 	/* **********
 	 * ACCESSORS
 	 * *********/
@@ -325,7 +383,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    }
 	    
 	 
-	    /**
+	 /**
 	 * Updates rotation matrix given by rotation event, coming from gyroscope.
 	 * @param event
 	 */
@@ -342,8 +400,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    SensorManager.getOrientation(mRotationMatrix, mOrientation);
 	    
 	    // save pitch and yaw.
-	    mYaw = mOrientation[0] * RAD_TO_DEG;
-		mPitch = mOrientation[1] * RAD_TO_DEG;
+	    mYaw = mOrientation[0] * RAD_TO_DEG - oYaw;
+		mPitch = mOrientation[1] * RAD_TO_DEG - oPitch;
 		
 	}
 	
