@@ -128,10 +128,7 @@ public class BitmapDecoder
 	}
 
 	
-	public static Bitmap safeDecodeBitmap(byte[] byteArray)
-	{
-		return safeDecodeBitmap(byteArray, 1);
-	}
+
 
 	/**
 	 * get the last sampling rate used

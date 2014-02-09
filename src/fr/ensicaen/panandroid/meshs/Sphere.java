@@ -13,6 +13,7 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.opengl.GLES10;
 import android.opengl.GLUtils;
 import android.util.Log;
 
@@ -223,6 +224,12 @@ for (int i = 0; i < this.mTotalNumStrips; i++) {
 	    mBitmapTexture.recycle();
 	}
 
+	@Override
+	public void unloadGLTexture(GL10 gl)
+	{
+		GLES10.glDeleteTextures(1, mTextures, 0);
+	}
+	
 	
 	
 }

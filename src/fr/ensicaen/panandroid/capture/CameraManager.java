@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 import junit.framework.Assert;
@@ -209,6 +210,7 @@ public class CameraManager
 				
 		mCameraId = camId;
 		mCamera = Camera.open(camId);
+
 		
 		
 		mCameraParameters = mCamera.getParameters();
@@ -404,6 +406,12 @@ public class CameraManager
 		}
 	}
 
+	public void setOrientation()
+	{
+		mCamera.setDisplayOrientation(90);
+
+	}
+	
 	/**
 	 * Capture is sensorial when a sensorFusionManager has been set.
 	 * @return
@@ -427,9 +435,13 @@ public class CameraManager
 	 * Must have called setSensorFusionManager once first. Setting target to null disable autoShoot.
 	 * @param targets
 	 */
-	public void setAutoShootTargetList(LinkedList<Snapshot> targets )
+	public void setAutoShootTargetList(LinkedList<EulerAngles> targets )
 	{
-		mAutoShootTargets = targets;
+		mAutoShootTargets = new LinkedList<Snapshot>();
+		
+		
+		for(EulerAngles a : targets)
+			mAutoShootTargets.add(new Snapshot(a.getPitch(), a.getYaw()));
 		if(this.isAutoShootEnabled())
 			mSensorFusionManager.addSensorEventListener(mSensorListener);
 		else
@@ -718,10 +730,10 @@ public class CameraManager
 				        FileOutputStream fos = new FileOutputStream(jpegFile);
 				        fos.write(data);
 				        fos.close();
-				        mTempSnapshot.setFileName(mTempFilename);
+				        mTempSnapshot.setFileName(jpegFile);
 				        takenSnapshot = mTempSnapshot;
-						mTempFilename = null;
-
+				        mTempSnapshot = null;
+				        mTempFilename = null;
 	
 				    } 
 					catch (FileNotFoundException e) 
@@ -797,6 +809,10 @@ public class CameraManager
 		        
 		        dPitch = oPitch - sPitch;
 		        dYaw = oYaw - sYaw;
+		        
+		        //if target in a pole. neutralize yaw
+		        if(Math.abs(sPitch)>89.0f)
+		        	dYaw=0.0f;
 		        
 		        distance = (float) Math.sqrt(Math.pow(dPitch, 2)+Math.pow(dYaw, 2));
 		        if(distance<mAutoShootThreshold)

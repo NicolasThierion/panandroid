@@ -21,7 +21,6 @@ public class SnapshotManager
 	public SnapshotManager()
 	{
 		mSnapshots = new ArrayList<Snapshot>();
-	
 	}
 	
 	

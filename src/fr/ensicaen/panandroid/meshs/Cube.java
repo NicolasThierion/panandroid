@@ -200,4 +200,12 @@ public class Cube extends Mesh
 			mFaces[i].loadGLTexture(gl);
 		}
 	}
+	@Override
+	public void unloadGLTexture(GL10 gl)
+	{
+		for(int i=0; i<6; ++i)
+		{
+			mFaces[i].unloadGLTexture(gl);
+		}		
+	}
 }

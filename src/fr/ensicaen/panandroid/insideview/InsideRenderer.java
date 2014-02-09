@@ -347,9 +347,9 @@ public class InsideRenderer implements Renderer, EulerAngles
 	{
 		mYaw %= 360.0f;
 		if (mYaw < -180.0f) 
-			mYaw = 360.0f + mYaw;
+			mYaw += 360.0f;
 		else if (mYaw > 180.0f)
-			mYaw = -360.0f + mYaw;
+			mYaw -= 360.0f;
 		
 		
 		if (mPitch < -90.0f) 
@@ -357,8 +357,6 @@ public class InsideRenderer implements Renderer, EulerAngles
 		else if (mPitch > 90.0f)
 			mPitch = 90.0f;
 		
-		Assert.assertTrue(mYaw >= -180.0f && mYaw <= 180.0f);
-		Assert.assertTrue(mPitch >= -90.0f && mPitch <= 90.0f);
 	}
 	
 	/**

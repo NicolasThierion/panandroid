@@ -16,4 +16,9 @@ public class NullMesh extends Mesh
 		
 	}
 
+	@Override
+	public void unloadGLTexture(GL10 gl) {
+		
+	}
+
 }

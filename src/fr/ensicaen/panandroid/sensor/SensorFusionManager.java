@@ -48,7 +48,8 @@ import junit.framework.Assert;
  * Based on picSphere's SensorFusion (Guillaume Lesniak, Paul Lawitzki) for the manager and
  * PanoramaGL library for simulated accelerometer.
  * 
- * @bug : When simulated gyro, reference pitch is startup pitch.
+ * TODO : add getRoll() (=0 when simulated gyro??)
+ * TODO : add isStable()
  *
  */
 public class SensorFusionManager implements SensorEventListener, EulerAngles
@@ -162,14 +163,11 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    if (mRotationMatrix == null) {
 	        mRotationMatrix = new float[16];
 	    }
-	    */
-		
-		
+	    */	
 		
 		if(mIsGyroscopeSupported)
 		{
 	    	this.updateRotationMatrix(event);
-	
 		}
 		else
 		{
@@ -188,8 +186,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			oYaw = mYaw;
 			mYaw = 0.0f;
 			mHasToResetYaw = false;
-		}
-		
+		}	
 	   
 		//throw the event to all listeners
 	    for(SensorEventListener l : mListeners)
@@ -403,6 +400,25 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    mYaw = mOrientation[0] * RAD_TO_DEG - oYaw;
 		mPitch = mOrientation[1] * RAD_TO_DEG - oPitch;
 		
+		this.normalize();
+		
+	}
+	
+	private void normalize()
+	{
+		
+		mYaw %= 360.0f;
+		mPitch %= 180.0f;
+
+		if(mYaw>180.01f)
+		{
+			mYaw-=360.0f;
+		}
+		
+		if(mPitch>90.01f)
+		{
+			mPitch-=180.0f;
+		}
 	}
 	
 	/* ********

@@ -2,24 +2,23 @@ package fr.ensicaen.panandroid.meshs;
 
 import javax.microedition.khronos.opengles.GL10;
 
+import fr.ensicaen.panandroid.capture.EulerAngles;
 import fr.ensicaen.panandroid.capture.Snapshot;
-import android.graphics.Bitmap;
-import android.opengl.GLES10;
-import android.opengl.GLES20;
-import android.opengl.GLUtils;
-import android.opengl.Matrix;
-import android.util.Log;
 
 
 /**
  * Like snapshot, but drawable as a TexturedPlane.
  */
-public class Snapshot3D extends TexturedPlane
+public class Snapshot3D extends TexturedPlane implements EulerAngles
 {
 	/* ********
 	 * ATTRIBUTES
 	 * *******/
 	private Snapshot mSnapshot;
+	
+	private boolean mVisible = true;
+	
+	private GL10 mGl;
 	
 	/* ********
 	 * CONSTRUCTOR
@@ -48,6 +47,15 @@ public class Snapshot3D extends TexturedPlane
 	}
 	
 	
+	public Snapshot3D(float scale, float ratio, Snapshot snapshot)
+	{
+		super(scale, ratio);
+		
+		super.rotate(-snapshot.getPitch(), -snapshot.getYaw(), snapshot.getRoll());
+		mSnapshot = snapshot;
+		
+	}
+
 	public float getPitch()
 	{
 		return mSnapshot.getPitch();
@@ -62,6 +70,44 @@ public class Snapshot3D extends TexturedPlane
 	public float getRoll()
 	{
 		return mSnapshot.getRoll();
+	}
+	
+	@Override
+	public void draw(GL10 gl, float[] modelViewMatrix)
+	{
+		mGl = gl;
+		super.draw(gl, modelViewMatrix);
+	}
+	
+	
+	
+	@Override
+	public void setVisible(boolean visible)
+	{
+		
+		super.setVisible(visible);
+		
+		if(mVisible == visible)
+			return;
+		mVisible = visible;
+	
+		//unload texture
+		if(!mVisible)
+		{
+			new Thread(new Runnable()
+			{
+				public void run()
+				{
+					Snapshot3D.super.unloadGLTexture(mGl);
+
+				}
+			}).start();
+		}
+		else
+		{
+			super.setTexture(mSnapshot.getFileName());
+			super.loadGLTexture(mGl);
+		}
 	}
 	
 }

@@ -35,7 +35,10 @@ public abstract class Mesh
 	 * @param gl Handle.
 	 */
 	public abstract void loadGLTexture(final GL10 gl);
-  
+
+	public abstract void unloadGLTexture(final GL10 gl);
+
+	
   
 
 	/**

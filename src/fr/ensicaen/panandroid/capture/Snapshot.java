@@ -1,5 +1,7 @@
 package fr.ensicaen.panandroid.capture;
 
+import junit.framework.Assert;
+
 /**
  *
  * A snapshot represents an image, tagged by its position. 
@@ -18,7 +20,7 @@ public class Snapshot implements EulerAngles
 	private float mYaw;
 	private float mRoll;
 
-	private String mFileName;
+	private String mFileName = null;
 	
 
 	private int mId;
@@ -36,15 +38,16 @@ public class Snapshot implements EulerAngles
 		mYaw = yaw%360.0f;
 		mPitch = pitch%180.0f;
 
-		if(mYaw>180.0f)
+		if(mYaw>180.0001f)
 		{
 			mYaw-=360.0f;
 		}
 		
-		if(mPitch>90.0f)
+		if(mPitch>90.0001f)
 		{
 			mPitch-=180.0f;
 		}
+		
 		mId = GLOBAL_ID++;
 
 	}
@@ -78,7 +81,8 @@ public class Snapshot implements EulerAngles
 	}
 	
 
-	public String getFileName() {
+	public String getFileName()
+	{
 		return mFileName;
 	}
 	

@@ -11,6 +11,7 @@ import android.view.WindowManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -20,6 +21,7 @@ import javax.microedition.khronos.opengles.GL10;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.InsideRenderer;
 import fr.ensicaen.panandroid.meshs.Cube;
+import fr.ensicaen.panandroid.meshs.Snapshot3D;
 import fr.ensicaen.panandroid.meshs.TexturedPlane;
 import fr.ensicaen.panandroid.tools.BitmapDecoder;
 
@@ -29,18 +31,34 @@ import fr.ensicaen.panandroid.tools.BitmapDecoder;
  * The CaptureRenderer use a CameraManager to draw camera preview in foreground. 
  * By default, the renderer starts the cameraManager, and route the preview to a TexturedPlane.
  * @author Nicolas
- * @bug : camera stops when screen rotates.
+ * 
+ * @bug : cannot take snapshots near -180° yaw
+ * @bug : snapshot3D are square
+ * TODO : add roll
  */
 public class CaptureRenderer extends InsideRenderer implements SnapshotEventListener
 {
+	
+	/* *******
+	 * DEBUG PARAMS
+	 * ******/
     public final static String TAG = CaptureRenderer.class.getSimpleName();
 
+    public static final boolean USE_UNLOAD_TEXTURE = false;
+    
+    
     /* ********
 	 * CONSTANTS PARAMETERS
 	 * ********/
     
+    /** memory usage parameter **/
+    private static final float AUTO_UNLOADTEXTURE_ANGLE = 80.0f;
+    private static final float AUTO_LOADTEXTURE_ANGLE = 70.0f;
+    
+    
+    
     /** Size & distance of the snapshots **/
-	private static final float SNAPSHOTS_SIZE = 1.5f;
+	private static final float SNAPSHOTS_SIZE = 2.2f;
 	private static final float SNAPSHOTS_DISTANCE = 5.0f;
 	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 4;
 
@@ -49,24 +67,19 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private static final float CAMERA_DISTANCE = 4.5f;
 	
 	/** Size & distance of the viewFinder**/
-	private static final float VIEWFINDER_SIZE = 1.0f;
-	private static final float VIEWFINDER_DISTANCE = 30.0f;
+	private static final float VIEWFINDER_SIZE = 0.08f;
+	private static final float VIEWFINDER_DISTANCE = 3.0f;
 	private static final float VIEWFINDER_ATTENUATION_ALPHA = 1.0f; 	
 	
 	/** Size & distance of the markers **/
 	private static final float MARKERS_SIZE = 0.05f;
 	private static final float MARKERS_DISTANCE = 3.0f;
-	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 0.0f; 		//[ around 1]
+	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 15.0f; 		//[ around 1]
 		
 	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
 	
 	private static final float CAMERA_RATIO34 = 3.0f/4.0f;	//portait
 	private static final float CAMERA_RATIO43 = 4.0f/3.0f;	//landscape
-	
-	
-	/** angle interval between dots **/
-	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
-	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
 	
 	/** default textures **/
 	private static final int MARKER_RESSOURCE_ID = R.drawable.ic_picsphere_marker;
@@ -98,6 +111,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private float mCameraSize = CAMERA_SIZE;
 	private float mSnapshotsSize = SNAPSHOTS_SIZE;
 	private float mMarkersSize = MARKERS_SIZE;
+	private float mViewFinderSize = VIEWFINDER_SIZE;
 	
 	
 
@@ -119,6 +133,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	//TODO : implement
 	/** current ratio of TexturedPlanes, determined by screen orientation **/
 	private float mCameraRatio;
+	private float mCameraRoll;
+	
 	
 	/* ***
 	 * snapshots
@@ -135,13 +151,9 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ***/
 	/** list of dots **/
 	private List<Snapshot3D> mDots;
-	   
-	/** angle step between angles **/
-	private float mPitchStep = DEFAULT_PITCH_STEP;
-	private float mYawStep = DEFAULT_YAW_STEP;
 	
-	//TODO : implement
-	private TexturedPlane mViewfinderBillboard;
+	/** plane holding viewFinder at the center of the view **/
+	private TexturedPlane mViewFinder;
 	
 	/** marker attenuation factor **/
 	private float mMarkersAttenuationFactor = DEFAULT_MARKERS_ATTENUATION_FACTOR;
@@ -177,15 +189,9 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 		//create dots and snapshot lists
 		mSnapshots = new ArrayList<Snapshot3D>();
-		mDots = new ArrayList<Snapshot3D>();
+		mDots = new LinkedList<Snapshot3D>();
 		
-		for(float pitch = -90.0f; pitch < 90.0f; pitch+=mPitchStep)
-		{
-			for(float yaw = -180.0f; yaw < 180.0f; yaw+=mYawStep)
-			{
-				putMarker(pitch, yaw);
-			}
-		}
+		
 		mSnapshotsLock = new ReentrantLock();
 	}
     
@@ -199,6 +205,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mUseSkybox = false;
 	}
 
+    
     
     /* ********
 	 * ACCESSORS
@@ -239,38 +246,41 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		mMarkersSize = scale;
 	}
-
+	
+	public void setViewFinderSize(float size)
+	{
+		mViewFinderSize = size;
+	}
+	
 	public void setSnapshotSamplingRate(int rate)
 	{
 		mSamplingRate = rate;
 	}
 	
-	 /**
-     * Set pitch interval between markers.
-     * @param step - pitch interval.
-     */
-    public void setPitchStep(float step)
-    {
-    	mPitchStep = step;
-    }
-    
-    /**
-     * Set yaw interval between markers.
-     * @param step - yaw interval.
-     */
-    public void setYawStep(float step)
-    {
-    	mYawStep = step;
-    }
-    
-    /**
-     * set how fast markers disappears when going far from them.
-     * @param factor - factor. A high value set markers to disappear quickly.
-     */
-    public void setMarkersAttenuationFactor(float factor)
-    {
-    	mMarkersAttenuationFactor = factor;
-    }
+
+	/**
+	 * set how fast markers disappears when going far from them.
+	 * @param factor - factor. A high value set markers to disappear quickly.
+	 */
+	public void setMarkersAttenuationFactor(float factor)
+	{
+		mMarkersAttenuationFactor = factor;
+	}
+	
+	
+	/**
+	 * Set the list of marks to display all around the 3d scene.
+	 * @param marks linkedlist of marks to display.
+	 */
+	public void setMarkerList(LinkedList<EulerAngles> marks)
+	{
+		for(EulerAngles a : marks)
+		{	
+			putMarker(a.getPitch(), a.getYaw());
+	
+		}
+	}
+	
     
     /* ********
 	 * RENDERER OVERRIDES
@@ -347,39 +357,43 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	    mCameraSurface.draw(gl, mViewMatrix);
 		gl.glDisable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
 		
+		//draw the viewFinder
+		mViewFinder.draw(gl, mViewMatrix);
+
+		//the snapshots that are in FOV
 		mSnapshotsLock.lock();
-		for (TexturedPlane snap : mSnapshots)
+		for (Snapshot3D snap : mSnapshots)
 		{
-		    snap.draw(gl, super.getRotationMatrix());
+
+			if(USE_UNLOAD_TEXTURE && this.getSnapshotDistance(snap)>AUTO_UNLOADTEXTURE_ANGLE)
+				snap.setVisible(false);
+			else if(this.getSnapshotDistance(snap)<AUTO_LOADTEXTURE_ANGLE)
+			{
+				snap.setVisible(true);
+				snap.draw(gl, super.getRotationMatrix());
+			}
+				
 		}
 		mSnapshotsLock.unlock();
 		
-		float oPitch = super.getPitch();
-		float oYaw = super.getYaw();
 		
-		float sPitch , sYaw, dPitch, dYaw, d;
+		//... and then all markers with newly computed alpha
+		float d;
 		
 		//draw markers
 		if(mUseMarkers)
 		{
-		    for (Snapshot3D dot : mDots)
-		    {
-		        sPitch = dot.getPitch();
-		        sYaw = dot.getYaw();
-		        
-		    	// Set alpha based on camera distance to the point
-		        dPitch = Math.abs(Math.abs(sPitch) - Math.abs(oPitch));
-		        dYaw = Math.abs(Math.abs(sYaw) - Math.abs(oYaw));
-		        d = (dPitch+dYaw)*mMarkersAttenuationFactor/360.0f;
-		        d = (d>1.0f?1.0f:d);	        
-		        dot.setAlpha(1.0f - d);
-		        
-		        dot.draw(gl, super.getRotationMatrix());
-		    }
+			for (Snapshot3D dot : mDots)
+			{
+				
+				// Set alpha based on camera distance to the point
+				d = getSnapshotDistance(dot)*mMarkersAttenuationFactor/360.0f;
+				d = (d>1.0f?1.0f:d);
+				dot.setAlpha(1.0f - d);    
+				dot.draw(gl, super.getRotationMatrix());
+			}
 		}
 	
-		//TODO : 
-	    //mViewfinderBillboard.draw(gl, mViewMatrix);*/
 	}
 
 
@@ -433,32 +447,35 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mCameraManager.setPreviewSurface(mCameraSurfaceTex);
 		
 		//Setup viewfinder	
-		mViewfinderBillboard = new TexturedPlane(2.0f);
-		mViewfinderBillboard.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
+		mViewFinder = new TexturedPlane(mViewFinderSize);
+		mViewFinder.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
+		mViewFinder.translate(0, 0, VIEWFINDER_DISTANCE);
+		mViewFinder.setAlpha(VIEWFINDER_ATTENUATION_ALPHA);
+
 	}
 	
 	private void reinitCameraSurface() throws IOException
 	{
 		//for an unknown reason, the camera preview is not in correct direction by default. Need to rotate it
 		final int screenRotation = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
-		float rotation = 270;
+		mCameraRoll = 270;
 		switch (screenRotation)
 		{
 			case Surface.ROTATION_0:
-				rotation += 0.0f;
+				mCameraRoll += 0.0f;
 				break;
 			case Surface.ROTATION_90:
-				rotation += 90.0f;
+				mCameraRoll += 90.0f;
 				break;
 			case Surface.ROTATION_180:
-				rotation += 180.0f;
+				mCameraRoll += 180.0f;
 				break;
 			default:
-				rotation += 270.0f;
+				mCameraRoll += 270.0f;
 				break;
 		};
 		
-		rotation%=360;
+		mCameraRoll%=360;
 
 		
 		//create a new TexturedPlane, that holds the camera texture.
@@ -466,7 +483,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mCameraSurface.setTexture(mCameraTextureId);
 		
 		//for unknown reason, the preview is not in correct orientation
-		mCameraSurface.rotate(0, 0, rotation);
+		mCameraSurface.rotate(0, 0, mCameraRoll);
 		mCameraSurface.translate(0, 0, CAMERA_DISTANCE);
 		
 	}
@@ -475,7 +492,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private Snapshot3D putMarker(float pitch, float yaw)
 	{
 		Snapshot3D dot = new Snapshot3D(mMarkersSize, pitch, yaw);
-		
 		dot.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), MARKER_RESSOURCE_ID));
 		dot.translate(0.0f, 0.0f, MARKERS_DISTANCE);
 		
@@ -484,23 +500,50 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     }
 	
 	
-	private Snapshot3D putSnapshot(byte[] pictureData, float pitch, float yaw)
+	private Snapshot3D putSnapshot(byte[] pictureData, Snapshot snapshot)
 	{
-		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, mCameraRatio, pitch, yaw);
+		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, mCameraRatio, snapshot);
 		
 		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSamplingRate));
 		mSamplingRate = BitmapDecoder.getSamplingRate();
 		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
 
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
+		snap.rotate(0, 0, mCameraRoll);
 		snap.setVisible(true);
 		mSnapshotsLock.lock();
 		mSnapshots.add(snap);
 		mSnapshotsLock.unlock();
+		
 
 		return snap;
     }
-
+	/**
+	 * get distance etween current orientation and gven snapshot
+	 * @param snapshot
+	 * @return
+	 */
+	private float getSnapshotDistance(EulerAngles snapshot)
+	{
+		float oPitch = super.getPitch();
+		float oYaw = super.getYaw();
+		float sPitch , sYaw, dPitch, dYaw, d;	
+			
+        sPitch = snapshot.getPitch();
+        sYaw = snapshot.getYaw();
+        
+        dPitch = Math.abs(Math.abs(sPitch) - Math.abs(oPitch));
+        dYaw = Math.abs(Math.abs(sYaw) - Math.abs(oYaw));
+        d = (dPitch+dYaw);
+        
+        //neutralize yaw if it is a pole
+        if(Math.abs(sPitch)>89.0f)
+        	d = dPitch;
+        
+        return d;
+				
+	}
+	
 	@Override
 	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
 	{
@@ -510,318 +553,14 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//find corresponding dot and remove it.
 
 		//put a new textureSurface with the snapshot in it.
-		putSnapshot(pictureData, snapshot.getPitch(), snapshot.getYaw());
-	}
-	
-	/* **********
-     * TRASH METHODS
-     * *********/
-	
-	/*
-    public void setCameraOrientation(float rX, float rY, float rZ) {
-        // Convert angles to degrees
-        rX = (float) (rX * 180.0f/Math.PI);
-        rY = (float) (rY * 180.0f/Math.PI);
-
-        // Update quaternion from euler angles out of orientation and set it as view matrix
-        mCameraQuat.fromEuler(rY, 0.0f, rX);
-        
-        //mViewMatrix = mCameraQuat.getConjugate().getMatrix();
-    }
-	*/
-    
-    /*
-    public Vector3 getAngleAsVector() {
-        float[] orientation = mSensorFusion.getFusedOrientation();
-
-        // Convert angles to degrees
-        float rX = (float) (orientation[0] * 180.0f/Math.PI);
-        float rY = (float) (orientation[1] * 180.0f/Math.PI);
-        float rZ = (float) (orientation[2] * 180.0f/Math.PI);
-
-        return new Vector3(rX, rY, rZ);
-    }*/
-
-    /**
-     * Helper function to compile a shader.
-     *
-     * @param shaderType The shader type.
-     * @param shaderSource The shader source code.
-     * @return An OpenGL handle to the shader.
-     */
-    /*
-    public static int compileShader(final int shaderType, final String shaderSource) {
-        int shaderHandle = GLES20.glCreateShader(shaderType);
-
-        if (shaderHandle != 0) {
-            // Pass in the shader source.
-            GLES20.glShaderSource(shaderHandle, shaderSource);
-
-            // Compile the shader.
-            GLES20.glCompileShader(shaderHandle);
-
-            // Get the compilation status.
-            final int[] compileStatus = new int[1];
-            GLES20.glGetShaderiv(shaderHandle, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
-
-            // If the compilation failed, delete the shader.
-            if (compileStatus[0] == 0) {
-                Log.e(TAG, "Error compiling shader: " + GLES20.glGetShaderInfoLog(shaderHandle));
-                GLES20.glDeleteShader(shaderHandle);
-                shaderHandle = 0;
-            }
-        }
-
-        if (shaderHandle == 0) {
-            throw new RuntimeException("Error creating shader.");
-        }
-
-        return shaderHandle;
-    }*/
-
-    /**
-     * Adds a snapshot to the sphere
-     */
-    /*
-    public void addSnapshot(final Bitmap image) {
-        TexturedPlane snap = new TexturedPlane();
-        
-        ///snap.setGlProgram(mProgram[SNAPSHOT], mPositionHandler[SNAPSHOT], mTexCoordHandler[SNAPSHOT], mMVPMatrixHandler[SNAPSHOT], mTextureHandler[SNAPSHOT], mAlphaHandler[SNAPSHOT]);
-        
-        snap.mModelMatrix = Arrays.copyOf(mViewMatrix, mViewMatrix.length);
-        Assert.assertTrue(mViewMatrix!=null);
-        
-        Matrix.invertM(snap.mModelMatrix, 0, snap.mModelMatrix, 0);
-        Matrix.translateM(snap.mModelMatrix, 0, 0.0f, 0.0f, -DISTANCE);
-        Matrix.rotateM(snap.mModelMatrix, 0, -90, 0, 0, 1);
-
-        snap.setTexture(image);
-
-        mListBusy.lock();
-        mSnapshots.add(snap);
-        mListBusy.unlock();
-    }
-     */
-    /**
-     * Removes the last taken snapshot
-     */
-    /*
-    public void removeLastPicture() {
-        mListBusy.lock();
-        if (mSnapshots.size() > 0) {
-            mSnapshots.remove(mSnapshots.size()-1);
-        }
-        mListBusy.unlock();
-    }
-     */
-    /**
-     * Clear sphere's snapshots
-     */
-    /*
-    public void clearSnapshots() {
-        mListBusy.lock();
-        mSnapshots.clear();
-        mListBusy.unlock();
-    }
-    */
-	
-	/*
-	 @Override
-    public void onDrawFrame(GL10 gl) {
-        
-    	super.onDrawFrame(gl);
-    	
-    	mCameraSurfaceTex.updateTexImage();
-    	
-    	//GLES11.glTexParameteriv(GLES10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, mCrop, 0);
-		//GLES11Ext.glDrawTexiOES(mRect[0], mRect[1], 0, mRect[2], mRect[3]);
-
-        /*
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-
-        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-        GLES20.glEnable(GLES20.GL_BLEND);
-
-        // Update camera view matrix
-        float[] orientation = mSensorFusion.getFusedOrientation();
-
-        // Convert angles to degrees
-        float rX = (float) (orientation[1] * 180.0f/Math.PI);
-        float rY = (float) (orientation[0] * 180.0f/Math.PI);
-        float rZ = (float) (orientation[2] * 180.0f/Math.PI);
-         */
-    	
-    	/*
-    	float rx = super.getPitch();
-    	float ry = super.getYaw();
-    	
-        // Update quaternion from euler angles out of orientation
-        mCameraQuat.fromEuler( rx, ry, 0.0f);
-        mCameraQuat = mCameraQuat.getConjugate();
-        mCameraQuat.normalise();
-        */
-       
-    	//mViewMatrix = mCameraQuat.getMatrix();
+		putSnapshot(pictureData, snapshot);
 		
-    	
-    	/*
-        // Update camera billboard
-        mCameraBillboard.mModelMatrix = mCameraQuat.getMatrix();
-        Matrix.invertM(mCameraBillboard.mModelMatrix, 0, mCameraBillboard.mModelMatrix, 0);
-        Matrix.translateM(mCameraBillboard.mModelMatrix, 0, 0.0f, 0.0f, -DISTANCE);
-        Matrix.rotateM(mCameraBillboard.mModelMatrix, 0, -90, 0, 0, 1);
+	}
 
-        mViewfinderBillboard.mModelMatrix = Arrays.copyOf(mCameraBillboard.mModelMatrix,
-                mCameraBillboard.mModelMatrix.length);
-        Matrix.scaleM(mViewfinderBillboard.mModelMatrix, 0, 0.25f, 0.25f, 0.25f);
-
-        // Draw all teh things
-        // First the skybox, then the marker dots, then the snapshots
-        
-        //mSkyBox.draw(gl);
-		*/
-	/*
-  		gl.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-
-        mCameraSurface.draw(gl, mViewMatrix);
-  		gl.glDisable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-*/
-        /*
-        mListBusy.lock();
-        for (TexturedPlane snap : mSnapshots) {
-            snap.draw(gl, mViewMatrix);
-        }
-        mListBusy.unlock();
-
-        for (TexturedPlane dot : mDots) {
-            // Set alpha based on camera distance to the point
-            float dX = dot.getAutoAlphaX() - (rx + 180.0f);
-            float dY = dot.getAutoAlphaY() - ry;
-            dX = (dX + 180.0f) % 360.0f - 180.0f;
-            
-            ///dot.setAlpha(1.0f - Math.abs(dX)/180.0f * 8.0f);
-
-            dot.draw(gl, mViewMatrix);
-        }
-
-        mViewfinderBillboard.draw(gl, mViewMatrix);
-    }
-	 */
 	
-	/*
-    @Override
-    public void onSurfaceChanged(GL10 glUnused, int width, int height) {
-        // Set the OpenGL viewport to the same size as the surface.
-        GLES20.glViewport(0, 0, width, height);
-
-        // We use here a field of view of 40, which is mostly fine for a camera app representation
-        final float hfov = 90f;
-
-        // Create a new perspective projection matrix. The height will stay the same
-        // while the width will vary as per aspect ratio.
-        final float ratio = 640.0f / 480.0f;
-        final float near = 0.1f;
-        final float far = 1500.0f;
-        final float left = (float) Math.tan(hfov * Math.PI / 360.0f) * near;
-        final float right = -left;
-        final float bottom = ratio * right / 1.0f;
-        final float top = ratio * left / 1.0f;
-
-        Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
-    }
-	
-     */	
-
-	/*
-	 private float[] matrixFromEuler(float rx, float ry, float rz, float tx, float ty, float tz) {
-        Quaternion quat = new Quaternion();
-        quat.fromEuler(rx,ry,rz);
-        float[] matrix = quat.getMatrix();
-
-        Matrix.translateM(matrix, 0, tx, ty, tz);
-
-        return matrix;
-    }
-
-
-	 */
-	
-	/*
-	 * @Override
-    public void onSurfaceCreated(GL10 gl, EGLConfig config)
-    {
-        super.onSurfaceCreated(gl, config);
-
-        
-        /*
-        // Simple GLSL vertex/fragment, as GLES2 doesn't have the classical fixed pipeline
-        final String vertexShader =
-                "uniform mat4 u_MVPMatrix; \n"
-                        + "attribute vec4 a_Position;     \n"
-                        + "attribute vec2 a_TexCoordinate;\n"
-                        + "varying vec2 v_TexCoordinate;  \n"
-                        + "void main()                    \n"
-                        + "{                              \n"
-                        + "   v_TexCoordinate = a_TexCoordinate;\n"
-                        + "   gl_Position = u_MVPMatrix * a_Position;   \n"
-                        + "}                              \n";
-
-        final String fragmentShader =
-                        "precision mediump float;       \n"
-                        + "uniform sampler2D u_Texture;   \n"
-                        + "varying vec2 v_TexCoordinate;  \n"
-                        + "uniform float f_Alpha;\n"
-                        + "void main()                    \n"
-                        + "{                              \n"
-                        + "   gl_FragColor = texture2D(u_Texture, v_TexCoordinate);\n"
-                        + "   gl_FragColor.a = gl_FragColor.a * f_Alpha;"
-                        + "}                              \n";
-
-        // As the camera preview is stored in the OES external slot, we need a different shader
-        final String camPreviewShader = "#extension GL_OES_EGL_image_external : require\n"
-                + "precision mediump float;       \n"
-                + "uniform samplerExternalOES u_Texture;   \n"
-                + "varying vec2 v_TexCoordinate;  \n"
-                + "uniform float f_Alpha;\n"
-                + "void main()                    \n"
-                + "{                              \n"
-                + "   gl_FragColor = texture2D(u_Texture, v_TexCoordinate);\n"
-                + "   gl_FragColor.a = gl_FragColor.a * f_Alpha;"
-                + "}                              \n";
-
-
-        mVertexShader[CAMERA] = compileShader(GLES20.GL_VERTEX_SHADER, vertexShader);
-        mFragmentShader[CAMERA] = compileShader(GLES20.GL_FRAGMENT_SHADER, camPreviewShader);
-
-        mVertexShader[SNAPSHOT] = compileShader(GLES20.GL_VERTEX_SHADER, vertexShader);
-        mFragmentShader[SNAPSHOT] = compileShader(GLES20.GL_FRAGMENT_SHADER, fragmentShader);
-
-        // create the program and bind the shader attributes
-        for (int i = 0; i < 2; i++) {
-            mProgram[i] = GLES20.glCreateProgram();
-            GLES20.glAttachShader(mProgram[i], mFragmentShader[i]);
-            GLES20.glAttachShader(mProgram[i], mVertexShader[i]);
-            GLES20.glLinkProgram(mProgram[i]);
-
-            int[] linkStatus = new int[1];
-            GLES20.glGetProgramiv(mProgram[i], GLES20.GL_LINK_STATUS, linkStatus, 0);
-
-            if (linkStatus[0] == 0) {
-                throw new RuntimeException("Error linking shaders");
-            }
-            mPositionHandler[i]     = GLES20.glGetAttribLocation(mProgram[i], "a_Position");
-            mTexCoordHandler[i]     = GLES20.glGetAttribLocation(mProgram[i], "a_TexCoordinate");
-            mMVPMatrixHandler[i]    = GLES20.glGetUniformLocation(mProgram[i], "u_MVPMatrix");
-            mTextureHandler[i]      = GLES20.glGetUniformLocation(mProgram[i], "u_Texture");
-            mAlphaHandler[i]      = GLES20.glGetUniformLocation(mProgram[i], "f_Alpha");
-        }
-         */
-        
-        /*
-        initCameraSurface();
-    }
-*/
 	 
 }
+
+
 
 

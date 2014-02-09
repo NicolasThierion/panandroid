@@ -27,6 +27,13 @@ public class CaptureView extends Inside3dView
 	
 	private static final String TAG = CaptureView.class.getSimpleName();
 
+	
+	/* ******
+	 * DEBUG PARAMETERS
+	 * ******/
+	private static final boolean USE_PITCH_DISTANCE = false;
+	
+	
 	/* *********
 	 * CONSTANTS
 	 * *********/
@@ -130,12 +137,19 @@ public class CaptureView extends Inside3dView
 		
 		// set glview to use a capture renderer with the provided skybox.
 		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
-		mRenderer.setPitchStep(mPitchStep);
-		mRenderer.setYawStep(mYawStep);
+		this.updateTargets();
         super.setRenderer(mRenderer);
         
-        setPitchStep(mPitchStep);
-        setYawStep(mYawStep);
+        if(USE_PITCH_DISTANCE)
+        {
+            setPitchDistance(30.0f);
+
+        }
+        else
+        {
+	        setPitchStep(mPitchStep);
+	        setYawStep(mYawStep);
+        }
         
         //set view rotation parameters
         super.enableSensorialRotation(true);
@@ -149,18 +163,9 @@ public class CaptureView extends Inside3dView
 	public void setPitchStep(float step)
 	{
 		mPitchStep = step;
-		mRenderer.setPitchStep(step);
-
-		//updates camera autoshoot targets
-		LinkedList<Snapshot> targets = new LinkedList<Snapshot>();
-		for(float pitch = 0; pitch < 180; pitch+=mPitchStep)
-		{
-			for(float yaw = 0; yaw < 360; yaw+=mYawStep)
-			{
-				targets.add(new Snapshot(pitch, yaw));
-			}
-		}
-		mCameraManager.setAutoShootTargetList(targets);
+		updateTargets();
+		
+	
 	}
 	
 	/**
@@ -169,19 +174,66 @@ public class CaptureView extends Inside3dView
 	 */
 	public void setYawStep(float step)
 	{
-		mRenderer.setPitchStep(step);
-		mRenderer.setYawStep(step);
+		mYawStep = step;
+		updateTargets();
+	}
 
+	private LinkedList<EulerAngles> updateTargets()
+	{
 		//updates camera autoshoot targets
-		LinkedList<Snapshot> targets = new LinkedList<Snapshot>();
-		for(float pitch = 0; pitch < 180; pitch+=mPitchStep)
+		
+		
+		LinkedList<EulerAngles> targets = new LinkedList<EulerAngles>();
+		
+		for(float pitch = -90.0f+mPitchStep; pitch < 90.1f-mPitchStep; pitch+=mPitchStep)
 		{
-			for(float yaw = 0; yaw < 360; yaw+=mYawStep)
+			for(float yaw = -180.0f; yaw < 180.1f; yaw+=mYawStep)
 			{
 				targets.add(new Snapshot(pitch, yaw));
 			}
 		}
+		
+		//add poles
+		targets.add(new Snapshot(90.0f, 0.0f));
+		targets.add(new Snapshot(-90.0f, 0.0f));
+
+
+		
+		mRenderer.setMarkerList(targets);
 		mCameraManager.setAutoShootTargetList(targets);
+
+		return targets;
+	}
+	
+	public void setPitchDistance(float s)
+	{
+		
+		LinkedList<EulerAngles> targets = new LinkedList<EulerAngles>();
+
+		//on ne sait se deplacer qu'en termes de pitch et de yaw
+		float yawStep;
+		float r, theta;
+		for( float pitch = -90+mPitchStep; pitch < 90-mPitchStep; pitch+=mPitchStep)
+		{
+			theta = 90.0f + pitch;
+			
+			r = (float) Math.sin(theta);
+			
+			yawStep = s/r;
+			yawStep = Math.abs(yawStep);
+			
+			for(float yaw = 0; yaw < 360; yaw+=yawStep)
+			{
+				targets.add(new Snapshot(pitch, yaw));
+			}
+		}
+		
+		
+		mCameraManager.setAutoShootTargetList(targets);
+		mRenderer.setMarkerList(targets);
+
+		
+		//add poles
 	}
 
 	
