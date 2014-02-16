@@ -64,7 +64,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	
 	/** interval to listen to sensors, in 'us' */
 	private static final int SENSOR_LISTENING_RATE = 20000;
-	
+
+	private static final float THRESHOLD = .05f;
 	
 	/* *********
 	 * ATTRIBUTES
@@ -88,19 +89,29 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	private SensorManager mSensorManager = null;
 	
 	/** vector that represents orientation of the device **/
-	float[] mOrientation = new float[3];
+	private float[] mOrientation = new float[3];
 	
 	/** corresponding rotation matrix **/
-	float[] mRotationMatrix = new float[16];
+	private float[] mRotationMatrix = new float[16];
 	
 	/**current pitch and yaw **/
-	float mPitch, mYaw;
+	private float mPitch, mYaw;
 	
 	/** reference pitch and yaw **/
-	float oPitch = 0.0f, oYaw = 0.0f;
-	boolean mHasToResetYaw = true, mHasToResetPitch = false;
+	private float oPitch = 0.0f, oYaw = 0.0f;
+	private boolean mHasToResetYaw = true, mHasToResetPitch = false;
 	
-	boolean mIsStarted;
+	private boolean mIsStarted;
+	
+	/** current acceleration values **/
+	private float mCurrAccelerometerValues[] = new float[3];
+	
+	/** acceleration values the last time**/
+	private float mLastAccelerometerValues[] = new float[3];
+	
+	/** real acceleration values**/
+	private float mAccelerationValues[] = new float[3];
+
 	
 	/* *********
 	 * CONSTRUCTOR
@@ -167,12 +178,13 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		
 		if(mIsGyroscopeSupported)
 		{
-	    	this.updateRotationMatrix(event);
+			if(event.sensor.getType()==Sensor.TYPE_ROTATION_VECTOR)
+				this.updateRotationMatrix(event);
 		}
-		else
+		else 
 		{
-			Assert.assertTrue(mSimulatedRotationVector!=null);
-			mSimulatedRotationVector.updateRotationMatrix(event);
+			if(event.sensor.getType()==Sensor.TYPE_MAGNETIC_FIELD || event.sensor.getType()==Sensor.TYPE_ACCELEROMETER)
+				mSimulatedRotationVector.updateRotationMatrix(event);
 		}
 		
 		if(mHasToResetPitch)
@@ -187,12 +199,21 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			mYaw = 0.0f;
 			mHasToResetYaw = false;
 		}	
-	   
+		
+		if(event.sensor.getType()==Sensor.TYPE_ACCELEROMETER)
+			this.computeAcceleration(event);
+		
+		
 		//throw the event to all listeners
 	    for(SensorEventListener l : mListeners)
 	    {
 	    	l.onSensorChanged(event);
 	    }
+	}
+	
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int i) {
+	
 	}
 	
 	
@@ -207,10 +228,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		return mListeners.remove(listener);
 	}
 	
-	@Override
-	public void onAccuracyChanged(Sensor sensor, int i) {
 	
-	}
 	
 	public boolean registerListener()
 	{
@@ -321,8 +339,12 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	
 	public boolean isStable(float threshold)
 	{
-		//TODO
-		return true;
+		float x = mAccelerationValues[0];
+		float y = mAccelerationValues[1];
+		float z = mAccelerationValues[2];
+		
+		return ( x+y+z < 3*threshold);
+			
 	};
 	
 	public boolean isStarted()
@@ -342,42 +364,44 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			return true;
 		}
 		
-	    mIsGyroscopeSupported = false;
-	    //try to init classic ROTATION_VECTOR sensor ,with gyroscope. 
-	    if(useGyroscope)
-	    {
-	    	mIsGyroscopeSupported= mSensorManager.registerListener(
-	    									this,
-	    									mSensorManager.getDefaultSensor(
-	    											Sensor.TYPE_ROTATION_VECTOR),
-	    									SENSOR_LISTENING_RATE );
-	    	Log.i(TAG, "sensor fusion avaible on this device");
-	    }
-	    
-	    if(mIsGyroscopeSupported)
-	    {
-	    	mIsRotationSupported = true;
-	    }
-	    //no gyro avaibe.. simulates try to one
-	    else
-	    {
-	    	if(useGyroscope)
-	    		Log.w(TAG, "Device has no gyroscope... trying fallback mode");
-	
-	    	
-	    	mSimulatedRotationVector = new SimulatedRotationVector(mSensorManager, this);
-	    	mIsRotationSupported = mSimulatedRotationVector.registerListeners(SENSOR_LISTENING_RATE);
-	    	
-	    	if(!mIsRotationSupported)
-	    	{
-	    		Log.e(TAG, "device has no devices capable of handling rotation");
-	        	}
-	        	
-	        }
-	    
-	    	mIsStarted = mIsRotationSupported;
-	    	return mIsRotationSupported;
-	    }
+		//mIsGyroscopeSupported = false;
+		//try to init classic ROTATION_VECTOR sensor ,with gyroscope. 
+		if(useGyroscope)
+		{
+			mIsGyroscopeSupported= mSensorManager.registerListener(
+											this,
+											mSensorManager.getDefaultSensor(
+													Sensor.TYPE_ROTATION_VECTOR),
+											SENSOR_LISTENING_RATE );
+			Log.i(TAG, "sensor fusion avaible on this device");
+		}
+		
+		if(mIsGyroscopeSupported)
+		{
+			mIsRotationSupported = true;
+		}
+		//no gyro avaibe.. simulates try to one
+		else
+		{
+			if(useGyroscope)
+				Log.w(TAG, "Device has no gyroscope... trying fallback mode");
+		
+			
+			mSimulatedRotationVector = new SimulatedRotationVector(mSensorManager, this);
+			mIsRotationSupported = mSimulatedRotationVector.registerListeners(SENSOR_LISTENING_RATE);
+			
+			
+			if(!mIsRotationSupported)
+			{
+				Log.e(TAG, "device has no devices capable of handling rotation");
+		    }
+		    	
+		}
+		
+		boolean accelerationSupported = mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SENSOR_LISTENING_RATE);
+		mIsStarted = mIsRotationSupported && accelerationSupported;
+		return mIsRotationSupported;   	
+	}
 	    
 	 
 	 /**
@@ -471,10 +495,6 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		private long mThresholdTimestamp = 0;
 		private boolean mThresholdFlag = false;
 		
-		
-	
-	
-	
 		
 	
 		/**
@@ -637,9 +657,55 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		{
 			mListener.onSensorChanged(event);
 		}
-	
 	}
+	
 
+	private void computeAcceleration(SensorEvent event)
+	{
+		Assert.assertTrue(event.sensor.getType()==Sensor.TYPE_ACCELEROMETER);
+		
+		float x, y, z, X, Y, Z, lx, ly, lz, alpha=0.2f;
+		
+		
+		
+		//move current values into last values
+		lx = mCurrAccelerometerValues[0];
+		ly = mCurrAccelerometerValues[1];
+		lz = mCurrAccelerometerValues[2];
+		
+		mLastAccelerometerValues[0] = lx;
+		mLastAccelerometerValues[1] = ly;
+		mLastAccelerometerValues[2] = lz;
+
+		
+		// get the actual acceleration values from event on x, y and z
+		x = event.values[0];
+		y = event.values[1];
+		z = event.values[2];		
+		
+		//update current values
+		mCurrAccelerometerValues[0] = x;
+		mCurrAccelerometerValues[1] = y;
+		mCurrAccelerometerValues[2] = z;
+		
+		
+		// compute difference
+		X = mAccelerationValues[0];
+		Y = mAccelerationValues[1];
+		Z = mAccelerationValues[2];
+
+		
+		X = X*alpha + Math.abs((x-lx))*(1-alpha);
+		Y = Y*alpha + Math.abs((y-ly))*(1-alpha);
+		Z = Z*alpha + Math.abs((z-lz))*(1-alpha);
+
+		mAccelerationValues[0] = X;
+		mAccelerationValues[1] = Y;
+		mAccelerationValues[2] = Z;
+
+
+		System.out.println(isStable(THRESHOLD));
+	}
 	
 
 }
