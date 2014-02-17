@@ -134,7 +134,7 @@ public class BitmapDecoder
 	 * get the last sampling rate used
 	 * @return
 	 */
-	public static int getSamplingRate() {
+	public static int getSampleRate() {
 		return mSamplingRate;
 	}
 }

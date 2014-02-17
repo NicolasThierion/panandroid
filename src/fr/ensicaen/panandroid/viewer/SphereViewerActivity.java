@@ -43,7 +43,7 @@ public class SphereViewerActivity extends Activity {
     Sphere sphere = new Sphere(SPHERE_RESOLUTION, SPHERE_RADIUS);
     
     //TODO ; remove
-    Bitmap texture = BitmapFactory.decodeResource(super.getResources(), R.raw.quito2_s2);
+    Bitmap texture = BitmapFactory.decodeResource(super.getResources(), R.raw.spherical_pano);
     sphere.setGlTexture(texture);
     
     

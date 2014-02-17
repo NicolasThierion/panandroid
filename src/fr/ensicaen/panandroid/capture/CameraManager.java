@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 
 import junit.framework.Assert;
@@ -62,7 +61,7 @@ public class CameraManager
 	public static final boolean DEFAULT_SAVE_JPEG = true;
 	
 	//tricky workaround to ensure that camera opening has finished before using it
-	public static final int CAMERA_INIT_DELAY = 3000;
+	public static final int CAMERA_INIT_DELAY = 1000;
 	boolean mCameraIsBusy = true;
 	
 	/* *************
@@ -555,10 +554,19 @@ public class CameraManager
 		filename = mTempFilename;
 		
 		//disable shutter sound
-		mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
+		//mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
 		
 		mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
-		mCamera.startPreview();
+		
+		//Reset camera preview : on some devices, camera preview sometimes stops.
+		try
+		{
+			mCamera.startPreview();
+		}
+		catch(Exception e)
+		{}
+			
+		
 		
 		return filename;
 	}
@@ -760,8 +768,7 @@ public class CameraManager
 			mCameraIsBusy = false;
 			
 			//re-enable sound
-			//disable shutter sound
-			mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
+			//mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
 
 			
 			if(takenSnapshot!=null)

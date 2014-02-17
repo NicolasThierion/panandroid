@@ -504,8 +504,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, mCameraRatio, snapshot);
 		
-		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSamplingRate));
-		mSamplingRate = BitmapDecoder.getSamplingRate();
+		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSamplingRate));
+		//mSamplingRate = BitmapDecoder.getSampleRate();
 		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
 
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);

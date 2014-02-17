@@ -55,6 +55,9 @@ public class TexturedPlane extends Mesh
                 1.0f, 1.0f
         };
 	
+	/** dummy texture to load when bitmap not yet loaded **/
+	private static final Bitmap mDummyBitmapTexture = Bitmap.createBitmap(new int[]{Color.CYAN}, 1, 1, Config.RGB_565);
+
 	/* *********
 	 * ATTRIBUTES
 	 * ********/
@@ -94,21 +97,8 @@ public class TexturedPlane extends Mesh
 	/** if there is a new Bitmap texture to load **/
 	private boolean mTextureToLoad = false;
 
-	//TODO : implement or remove
-	
-	/*
-	private float mAlpha = 1.0f;
-	private float mAutoAlphaX;
-	private float mAutoAlphaY;
-	private int mPositionHandler ;
-	private int mTexCoordHandler ;
-	private FloatBuffer m43VertexBuffer;
-	private float[] mViewMatrix;
-	private float[] mProjectionMatrix = new float[16];
-	
+	private String mPersistentTexturePath;
 
-	*/
-	
 
     
 
@@ -203,19 +193,26 @@ public class TexturedPlane extends Mesh
 	 * @param tex - The new plane's texture path.
 	 */
 	public void setTexture(final String imgPath, final int sampleRate)
+	{	
+		mPersistentTexturePath = imgPath;
+		
+		this.loadBitmapTexture(imgPath, sampleRate);
+		 
+		
+	}
+	
+	private void loadBitmapTexture(final String imgPath, final int sampleRate)
 	{
-		mSampleRate = sampleRate;
-		this.setTexture(Bitmap.createBitmap(new int[]{Color.CYAN}, 1, 1, Config.RGB_565));
+		this.setTexture(mDummyBitmapTexture );
 
 		new Thread(new Runnable(){
 			public void run(){
 				mBitmapTexture = BitmapDecoder.safeDecodeBitmap(imgPath, sampleRate);
+				mSampleRate = BitmapDecoder.getSampleRate();
 				Assert.assertTrue(mBitmapTexture!=null);
 				mTextureToLoad = true; 
 			}
 		}).start();
-		 
-		
 	}
 	
 	/**
@@ -312,7 +309,7 @@ public class TexturedPlane extends Mesh
 			Log.e(TAG, "Unable to attribute texture to quad");
 		}
 		// Tidy up.
-	    mBitmapTexture.recycle();
+	    //mBitmapTexture.recycle();
 		
 		mImameTextureId = texture[0];
 		mTextureToLoad = false;

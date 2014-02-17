@@ -87,10 +87,11 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	
 		//if renderer is set, assign the view to it.
 		if(renderer != null)
-		{
+		{        
+			super.setEGLContextClientVersion(1);
+
 			setRenderer(renderer);
 		}
-        super.setEGLContextClientVersion(1);
 
 	}
 	

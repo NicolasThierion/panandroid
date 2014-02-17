@@ -177,28 +177,32 @@ for (int stripNum = 0; stripNum < this.mTotalNumStrips; stripNum++) {
    */
   public void draw(final GL10 gl, float[] modelViewMatrix) {
 	  
-    // bind the previously generated texture.
-gl.glBindTexture(GL10.GL_TEXTURE_2D, mTextures[0]);
+	//enter 2d texture mode
+	gl.glEnable(GL10.GL_TEXTURE_2D);
+    
+	// bind the previously generated texture.
+	gl.glBindTexture(GL10.GL_TEXTURE_2D, mTextures[0]);
+	
+	// Point to our buffers.
+	gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
+	gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
+	
+	// Set the face rotation, clockwise in this case.
+	gl.glFrontFace(GL10.GL_CW);
+	
+	// Point to our vertex buffer.
+	for (int i = 0; i < this.mTotalNumStrips; i++) {
+		gl.glVertexPointer(AMOUNT_OF_NUMBERS_PER_VERTEX_POINT, GL10.GL_FLOAT, 0, this.mVertexBuffer.get(i));
+		gl.glTexCoordPointer(AMOUNT_OF_NUMBERS_PER_TEXTURE_POINT, GL10.GL_FLOAT, 0, this.mTextureBuffer.get(i));
+		
+		// Draw the vertices as triangle strip.
+		gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, this.mVertices.get(i).length / AMOUNT_OF_NUMBERS_PER_VERTEX_POINT);
+	}
 
-// Point to our buffers.
-gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
-gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
-
-// Set the face rotation, clockwise in this case.
-gl.glFrontFace(GL10.GL_CW);
-
-// Point to our vertex buffer.
-for (int i = 0; i < this.mTotalNumStrips; i++) {
-  gl.glVertexPointer(AMOUNT_OF_NUMBERS_PER_VERTEX_POINT, GL10.GL_FLOAT, 0, this.mVertexBuffer.get(i));
-  gl.glTexCoordPointer(AMOUNT_OF_NUMBERS_PER_TEXTURE_POINT, GL10.GL_FLOAT, 0, this.mTextureBuffer.get(i));
-
-  // Draw the vertices as triangle strip.
-  gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, this.mVertices.get(i).length / AMOUNT_OF_NUMBERS_PER_VERTEX_POINT);
-}
-
-// Disable the client state before leaving.
-    gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
-    gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
+	// Disable the client state before leaving.
+	gl.glDisable(GL10.GL_TEXTURE_2D);
+	gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
+	gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
   }
 
   
