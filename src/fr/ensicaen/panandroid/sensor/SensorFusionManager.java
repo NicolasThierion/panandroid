@@ -34,8 +34,9 @@ import fr.ensicaen.panandroid.capture.EulerAngles;
 import junit.framework.Assert;
 
 /**
- *  * @author Nicolas
-
+ * 313
+ * @author Nicolas
+ * 
  * SensorFusionManager is basically the same as native SensorManager that register a sensor of type TYPE_VECTOR_ROTATION.
  * Because TYPE_VECTOR_ROTATION uses the gyroscope, not all devices are supported.
  * 

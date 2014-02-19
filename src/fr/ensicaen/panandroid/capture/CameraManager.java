@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.List;
 
 import junit.framework.Assert;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
@@ -873,6 +874,13 @@ public class CameraManager
 		
 		mFileId = id;
 		return absoluteFilename;
+	}
+
+
+	public double getCameraResolution() {
+		Camera.Size size = mCamera.getParameters().getPictureSize();
+		double mpx = (double)(size.height * size.width) /1024000.0 ;
+		return mpx;
 	}
 
 	

@@ -44,7 +44,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ******/
     public final static String TAG = CaptureRenderer.class.getSimpleName();
 
-    public static final boolean USE_UNLOAD_TEXTURE = false;
+    public static final boolean USE_UNLOAD_TEXTURE = true;
     
     
     /* ********
@@ -52,15 +52,15 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ********/
     
     /** memory usage parameter **/
-    private static final float AUTO_UNLOADTEXTURE_ANGLE = 80.0f;
-    private static final float AUTO_LOADTEXTURE_ANGLE = 70.0f;
+    private static final float AUTO_UNLOADTEXTURE_ANGLE = 150.0f;
+    private static final float AUTO_LOADTEXTURE_ANGLE = 90.0f;
     
     
     
     /** Size & distance of the snapshots **/
 	private static final float SNAPSHOTS_SIZE = 2.2f;
 	private static final float SNAPSHOTS_DISTANCE = 5.0f;
-	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 4;
+	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 0;	//[0 for automatic sample rate]
 
 	/** Size & distance of the camera preview **/
 	private static final float CAMERA_SIZE = 1.0f;
@@ -144,7 +144,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private ReentrantLock mSnapshotsLock;
 	
 	/** snapshot quality **/
-	private int mSamplingRate = DEFAULT_SNAPSHOTS_SAMPLING_RATE;
+	private int mSampleRate = DEFAULT_SNAPSHOTS_SAMPLING_RATE;
 
 	/* ***
 	 * markers
@@ -185,6 +185,15 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mContext = context;
 		mCameraRatio = 0;
 		
+		//if auto samplig enabled
+		if(this.mSampleRate == 0)
+		{
+			mSampleRate=(int) mCameraManager.getCameraResolution();
+			mSampleRate = ceilPowOf2(mSampleRate);
+		}
+		
+		
+		System.out.println("s : "+mSampleRate);
 	    Matrix.setIdentityM(mViewMatrix, 0);
 	
 		//create dots and snapshot lists
@@ -254,7 +263,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	public void setSnapshotSamplingRate(int rate)
 	{
-		mSamplingRate = rate;
+		mSampleRate = rate;
 	}
 	
 
@@ -366,9 +375,13 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		{
 
 			if(USE_UNLOAD_TEXTURE && this.getSnapshotDistance(snap)>AUTO_UNLOADTEXTURE_ANGLE)
+			{
 				snap.setVisible(false);
+				snap.unloadGLTexture(gl);
+			}
 			else if(this.getSnapshotDistance(snap)<AUTO_LOADTEXTURE_ANGLE)
 			{
+				snap.loadGLTexture(gl);
 				snap.setVisible(true);
 				snap.draw(gl, super.getRotationMatrix());
 			}
@@ -396,6 +409,18 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	}
 
+	@Override
+	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
+	{
+		//a snapshot has just been taken :
+		
+		//TODO
+		//find corresponding dot and remove it.
+
+		//put a new textureSurface with the snapshot in it.
+		putSnapshot(pictureData, snapshot);
+		
+	}
 
 	/* **********
 	 * PRIVATE METHODS
@@ -503,8 +528,10 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private Snapshot3D putSnapshot(byte[] pictureData, Snapshot snapshot)
 	{
 		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, mCameraRatio, snapshot);
+		snap.setSampleRate(mSampleRate);
+		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSampleRate));
 		
-		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSamplingRate));
+		//TODO?
 		//mSamplingRate = BitmapDecoder.getSampleRate();
 		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
 
@@ -519,7 +546,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		return snap;
     }
 	/**
-	 * get distance etween current orientation and gven snapshot
+	 * get distance between current orientation and gven snapshot
 	 * @param snapshot
 	 * @return
 	 */
@@ -544,18 +571,19 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 				
 	}
 	
-	@Override
-	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
+	private int ceilPowOf2(int val)
 	{
-		//a snapshot has just been taken :
+		int i = 1;
 		
-		//TODO
-		//find corresponding dot and remove it.
-
-		//put a new textureSurface with the snapshot in it.
-		putSnapshot(pictureData, snapshot);
+		while(i<val)
+		{
+			i=i<<1;
+		}
 		
+		return i;
 	}
+	
+	
 
 	
 	 

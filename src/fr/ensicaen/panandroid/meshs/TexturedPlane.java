@@ -58,6 +58,12 @@ public class TexturedPlane extends Mesh
 	/** dummy texture to load when bitmap not yet loaded **/
 	private static final Bitmap mDummyBitmapTexture = Bitmap.createBitmap(new int[]{Color.CYAN}, 1, 1, Config.RGB_565);
 
+	/** if persistent texture should be loaded incrementally through mipmap to avoid system jam **/
+	private static final boolean USE_MIPMAP_LOADING = true;
+
+	/** delay between mipmap loadings **/
+	private static final int MIPMAP_LOADING_DELAY = 1500;		//[ms]
+	
 	/* *********
 	 * ATTRIBUTES
 	 * ********/
@@ -97,7 +103,7 @@ public class TexturedPlane extends Mesh
 	/** if there is a new Bitmap texture to load **/
 	private boolean mTextureToLoad = false;
 
-	private String mPersistentTexturePath;
+	private String mPersistentTexturePath = null;
 
 
     
@@ -158,7 +164,7 @@ public class TexturedPlane extends Mesh
 		mTexCoordBuffer.put(mTexCoordData);
 		mTexCoordBuffer.position(0);
 	
-		this.setTexture(Bitmap.createBitmap(new int[]{Color.CYAN}, 1, 1, Config.RGB_565));
+		this.setTexture(mDummyBitmapTexture);
 		mModelMatrix = new float[16];
 		Matrix.setIdentityM(mModelMatrix, 0);
 	}
@@ -195,26 +201,26 @@ public class TexturedPlane extends Mesh
 	public void setTexture(final String imgPath, final int sampleRate)
 	{	
 		mPersistentTexturePath = imgPath;
-		
-		this.loadBitmapTexture(imgPath, sampleRate);
-		 
+		mSampleRate = sampleRate;
+		mTextureToLoad = true;
 		
 	}
 	
-	private void loadBitmapTexture(final String imgPath, final int sampleRate)
+	public void setSampleRate(int sampleRate)
 	{
-		this.setTexture(mDummyBitmapTexture );
-
-		new Thread(new Runnable(){
-			public void run(){
-				mBitmapTexture = BitmapDecoder.safeDecodeBitmap(imgPath, sampleRate);
-				mSampleRate = BitmapDecoder.getSampleRate();
-				Assert.assertTrue(mBitmapTexture!=null);
-				mTextureToLoad = true; 
-			}
-		}).start();
+		mSampleRate = sampleRate;
 	}
-	
+	/**
+	 * 
+	 * @param bmp
+	 */
+	public void setTexture(Bitmap bmp)
+	{
+		mBitmapTexture = bmp;
+		mTextureToLoad = true;  
+
+	}
+
 	/**
 	 * Give the plane a new texture.
 	 * @param textureId - openGL texture id from glGenTexture.
@@ -222,10 +228,64 @@ public class TexturedPlane extends Mesh
 	public void setTexture(int textureId) 
 	{
 		mImameTextureId = textureId;
-		mTextureToLoad = true;
 	}
+	
+	
+	/**
+	 * Set the axis around wich one the mesh rotate first.
+	 * @param axis
+	 */
+	public void setAxis(Axis axis)
+	{
+		mAxis = axis;
+	}
+	
+	/**
+	 * Set the alpha component (transparency) of the texture.
+	 * Only works with bitmap textures
+	 */
+	public void setAlpha(float alpha)
+	{
+		mAlpha = alpha;
+	}
+	
+	
 
-  
+
+
+	
+
+	public void rotate(float rx, float ry, float rz)
+	{
+		switch(mAxis)
+		{
+		//rotate yaw first
+		case VERTICAL :
+			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
+			break;
+		default:
+			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
+			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+			
+		}
+		Matrix.rotateM(mModelMatrix, 0, rz, 0, 0, 1);
+		
+	}
+	
+	public void translate(float tx,float ty,float tz)
+	{
+        Matrix.translateM(mModelMatrix, 0, -tx, -ty, -tz);
+		
+	}
+	
+	
+
+	/* *******
+	 * OVERRIDES
+	 * ******/
+	
+
 	@Override
 	public void draw(GL10 gl, float[] modelViewMatrix)
 	{
@@ -290,6 +350,27 @@ public class TexturedPlane extends Mesh
 	@Override
 	public void loadGLTexture(GL10 gl) 
 	{
+		//texture already loaded => nothing to do
+		if(!mTextureToLoad)
+			return;
+		
+		// if mBitmapTexture, will try to load persistent texture.
+		if(mBitmapTexture == null || mBitmapTexture == mDummyBitmapTexture )
+		{
+			if(this.mPersistentTexturePath != null)
+			{
+				//load texture from file on storage
+				this.loadBitmapTexture(mPersistentTexturePath, mSampleRate);
+			}
+			else
+			{
+				if(mBitmapTexture == null)
+					Log.e(TAG, "loadGLtexture with bitmap texture = null");
+				
+				this.setTexture(mDummyBitmapTexture);
+			}
+		}
+		
 		// Load the snapshot bitmap as a texture to bind to our gl program
 		int texture[] = new int[1];
 		
@@ -309,7 +390,11 @@ public class TexturedPlane extends Mesh
 			Log.e(TAG, "Unable to attribute texture to quad");
 		}
 		// Tidy up.
-	    //mBitmapTexture.recycle();
+		if(mBitmapTexture!=TexturedPlane.mDummyBitmapTexture)
+		{
+			mBitmapTexture.recycle();
+			mBitmapTexture = mDummyBitmapTexture;
+		}
 		
 		mImameTextureId = texture[0];
 		mTextureToLoad = false;
@@ -319,64 +404,95 @@ public class TexturedPlane extends Mesh
 	@Override
 	public void unloadGLTexture(GL10 gl)
 	{
-		int texture[] = new int[1];
-		texture[0] = mImameTextureId;
-		GLES10.glDeleteTextures(1, texture, 0);
-		mTextureToLoad = true;
-	
-	}
+		new Thread(new Runnable(){
 
-	public void rotate(float rx, float ry, float rz)
-	{
-		switch(mAxis)
-		{
-		//rotate yaw first
-		case VERTICAL :
-			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
-			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
-			break;
-		default:
-			Matrix.rotateM(mModelMatrix, 0, rx, 1, 0, 0);
-			Matrix.rotateM(mModelMatrix, 0, ry, 0, 1, 0);
+			@Override
+			public void run() 
+			{
+				int texture[] = new int[1];
+				texture[0] = mImameTextureId;
+				GLES10.glDeleteTextures(1, texture, 0);
+				
+				//if texture jpg has been given, will tryy to load it next time
+				if(mPersistentTexturePath!=null)
+					mTextureToLoad = true;
+				
+			}
 			
-		}
-		Matrix.rotateM(mModelMatrix, 0, rz, 0, 0, 1);
+		}).start();
+		
+	
+	}
+	
+	/* *******
+	 * PRIVATE FUNCTIONS
+	 * ******/
+	
+	/**
+	 * Set the given image as current texture, with given sample rate.
+	 * @param imgPath
+	 * @param sampleRate
+	 */
+	private void loadBitmapTexture(final String imgPath, final int sampleRate)
+	{
+		
+		new Thread(new Runnable(){
+
+			public void run()
+			{
+				int iSample = 32, iSampled;
+				Bitmap oldTex;
+				if(!USE_MIPMAP_LOADING)
+					iSample = sampleRate;
+				
+				while(iSample >= sampleRate && mIsVisible)
+				{
+					Assert.assertTrue(iSample>=1);
+					
+					oldTex = mBitmapTexture;
+					mBitmapTexture = BitmapDecoder.safeDecodeBitmap(imgPath, iSample);
+					iSampled = BitmapDecoder.getSampleRate();
+					mTextureToLoad = true; 
+					
+					if(oldTex!=mDummyBitmapTexture)
+						oldTex.recycle();
+					
+					if(iSample != iSampled)
+					{
+						try 
+						{
+							Thread.sleep(3*MIPMAP_LOADING_DELAY);
+						} 
+						catch (InterruptedException e) 
+						{
+							e.printStackTrace();
+						}
+						mBitmapTexture = BitmapDecoder.safeDecodeBitmap(imgPath, iSample);
+						if(iSample != iSampled)
+						{
+							return;
+						}
+					}
+					
+					try 
+					{
+						Thread.sleep(MIPMAP_LOADING_DELAY);
+					} 
+					catch (InterruptedException e) 
+					{
+						e.printStackTrace();
+					}
+				
+					iSample/=2;
+					
+				}
+				
+				
+			}
+		}).start();
 		
 	}
 	
-	public void translate(float tx,float ty,float tz)
-	{
-        Matrix.translateM(mModelMatrix, 0, -tx, -ty, -tz);
-		
-	}
 	
-	/**
-	 * Set the axis around wich one the mesh rotate first.
-	 * @param axis
-	 */
-	public void setAxis(Axis axis)
-	{
-		mAxis = axis;
-	}
-	
-	/**
-	 * Set the alpha component (transparency) of the texture.
-	 * Only works with bitmap textures
-	 */
-	public void setAlpha(float alpha)
-	{
-		mAlpha = alpha;
-	}
-	
-	
-
-	public void setTexture(Bitmap bmp)
-	{
-		mBitmapTexture = bmp;
-		mTextureToLoad = true;  
-
-	}
-
-
     
 }
