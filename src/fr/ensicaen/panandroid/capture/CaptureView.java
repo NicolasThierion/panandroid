@@ -15,8 +15,8 @@ import android.util.Log;
 
 
 /**
- * SphereView that use custom CaptureSphereRenderer instead of simple SphereRenderer. The renderer is automatically set.
- * This sphereView disable inertia scroll, and touch events, it puts a SurfaceTexture holding camera preview,
+ * Inside3dView that use custom CaptureSphereRenderer instead of simple SphereRenderer. The renderer is automatically set.
+ * This Inside3dView disable inertia scroll, and touch events, it puts a SurfaceTexture holding camera preview,
  * and put snapshots all around the sphere.
  * @author Nicolas
  *
@@ -31,7 +31,7 @@ public class CaptureView extends Inside3dView
 	/* ******
 	 * DEBUG PARAMETERS
 	 * ******/
-	private static final boolean USE_PITCH_DISTANCE = false;
+	private static final boolean ALTERNATIVE_MARKERS_PLACEMENT = false;
 	
 	
 	/* *********
@@ -140,7 +140,7 @@ public class CaptureView extends Inside3dView
 		this.updateTargets();
         super.setRenderer(mRenderer);
         
-        if(USE_PITCH_DISTANCE)
+        if(ALTERNATIVE_MARKERS_PLACEMENT)
         {
             setPitchDistance(30.0f);
 
@@ -246,6 +246,7 @@ public class CaptureView extends Inside3dView
 	{
 		super.onPause();
 		mCameraManager.onPause();
+		mSensorManager.onResume();
 	}
 	
 	@Override

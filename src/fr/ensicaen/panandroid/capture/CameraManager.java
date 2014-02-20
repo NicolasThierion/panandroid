@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
-import java.util.List;
 
 import junit.framework.Assert;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
@@ -19,7 +18,6 @@ import android.hardware.Camera.Size;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.media.AudioManager;
 import android.util.Log;
 
 
@@ -63,7 +61,7 @@ public class CameraManager
 	
 	//tricky workaround to ensure that camera opening has finished before using it
 	public static final int CAMERA_INIT_DELAY = 1000;
-	boolean mCameraIsBusy = true;
+	private boolean mCameraIsBusy = true;
 	
 	/* *************
 	 * ATTRIBUTES
@@ -72,11 +70,11 @@ public class CameraManager
 	/** Unique instance of CameraManager **/
 	private static CameraManager mInstance = null;
 	
+	//TODO : remove?
 	/** context f the application **/
 	//private Context mContext;
-	
 	/** sound manager used to mute shutter sound **/
-	private AudioManager mSoundManager;
+	//private AudioManager mSoundManager;
 	
 	/* ***
 	 * camera
@@ -145,6 +143,9 @@ public class CameraManager
 	
 	/** current picture file id **/
 	private int mFileId = 0;
+
+	/** jpeg orientation **/
+	private int mOrientation;
 	
 	
 	
@@ -173,7 +174,9 @@ public class CameraManager
 				if(mInstance==null)
 				{
 					mInstance = new CameraManager();
-					mInstance.mSoundManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+					
+					//TODO : remove?
+					//mInstance.mSoundManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
 
 				}
 			}
@@ -207,19 +210,17 @@ public class CameraManager
 			Log.e(TAG, "opening camera "+camId+" failed");
 			return false;
 		}
-				
+		
 		mCameraId = camId;
 		mCamera = Camera.open(camId);
 
-		
-		
 		mCameraParameters = mCamera.getParameters();
 		
 		setPreviewFormat(DEFAULT_PREVIEW_FORMAT);
 
 		Log.i(TAG, "opening camera "+camId);
 		
-		
+		//TODO : fix by another way.
 		new Thread(new Runnable(){
 			public void run()
 			{
@@ -236,7 +237,6 @@ public class CameraManager
 	public synchronized boolean isOpen()
 	{
 		return mCamera!=null;
-	
 	}
 	
 	/**
@@ -246,7 +246,6 @@ public class CameraManager
 	public synchronized boolean reOpen()
 	{
 		boolean res;
-		//synchronized(mCamera)
 		{
 			if(isOpen())
 				close();
@@ -278,11 +277,20 @@ public class CameraManager
 	 /* **************
 	  * ACCESSORS
 	  * *************/
+	
+	/**
+	 * saves raw image on SD.
+	 * @param enabled
+	 */
 	public void setRawEnabled(boolean enabled)
 	{
 		mRawCallbackEnabled = enabled;
 	}
 	
+	/**
+	 * saves jpeg image on SD.
+	 * @param enabled
+	 */
 	public void setJpegEnabled(boolean enabled)
 	{
 		mJpegCallbackEnabled = enabled;
@@ -406,12 +414,21 @@ public class CameraManager
 		}
 	}
 
-	public void setOrientation()
+	//TODO : implement or remove
+	/**
+	 * set the camera orientation in degrees
+	 * @param orientation
+	 */
+	/*
+	public void setOrientation(int orientation)
 	{
-		mCamera.setDisplayOrientation(90);
+		mOrientation = orientation;
 
 	}
+	*/
 	
+	
+	 
 	/**
 	 * Capture is sensorial when a sensorFusionManager has been set.
 	 * @return
@@ -487,6 +504,7 @@ public class CameraManager
 	{
 		mCameraIsBusy = false;
 		mCamera.release();
+		mSensorFusionManager.onPauseOrStop();
 	}
 	
 	public void onClose()
@@ -557,15 +575,24 @@ public class CameraManager
 		//disable shutter sound
 		//mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
 		
-		mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
+		//take a picture in separated thread
 		
-		//Reset camera preview : on some devices, camera preview sometimes stops.
-		try
-		{
-			mCamera.startPreview();
-		}
-		catch(Exception e)
-		{}
+		new Thread(new Runnable(){
+
+			@Override
+			public void run() {
+				mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
+				
+				//Reset camera preview : on some devices, camera preview sometimes stops.
+				try
+				{
+					mCamera.startPreview();
+				}
+				catch(Exception e)
+				{}
+			}
+		}).start();
+		
 			
 		
 		
@@ -735,15 +762,18 @@ public class CameraManager
 					try 
 					{
 		        		Log.i(TAG, "Saving file at "+jpegFile);
-	
-				        FileOutputStream fos = new FileOutputStream(jpegFile);
-				        fos.write(data);
-				        fos.close();
-				        mTempSnapshot.setFileName(jpegFile);
-				        takenSnapshot = mTempSnapshot;
-				        mTempSnapshot = null;
-				        mTempFilename = null;
-	
+		        		
+		        		//write image file
+						FileOutputStream fos = new FileOutputStream(jpegFile);
+						fos.write(data);
+						fos.close();						
+						  
+						    
+						mTempSnapshot.setFileName(jpegFile);
+						takenSnapshot = mTempSnapshot;
+						mTempSnapshot = null;
+						mTempFilename = null;
+
 				    } 
 					catch (FileNotFoundException e) 
 					{
@@ -761,9 +791,13 @@ public class CameraManager
 				}
 			}
 			
-			//for unknown reason, taking picture sometimes stops preview. Ensure that preview will keep started.
-			//reOpen();
-			mCamera.startPreview();
+			//Reset camera preview : on some devices, camera preview sometimes stops.
+			try
+			{
+				mCamera.startPreview();
+			}
+			catch(Exception e)
+			{}
 			
 			//tell camera is ready now
 			mCameraIsBusy = false;
@@ -801,11 +835,13 @@ public class CameraManager
 			if(!isOpen() || mCameraIsBusy)
 				return;
 			
+			
 			Assert.assertTrue(isAutoShootEnabled());
 			Assert.assertTrue(mCamera!=null);
 			
 			float oPitch = mSensorFusionManager.getPitch();
 			float oYaw = mSensorFusionManager.getYaw();
+			
 			
 			float sPitch , sYaw, dPitch, dYaw, distance;
 			

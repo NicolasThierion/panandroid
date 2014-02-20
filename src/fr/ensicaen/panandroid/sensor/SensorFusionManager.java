@@ -95,7 +95,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	float[] mRotationMatrix = new float[16];
 	
 	/**current pitch and yaw **/
-	float mPitch, mYaw;
+	float mPitch=-1500.0f;
+	float mYaw=-1500.0f;
 	
 	/** reference pitch and yaw **/
 	float oPitch = 0.0f, oYaw = 0.0f;
@@ -166,6 +167,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    }
 	    */	
 		
+		
 		if(mIsGyroscopeSupported)
 		{
 	    	this.updateRotationMatrix(event);
@@ -174,6 +176,12 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		{
 			Assert.assertTrue(mSimulatedRotationVector!=null);
 			mSimulatedRotationVector.updateRotationMatrix(event);
+		}
+		
+		if(mPitch<-361 || mYaw<-361)
+		{	
+			Log.e(TAG, "sensorFusion not correctly started");
+			return;
 		}
 		
 		if(mHasToResetPitch)
@@ -490,8 +498,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			mListener= listener;
 			
 			mHasFirstAccelerometerPitch = mHasFirstMagneticHeading = false;
-			mFirstAccelerometerPitch = mLastAccelerometerPitch = mAccelerometerPitch = 0.0f;
-			mFirstMagneticHeading = mLastMagneticHeading = mMagneticHeading = 0.0f;			
+			mFirstAccelerometerPitch = mLastAccelerometerPitch = mAccelerometerPitch = -1500.0f;
+			mFirstMagneticHeading = mLastMagneticHeading = mMagneticHeading = -1500.0f;			
 			
 		}
 		

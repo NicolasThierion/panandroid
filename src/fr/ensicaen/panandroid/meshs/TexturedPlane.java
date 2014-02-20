@@ -144,10 +144,16 @@ public class TexturedPlane extends Mesh
 		mVertices = Arrays.copyOf(VERTEX_ARRAY_PATTERN, VERTEX_ARRAY_PATTERN.length);
 		
 		//creates vertice data array from given size and ratio
+		float ratioX=1, ratioY=1;
+		if(ratio>1)
+			ratioX = ratio;
+		else
+			ratioY=ratio;
+		
 		for(int i=0; i< mVertices.length; i+=3)
 		{
-			mVertices[i]*=sizeX;
-			mVertices[i+1]*=sizeX*ratio;
+			mVertices[i]*=sizeX*ratioX;
+			mVertices[i+1]*=sizeX*ratioY;
 		}
 		
 		// Initialize plane vertices into a vertex buffer 

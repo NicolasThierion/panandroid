@@ -82,9 +82,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	protected Inside3dView(Context context, Mesh mesh, InsideRenderer renderer)
 	{
 		super(context);
-		
-		//mMesh = mesh;
-	
+			
 		//if renderer is set, assign the view to it.
 		if(renderer != null)
 		{        
@@ -127,40 +125,41 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		}
 		
 		
-		switch (event.getAction()) {
-    	case MotionEvent.ACTION_DOWN :
-    		stopInertialRotation();
-    		
-    		mMotionEvents = new Stack<EventInfo>();
-    		mMotionEvents.push(new EventInfo(event.getX(), event.getY(), event.getEventTime()));
-   
-    		return true;
-    	case MotionEvent.ACTION_MOVE :
-    		Assert.assertTrue(mMotionEvents != null);
-    		
-    		if (mMotionEvents.size() > 0) {
-    			EventInfo lastEvent = mMotionEvents.lastElement(); 
-        		
-        		float distX = event.getX()-lastEvent.x;
-        		float distY = event.getY()-lastEvent.y;
-        		
-        		rotate(distX, distY);
-    		}
-    		
-    		mMotionEvents.push(new EventInfo(event.getX(), event.getY(), event.getEventTime()));
-    		
-    		return true;
-    	case MotionEvent.ACTION_UP :
-    		Assert.assertTrue(mMotionEvents != null);
-    		
-    		mMotionEvents.push(new EventInfo(event.getX(), event.getY(), event.getEventTime()));
-
-    		startInertialRotation();
-
-    		return true;
-    	case MotionEvent.ACTION_CANCEL :
-    		mMotionEvents = null;
-    		return true;
+		switch (event.getAction()) 
+		{
+	    	case MotionEvent.ACTION_DOWN :
+	    		stopInertialRotation();
+	    		
+	    		mMotionEvents = new Stack<EventInfo>();
+	    		mMotionEvents.push(new EventInfo(event.getX(), event.getY(), event.getEventTime()));
+	   
+	    		return true;
+	    	case MotionEvent.ACTION_MOVE :
+	    		Assert.assertTrue(mMotionEvents != null);
+	    		
+	    		if (mMotionEvents.size() > 0) {
+	    			EventInfo lastEvent = mMotionEvents.lastElement(); 
+	        		
+	        		float distX = event.getX()-lastEvent.x;
+	        		float distY = event.getY()-lastEvent.y;
+	        		
+	        		rotate(distX, distY);
+	    		}
+	    		
+	    		mMotionEvents.push(new EventInfo(event.getX(), event.getY(), event.getEventTime()));
+	    		
+	    		return true;
+	    	case MotionEvent.ACTION_UP :
+	    		Assert.assertTrue(mMotionEvents != null);
+	    		
+	    		mMotionEvents.push(new EventInfo(event.getX(), event.getY(), event.getEventTime()));
+	
+	    		startInertialRotation();
+	
+	    		return true;
+	    	case MotionEvent.ACTION_CANCEL :
+	    		mMotionEvents = null;
+	    		return true;
     	}
    
     	return false;

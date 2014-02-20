@@ -32,8 +32,6 @@ import fr.ensicaen.panandroid.tools.BitmapDecoder;
  * By default, the renderer starts the cameraManager, and route the preview to a TexturedPlane.
  * @author Nicolas
  * 
- * @bug : cannot take snapshots near -180° yaw
- * @bug : snapshot3D are square
  * TODO : add roll
  */
 public class CaptureRenderer extends InsideRenderer implements SnapshotEventListener
@@ -44,7 +42,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ******/
     public final static String TAG = CaptureRenderer.class.getSimpleName();
 
-    public static final boolean USE_UNLOAD_TEXTURE = true;
+    public static final int MEMORY_CLEANUP_THRESHOLD = 10 ;//[mB]
     
     
     /* ********
@@ -52,8 +50,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ********/
     
     /** memory usage parameter **/
-    private static final float AUTO_UNLOADTEXTURE_ANGLE = 150.0f;
-    private static final float AUTO_LOADTEXTURE_ANGLE = 90.0f;
+    private static final float AUTO_UNLOADTEXTURE_ANGLE = 150.0f;		//[deg]
+    private static final float AUTO_LOADTEXTURE_ANGLE = 90.0f;			//[deg]
     
     
     
@@ -75,15 +73,23 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private static final float MARKERS_SIZE = 0.05f;
 	private static final float MARKERS_DISTANCE = 3.0f;
 	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 15.0f; 		//[ around 1]
-		
-	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
 	
+	private static final float CAMERA_RATIO = 3.0f/4.0f;
+	
+	
+	//TODO : to remove?
+	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
+	/*
 	private static final float CAMERA_RATIO34 = 3.0f/4.0f;	//portait
 	private static final float CAMERA_RATIO43 = 4.0f/3.0f;	//landscape
+	*/
+	
 	
 	/** default textures **/
 	private static final int MARKER_RESSOURCE_ID = R.drawable.ic_picsphere_marker;
 	private static final int VIEWFINDER_RESSOURCE_ID = R.drawable.ic_picsphere_viewfinder;
+	
+	/** if camera preview should same ratio as screen ratio **/
 	private static final boolean USE_SCREEN_RATIO = false;
 	
 	/* ********
@@ -112,7 +118,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private float mSnapshotsSize = SNAPSHOTS_SIZE;
 	private float mMarkersSize = MARKERS_SIZE;
 	private float mViewFinderSize = VIEWFINDER_SIZE;
-	
+    public boolean mHasToFreeMemory = false;
+
 	
 
 	/* ***
@@ -130,9 +137,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** 3d plane holding this texture **/
 	private TexturedPlane mCameraSurface;
 	
-	//TODO : implement
+	//TODO : remove?
 	/** current ratio of TexturedPlanes, determined by screen orientation **/
-	private float mCameraRatio;
+	//private float mCameraRatio;
+	
+	//TODO : implement
 	private float mCameraRoll;
 	
 	
@@ -183,7 +192,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mCameraManager = cameraManager;
 		mCameraManager.addSnapshotEventListener(this);
 		mContext = context;
-		mCameraRatio = 0;
 		
 		//if auto samplig enabled
 		if(this.mSampleRate == 0)
@@ -193,7 +201,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		}
 		
 		
-		System.out.println("s : "+mSampleRate);
 	    Matrix.setIdentityM(mViewMatrix, 0);
 	
 		//create dots and snapshot lists
@@ -316,8 +323,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	public void onSurfaceChanged(GL10 gl, int width, int height)
 	{
 		super.onSurfaceChanged(gl, width, height);
-		
-		
+		//TODO : remove?
+		/*
 		if(USE_SCREEN_RATIO)
 		{
 			if(width>height)
@@ -328,15 +335,18 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		}
 		else
 		{
+			
 			//ratio of the camera, not the screen		
 			if(width>height)
 				mCameraRatio=CAMERA_RATIO43;
 			else
 				mCameraRatio=CAMERA_RATIO34;
-			mCameraRatio=CAMERA_RATIO34;
+			;
 
+			mCameraRatio=CAMERA_RATIO34;
 		}
-		Log.i(TAG, "surface changed : width="+width+", height="+height+"(ratio:"+mCameraRatio+")");
+		
+		Log.i(TAG, "surface changed : width="+width+", height="+height+"(ratio:"+mCameraRatio+")");*/
 		try
 		{
 			reinitCameraSurface();
@@ -345,10 +355,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		{
 			e.printStackTrace();
 		}
-		
-		//reset camera to avoid random "error 100 : server died"
-		//mCamManager.reOpen();
-		//fixed by added configChanged to manifest to avoid camera reopen on screen changed.
+
 	}
 	
 	@Override
@@ -368,13 +375,22 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		
 		//draw the viewFinder
 		mViewFinder.draw(gl, mViewMatrix);
-
+		
+		//launch memory cleanup??
+		Runtime info = Runtime.getRuntime();
+		long freeMem = info.freeMemory()/1048576L;
+        if( freeMem<MEMORY_CLEANUP_THRESHOLD)
+        	mHasToFreeMemory = true;
+        else
+        	mHasToFreeMemory= false;
+		
+		
 		//the snapshots that are in FOV
 		mSnapshotsLock.lock();
 		for (Snapshot3D snap : mSnapshots)
 		{
 
-			if(USE_UNLOAD_TEXTURE && this.getSnapshotDistance(snap)>AUTO_UNLOADTEXTURE_ANGLE)
+			if(mHasToFreeMemory && this.getSnapshotDistance(snap)>AUTO_UNLOADTEXTURE_ANGLE)
 			{
 				snap.setVisible(false);
 				snap.unloadGLTexture(gl);
@@ -476,6 +492,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mViewFinder.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
 		mViewFinder.translate(0, 0, VIEWFINDER_DISTANCE);
 		mViewFinder.setAlpha(VIEWFINDER_ATTENUATION_ALPHA);
+		
 
 	}
 	
@@ -501,10 +518,9 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		};
 		
 		mCameraRoll%=360;
-
 		
 		//create a new TexturedPlane, that holds the camera texture.
-		mCameraSurface = new TexturedPlane(mCameraSize , mCameraRatio );
+		mCameraSurface = new TexturedPlane(mCameraSize , CAMERA_RATIO );
 		mCameraSurface.setTexture(mCameraTextureId);
 		
 		//for unknown reason, the preview is not in correct orientation
@@ -527,14 +543,12 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	private Snapshot3D putSnapshot(byte[] pictureData, Snapshot snapshot)
 	{
-		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, mCameraRatio, snapshot);
+		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, CAMERA_RATIO, snapshot);
 		snap.setSampleRate(mSampleRate);
 		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSampleRate));
-		
-		//TODO?
-		//mSamplingRate = BitmapDecoder.getSampleRate();
-		//snap.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
 
+        
+		
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
 		snap.rotate(0, 0, mCameraRoll);
 		snap.setVisible(true);
@@ -570,6 +584,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
         return d;
 				
 	}
+	
 	
 	private int ceilPowOf2(int val)
 	{
