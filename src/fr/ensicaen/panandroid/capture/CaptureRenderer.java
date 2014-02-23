@@ -89,8 +89,9 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private static final int MARKER_RESSOURCE_ID = R.drawable.ic_picsphere_marker;
 	private static final int VIEWFINDER_RESSOURCE_ID = R.drawable.ic_picsphere_viewfinder;
 	
+	//TODO : remove ??
 	/** if camera preview should same ratio as screen ratio **/
-	private static final boolean USE_SCREEN_RATIO = false;
+	//private static final boolean USE_SCREEN_RATIO = false;
 	
 	/* ********
 	 * ATTRIBUTES
@@ -293,7 +294,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		for(EulerAngles a : marks)
 		{	
 			putMarker(a.getPitch(), a.getYaw());
-	
 		}
 	}
 	
@@ -413,8 +413,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		if(mUseMarkers)
 		{
 			for (Snapshot3D dot : mDots)
-			{
-				
+			{		
 				// Set alpha based on camera distance to the point
 				d = getSnapshotDistance(dot)*mMarkersAttenuationFactor/360.0f;
 				d = (d>1.0f?1.0f:d);
@@ -422,7 +421,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 				dot.draw(gl, super.getRotationMatrix());
 			}
 		}
-	
 	}
 
 	@Override
