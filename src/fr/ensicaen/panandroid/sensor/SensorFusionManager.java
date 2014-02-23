@@ -65,7 +65,16 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	/** interval to listen to sensors, in 'us' */
 	private static final int SENSOR_LISTENING_RATE = 20000;
 
-	private static final float THRESHOLD = .05f;
+	private static final float THRESHOLD_ACCELERATION = .05f;
+	private static final float THRESHOLD_ROTATION = .05f;
+	
+	/** magic numbers to compute phone stability **/
+	private static final float ALPHA_ACCELERATION = 0.7f;	//sum weight	[apla + beta <lambda]
+	private static final float ALPHA_ROTATION = 1.0f;		
+	
+	private static final float BETA_ACCELERATION = 0.7f;	//sample weight
+	private static final float BETA_ROTATION = 1.0f;		
+	private static final float LAMBDA = 1.1f;		//>1
 	
 	/* *********
 	 * ATTRIBUTES
@@ -103,14 +112,14 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	
 	private boolean mIsStarted;
 	
-	/** current acceleration values **/
+	/** current and computed acceleration values **/
 	private float mCurrAccelerometerValues[] = new float[3];
-	
-	/** acceleration values the last time**/
-	private float mLastAccelerometerValues[] = new float[3];
-	
-	/** real acceleration values**/
 	private float mAccelerationValues[] = new float[3];
+	
+	
+	/** current and computed rotation values **/
+	private float[] mRotationValues = new float[3];
+	private float[] mCurrRotationValues = new float[3];
 
 	
 	/* *********
@@ -131,6 +140,9 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    		if(mInstance == null)
 	    		{
 	    			mInstance = new SensorFusionManager(context);
+	    			
+	    			//TODO : remove
+	    			mInstance.debugMonitor();
 	    		}
 		
 			}
@@ -201,7 +213,10 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		}	
 		
 		if(event.sensor.getType()==Sensor.TYPE_ACCELEROMETER)
-			this.computeAcceleration(event);
+			computeAcceleration(event);
+		
+		//if(event.sensor.getType()==Sensor.TYPE_GYROSCOPE)
+		computeRotation(event);
 		
 		
 		//throw the event to all listeners
@@ -257,6 +272,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		
 		boolean res =  this.registerListener(mIsGyroscopeSupported);
 		this.setReferenceYaw();
+
 		
 		return res;
 	}
@@ -327,6 +343,11 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		return this.mYaw;
 	}
 	
+	public float getRoll() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
 	public float[] getFusedOrientation()
 	{
 	    return mOrientation;
@@ -337,15 +358,40 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	}
 	
 	
+	public boolean isStable()
+	{
+		return this.isStable(THRESHOLD_ACCELERATION, THRESHOLD_ROTATION);
+		
+	}
 	public boolean isStable(float threshold)
+	{
+		return this.isStable(threshold, threshold);
+	}
+	
+	public boolean isStable(float accelerationThreshold, float rotationThreshold)
+	{
+		return (isAccelerometerStable(accelerationThreshold) && isGyroStable(rotationThreshold));
+	}
+	
+	private boolean isAccelerometerStable(float threshold)
 	{
 		float x = mAccelerationValues[0];
 		float y = mAccelerationValues[1];
 		float z = mAccelerationValues[2];
 		
 		return ( x+y+z < 3*threshold);
-			
-	};
+	}
+	
+	private boolean isGyroStable(float threshold)
+	{
+		float pitch = mRotationValues[0];
+		float yaw = mRotationValues[1];
+		float roll = mRotationValues[2];
+
+		
+		return (pitch + yaw + roll < 3*threshold );
+		
+	}
 	
 	public boolean isStarted()
 	{
@@ -659,24 +705,63 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		}
 	}
 	
+	/**
+	 * computes
+	 */
+	private void computeRotation(SensorEvent event)
+	{
+		float p, y, r, P, Y, R, lp, ly, lr;
+		float alpha = ALPHA_ROTATION;
+		float beta = BETA_ROTATION;
+		float lambda = LAMBDA;
+		//move the current values of rotation into last values
+		lp = mCurrRotationValues[0];
+		ly = mCurrRotationValues[1];
+		lr = mCurrRotationValues[2];
+		
+		// get the actual values of angles
+		p = getPitch();
+		y = getYaw();
+		r = getRoll();
+		
+		//update the current values
+		mCurrRotationValues[0] = p;
+		mCurrRotationValues[1] = y;
+		mCurrRotationValues[2] = r;
+		
+		
+		P = mRotationValues[0];
+		Y = mRotationValues[1];
+		R = mRotationValues[2];
+		
+		//compute smooth angles values
+		P = (alpha*P + (beta)*Math.abs(p-lp))/lambda;
+		Y = (alpha*Y + (beta)*Math.abs(y-ly))/lambda;
+		R = (alpha*R + (beta)*Math.abs(r-lr))/lambda;
+		
+		mRotationValues[0] = P;
+		mRotationValues[1] = Y;
+		mRotationValues[2] = R;
+		
+		
+	}
+	
+
 
 	private void computeAcceleration(SensorEvent event)
 	{
 		Assert.assertTrue(event.sensor.getType()==Sensor.TYPE_ACCELEROMETER);
 		
-		float x, y, z, X, Y, Z, lx, ly, lz, alpha=0.2f;
-		
-		
+		float x, y, z, X, Y, Z, lx, ly, lz, alpha=ALPHA_ACCELERATION, beta=BETA_ACCELERATION;
+		float lambda = LAMBDA;
+
 		
 		//move current values into last values
+		//
 		lx = mCurrAccelerometerValues[0];
 		ly = mCurrAccelerometerValues[1];
 		lz = mCurrAccelerometerValues[2];
-		
-		mLastAccelerometerValues[0] = lx;
-		mLastAccelerometerValues[1] = ly;
-		mLastAccelerometerValues[2] = lz;
-
+	
 		
 		// get the actual acceleration values from event on x, y and z
 		x = event.values[0];
@@ -693,18 +778,62 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		X = mAccelerationValues[0];
 		Y = mAccelerationValues[1];
 		Z = mAccelerationValues[2];
-
 		
-		X = X*alpha + Math.abs((x-lx))*(1-alpha);
-		Y = Y*alpha + Math.abs((y-ly))*(1-alpha);
-		Z = Z*alpha + Math.abs((z-lz))*(1-alpha);
+		X = (X*alpha + Math.abs((x-lx))*beta)/lambda;
+		Y = (Y*alpha + Math.abs((y-ly))*beta)/lambda;
+		Z = (Z*alpha + Math.abs((z-lz))*beta)/lambda;
 
 		mAccelerationValues[0] = X;
 		mAccelerationValues[1] = Y;
 		mAccelerationValues[2] = Z;
 
 
-		System.out.println(isStable(THRESHOLD));
+	}
+	
+	
+	 
+	
+	private void debugMonitor()
+	{
+		System.out.println("startingh debug");
+		new Thread(new Runnable(){
+
+			
+			@Override
+			public void run() {
+				
+				while(true){
+				float x = mAccelerationValues[0];
+				float y = mAccelerationValues[1];
+				float z = mAccelerationValues[2];
+				
+				float pitch = mRotationValues[0];
+				float yaw = mRotationValues[1];
+				float roll = mRotationValues[2];
+				
+				System.out.println("=======GYRO============");
+				System.out.println("pitch="+pitch);
+				System.out.println("yaw="+yaw);
+				System.out.println("roll="+roll);
+				System.out.println("Stable : "+ isGyroStable(THRESHOLD_ROTATION));
+				
+				System.out.println("=======ACC============");
+				System.out.println("x="+x);
+				System.out.println("y="+y);
+				System.out.println("z="+z);
+				System.out.println("Stable : "+ isAccelerometerStable(THRESHOLD_ACCELERATION));
+				
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				}
+			}
+			
+			
+		}).start();
+		
 	}
 	
 
