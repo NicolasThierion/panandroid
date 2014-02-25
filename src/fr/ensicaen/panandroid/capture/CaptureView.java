@@ -140,16 +140,7 @@ public class CaptureView extends Inside3dView
 		this.updateTargets();
         super.setRenderer(mRenderer);
         
-        if(ALTERNATIVE_MARKERS_PLACEMENT)
-        {
-            setPitchDistance(30.0f);
-
-        }
-        else
-        {
-	        setPitchStep(mPitchStep);
-	        setYawStep(mYawStep);
-        }
+     
         
         //set view rotation parameters
         super.enableSensorialRotation(true);

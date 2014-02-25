@@ -1,6 +1,7 @@
 package fr.ensicaen.panandroid.capture;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES10;
 import android.opengl.GLES11Ext;
@@ -41,7 +42,9 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * DEBUG PARAMS
 	 * ******/
     public final static String TAG = CaptureRenderer.class.getSimpleName();
-
+    public static final boolean USE_MARKERS = true;
+    public static final boolean USE_CONTOUR = true;
+    
     public static final int MEMORY_CLEANUP_THRESHOLD = 10 ;//[mB]
     
     
@@ -86,8 +89,10 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	
 	/** default textures **/
-	private static final int MARKER_RESSOURCE_ID = R.drawable.ic_picsphere_marker;
-	private static final int VIEWFINDER_RESSOURCE_ID = R.drawable.ic_picsphere_viewfinder;
+	private static final int MARKER_RESSOURCE_ID = R.drawable.capture_snapshot_marker;
+	private static final int CONTOUR_RESSOURCE_ID = R.drawable.capture_snapshot_contour;
+	private static final int VIEWFINDER_RESSOURCE_ID = R.drawable.capture_viewfinder;
+	
 	
 	//TODO : remove ??
 	/** if camera preview should same ratio as screen ratio **/
@@ -106,19 +111,26 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ModelViewMatrix where the scene is drawn. 
 	 * Equals identity, as the scene don't move, and it is the parent surrounding skybox that rotates by its own modelMatrix 
 	 */
-	private final float[] mViewMatrix = new float[16];
+	private final float[] mViewMatrix;
 
 	/** Whether the captureRenderer should draw a skyBox **/
-	private boolean mUseSkybox;
+	private boolean mUseSkybox = true;
 	
 	/**... and some markers **/
-	private boolean mUseMarkers;
+	private boolean mUseMarkers = USE_MARKERS;
+	private boolean mUseContours = USE_CONTOUR;
+	private final Bitmap mMarkerBitmap;
+	private final Bitmap mContourBitmap;
+
+	
 	
 	/** sizes of camera, markers and snapshots **/
 	private float mCameraSize = CAMERA_SIZE;
 	private float mSnapshotsSize = SNAPSHOTS_SIZE;
 	private float mMarkersSize = MARKERS_SIZE;
 	private float mViewFinderSize = VIEWFINDER_SIZE;
+	
+	/** toggle to true when memory is running low **/
     public boolean mHasToFreeMemory = false;
 
 	
@@ -161,13 +173,13 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ***/
 	/** list of dots **/
 	private List<Snapshot3D> mDots;
+	private List<Snapshot3D> mContours;
 	
 	/** plane holding viewFinder at the center of the view **/
 	private TexturedPlane mViewFinder;
 	
 	/** marker attenuation factor **/
 	private float mMarkersAttenuationFactor = DEFAULT_MARKERS_ATTENUATION_FACTOR;
-
 
 	
 	/* ********
@@ -183,9 +195,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		//based on Inside3dRenderer. We are inside a skybox.
 		super(context);
-		mSkybox = skybox;	
-		mUseSkybox = true;
-		mUseMarkers = true;
+		mSkybox = skybox;		
 		super.setSurroundingMesh(mSkybox);
 		
 		
@@ -194,20 +204,24 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mCameraManager.addSnapshotEventListener(this);
 		mContext = context;
 		
+		mMarkerBitmap = BitmapDecoder.safeDecodeBitmap(mContext.getResources(), MARKER_RESSOURCE_ID);
+		mContourBitmap = BitmapDecoder.safeDecodeBitmap(mContext.getResources(), CONTOUR_RESSOURCE_ID);
+		
+		
 		//if auto samplig enabled
-		if(this.mSampleRate == 0)
+		if(mSampleRate == 0)
 		{
 			mSampleRate=(int) mCameraManager.getCameraResolution();
 			mSampleRate = ceilPowOf2(mSampleRate);
 		}
 		
-		
+		mViewMatrix = new float[16];
 	    Matrix.setIdentityM(mViewMatrix, 0);
 	
 		//create dots and snapshot lists
 		mSnapshots = new ArrayList<Snapshot3D>();
 		mDots = new LinkedList<Snapshot3D>();
-		
+		mContours = new LinkedList<Snapshot3D>();
 		
 		mSnapshotsLock = new ReentrantLock();
 	}
@@ -247,6 +261,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	public void setMarkersEnabled(boolean enabled)
 	{
 		mUseMarkers = enabled;
+	}
+	
+	public void setContourEnabled(boolean enabled)
+	{
+		mUseContours = enabled;
 	}
 	
 	public void setCameraSize(float scale)
@@ -294,7 +313,10 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		for(EulerAngles a : marks)
 		{	
 			putMarker(a.getPitch(), a.getYaw());
+			putContour(a.getPitch(), a.getYaw());
 		}
+		
+		
 	}
 	
     
@@ -421,6 +443,18 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 				dot.draw(gl, super.getRotationMatrix());
 			}
 		}
+		if(mUseContours)
+		{
+			for (Snapshot3D contour : mContours)
+			{		
+				// Set alpha based on camera distance to the point
+				d = getSnapshotDistance(contour)*mMarkersAttenuationFactor/360.0f;
+				d = (d>1.0f?1.0f:d);
+				contour.setAlpha(1.0f - d);    
+				contour.draw(gl, super.getRotationMatrix());
+			}
+		}
+		
 	}
 
 	@Override
@@ -488,6 +522,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//Setup viewfinder	
 		mViewFinder = new TexturedPlane(mViewFinderSize);
 		mViewFinder.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
+		mViewFinder.recycleTexture();
 		mViewFinder.translate(0, 0, VIEWFINDER_DISTANCE);
 		mViewFinder.setAlpha(VIEWFINDER_ATTENUATION_ALPHA);
 		
@@ -527,26 +562,56 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		
 	}
     
-    
+    /**
+     * put a dot in the dot list, at the given pitch and yaw
+     * @param pitch - pitch where to put the dot.
+     * @param yaw - yaw where to put the dot.
+     * @return the created Snapshot3D representing the dot.
+     */
 	private Snapshot3D putMarker(float pitch, float yaw)
 	{
 		Snapshot3D dot = new Snapshot3D(mMarkersSize, pitch, yaw);
-		dot.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), MARKER_RESSOURCE_ID));
+		dot.setTexture(mMarkerBitmap);
 		dot.translate(0.0f, 0.0f, MARKERS_DISTANCE);
 		
 		mDots.add(dot);
 		return dot;
     }
 	
+    /**
+     * put a contour in the contour list, at the given pitch and yaw
+     * @param pitch - pitch where to put the contour.
+     * @param yaw - yaw where to put the contour.
+     * @return the created Snapshot3D representing the contour.
+     */
+	private Snapshot3D putContour(float pitch, float yaw)
+	{
+		Snapshot3D contour43 = new Snapshot3D(CAMERA_SIZE, CAMERA_RATIO, pitch, yaw);
+		Snapshot3D contour34 = new Snapshot3D(CAMERA_SIZE, CAMERA_RATIO, pitch, yaw);
+
+		contour43.setTexture(mContourBitmap);
+		contour43.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/10.0f);
+
+		mContours.add(contour43);
+		return contour43;	
+	}
 	
+	/**
+	 * Build a Snapshot3D from the given snapshot, and put it in the 3D view at its pithc, yaw and roll.
+	 * @param pictureData - the picture byteArray to fill the snapshot3D with.
+	 * @param snapshot
+	 * @return
+	 */
 	private Snapshot3D putSnapshot(byte[] pictureData, Snapshot snapshot)
 	{
+		//build a snapshot3d from the snapshot2d
 		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, CAMERA_RATIO, snapshot);
+		//fill the snapshot with the byteArray, faster than reading its data from SD.
 		snap.setSampleRate(mSampleRate);
 		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSampleRate));
-
-        
+		snap.recycleTexture();
 		
+		//put the snapshot at its place.
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
 		snap.rotate(0, 0, mCameraRoll);
 		snap.setVisible(true);

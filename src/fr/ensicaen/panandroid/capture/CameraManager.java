@@ -577,21 +577,29 @@ public class CameraManager
 		
 		//take a picture in separated thread
 		
-		new Thread(new Runnable(){
-
-			@Override
-			public void run() {
-				mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
-				
-				//Reset camera preview : on some devices, camera preview sometimes stops.
-				try
-				{
-					mCamera.startPreview();
+		try
+		{
+			
+			new Thread(new Runnable(){
+	
+				@Override
+				public void run() {
+					mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
+					
+					//Reset camera preview : on some devices, camera preview sometimes stops.
+					try
+					{
+						mCamera.startPreview();
+					}
+					catch(Exception e)
+					{}
 				}
-				catch(Exception e)
-				{}
-			}
-		}).start();
+			}).start();
+		}
+		catch(RuntimeException e)
+		{
+			e.printStackTrace();
+		}
 		
 			
 		

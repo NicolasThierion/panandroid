@@ -102,8 +102,10 @@ public class TexturedPlane extends Mesh
 	
 	/** if there is a new Bitmap texture to load **/
 	private boolean mTextureToLoad = false;
-
+	private boolean mHasToRecycle = false;
 	private String mPersistentTexturePath = null;
+	
+	
 
 
     
@@ -285,6 +287,12 @@ public class TexturedPlane extends Mesh
 		
 	}
 	
+
+	public void recycleTexture()
+	{
+		if(mBitmapTexture!=null && mBitmapTexture!=mDummyBitmapTexture)
+			mHasToRecycle = true;
+	}
 	
 
 	/* *******
@@ -396,16 +404,19 @@ public class TexturedPlane extends Mesh
 			Log.e(TAG, "Unable to attribute texture to quad");
 		}
 		// Tidy up.
-		if(mBitmapTexture!=TexturedPlane.mDummyBitmapTexture)
+		
+		if(mHasToRecycle)
 		{
 			mBitmapTexture.recycle();
 			mBitmapTexture = mDummyBitmapTexture;
+			mHasToRecycle=false;
 		}
 		
 		mImameTextureId = texture[0];
 		mTextureToLoad = false;
 		
 	}
+	
 	
 	@Override
 	public void unloadGLTexture(GL10 gl)

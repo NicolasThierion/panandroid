@@ -110,6 +110,8 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 			super.loadGLTexture(mGl);
 		}
 	}
+
+	
 	
 }
 
