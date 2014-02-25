@@ -18,7 +18,6 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 	
 	private boolean mVisible = true;
 	
-	private GL10 mGl;
 	
 	/* ********
 	 * CONSTRUCTOR
@@ -76,7 +75,6 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 	@Override
 	public void draw(GL10 gl, float[] modelViewMatrix)
 	{
-		mGl = gl;
 		super.draw(gl, modelViewMatrix);
 	}
 	
@@ -93,6 +91,7 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 		mVisible = visible;
 	
 		//unload texture
+		/*
 		if(!mVisible)
 		{
 			new Thread(new Runnable()
@@ -108,7 +107,7 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 		{
 			super.setTexture(mSnapshot.getFileName());
 			super.loadGLTexture(mGl);
-		}
+		}*/
 	}
 
 	

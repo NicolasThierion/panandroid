@@ -45,7 +45,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     public static final boolean USE_MARKERS = true;
     public static final boolean USE_CONTOUR = true;
     
-    public static final int MEMORY_CLEANUP_THRESHOLD = 10 ;//[mB]
+    public static final int MEMORY_CLEANUP_THRESHOLD = 1000 ;//[mB]
     
     
     /* ********
@@ -79,6 +79,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	private static final float CAMERA_RATIO = 3.0f/4.0f;
 	
+	private static final int MODE_RATIO43 = 0;
+	private static final int MODE_RATIO34 = 1;
 	
 	//TODO : to remove?
 	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
@@ -174,7 +176,10 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** list of dots **/
 	private List<Snapshot3D> mDots;
 	private List<Snapshot3D> mContours;
-	
+	private List<Snapshot3D> mContours43;
+	private List<Snapshot3D> mContours34;
+	private ReentrantLock mContoursLock;
+
 	/** plane holding viewFinder at the center of the view **/
 	private TexturedPlane mViewFinder;
 	
@@ -221,9 +226,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//create dots and snapshot lists
 		mSnapshots = new ArrayList<Snapshot3D>();
 		mDots = new LinkedList<Snapshot3D>();
-		mContours = new LinkedList<Snapshot3D>();
-		
+		mContours43 = new LinkedList<Snapshot3D>();
+		mContours34 = new LinkedList<Snapshot3D>();
+		mContours = mContours43;
 		mSnapshotsLock = new ReentrantLock();
+		mContoursLock = new ReentrantLock();
 	}
     
 	/**
@@ -411,17 +418,23 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mSnapshotsLock.lock();
 		for (Snapshot3D snap : mSnapshots)
 		{
-
-			if(mHasToFreeMemory && this.getSnapshotDistance(snap)>AUTO_UNLOADTEXTURE_ANGLE)
+			float distance = this.getSnapshotDistance(snap);
+			
+			if(mHasToFreeMemory && distance>AUTO_UNLOADTEXTURE_ANGLE)
 			{
-				snap.setVisible(false);
 				snap.unloadGLTexture(gl);
 			}
 			else if(this.getSnapshotDistance(snap)<AUTO_LOADTEXTURE_ANGLE)
 			{
 				snap.loadGLTexture(gl);
+			}
+			
+			if(distance > 120.0f)
+				snap.setVisible(false);
+			else
+			{
 				snap.setVisible(true);
-				snap.draw(gl, super.getRotationMatrix());
+				snap.draw(gl, super.getRotationMatrix());				
 			}
 				
 		}
@@ -436,23 +449,46 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		{
 			for (Snapshot3D dot : mDots)
 			{		
-				// Set alpha based on camera distance to the point
-				d = getSnapshotDistance(dot)*mMarkersAttenuationFactor/360.0f;
-				d = (d>1.0f?1.0f:d);
-				dot.setAlpha(1.0f - d);    
-				dot.draw(gl, super.getRotationMatrix());
+				d = getSnapshotDistance(dot);
+				if(d>60.0f)
+				{
+					dot.setVisible(false);
+				}
+				else
+				{
+					dot.setVisible(true);
+					// Set alpha based on camera distance to the point
+					d = d *mMarkersAttenuationFactor/360.0f;
+					d = (d>1.0f?1.0f:d);
+					dot.setAlpha(1.0f - d);    
+					dot.draw(gl, super.getRotationMatrix());
+				}
+				
 			}
 		}
 		if(mUseContours)
 		{
+			mContoursLock.lock();
 			for (Snapshot3D contour : mContours)
 			{		
-				// Set alpha based on camera distance to the point
-				d = getSnapshotDistance(contour)*mMarkersAttenuationFactor/360.0f;
-				d = (d>1.0f?1.0f:d);
-				contour.setAlpha(1.0f - d);    
-				contour.draw(gl, super.getRotationMatrix());
+				d = getSnapshotDistance(contour);
+
+				if(d>60.0f)
+				{
+					contour.setVisible(false);
+				}
+				else
+				{
+					contour.setVisible(true);
+					// Set alpha based on camera distance to the point
+					d = d*mMarkersAttenuationFactor/360.0f;
+					d = (d>1.0f?1.0f:d);
+					contour.setAlpha(1.0f - d);    
+					contour.draw(gl, super.getRotationMatrix());
+				}
+				
 			}
+			mContoursLock.unlock();
 		}
 		
 	}
@@ -534,21 +570,27 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//for an unknown reason, the camera preview is not in correct direction by default. Need to rotate it
 		final int screenRotation = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
 		mCameraRoll = 270;
+		mContoursLock.lock();
 		switch (screenRotation)
 		{
 			case Surface.ROTATION_0:
 				mCameraRoll += 0.0f;
+				mContours = mContours34;
 				break;
 			case Surface.ROTATION_90:
 				mCameraRoll += 90.0f;
+				mContours = mContours43;
 				break;
 			case Surface.ROTATION_180:
 				mCameraRoll += 180.0f;
+				mContours = mContours34;
 				break;
 			default:
 				mCameraRoll += 270.0f;
+				mContours = mContours43;
 				break;
 		};
+		mContoursLock.unlock();
 		
 		mCameraRoll%=360;
 		
@@ -584,16 +626,22 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
      * @param yaw - yaw where to put the contour.
      * @return the created Snapshot3D representing the contour.
      */
-	private Snapshot3D putContour(float pitch, float yaw)
+	private void putContour(float pitch, float yaw)
 	{
 		Snapshot3D contour43 = new Snapshot3D(CAMERA_SIZE, CAMERA_RATIO, pitch, yaw);
 		Snapshot3D contour34 = new Snapshot3D(CAMERA_SIZE, CAMERA_RATIO, pitch, yaw);
-
+		contour34.rotate(0, 0, 90.0f);
+		
 		contour43.setTexture(mContourBitmap);
 		contour43.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/10.0f);
-
-		mContours.add(contour43);
-		return contour43;	
+		contour43.setVisible(false);
+		
+		contour34.setTexture(mContourBitmap);
+		contour34.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/10.0f);
+		contour34.setVisible(false);
+		
+		mContours43.add(contour43);
+		mContours34.add(contour34);
 	}
 	
 	/**

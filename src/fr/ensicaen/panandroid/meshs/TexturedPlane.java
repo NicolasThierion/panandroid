@@ -303,6 +303,9 @@ public class TexturedPlane extends Mesh
 	@Override
 	public void draw(GL10 gl, float[] modelViewMatrix)
 	{
+		if (!mIsVisible) return;
+
+		
 		//enter 2d texture mode
 		gl.glEnable(GL10.GL_TEXTURE_2D);
 		
@@ -325,7 +328,6 @@ public class TexturedPlane extends Mesh
 		gl.glEnable(GL10.GL_BLEND);
 		
 		
-		if (!mIsVisible) return;
 		
 		if (mTextureToLoad)
 		{
@@ -367,6 +369,7 @@ public class TexturedPlane extends Mesh
 		//texture already loaded => nothing to do
 		if(!mTextureToLoad)
 			return;
+
 		
 		// if mBitmapTexture, will try to load persistent texture.
 		if(mBitmapTexture == null || mBitmapTexture == mDummyBitmapTexture )
@@ -421,6 +424,7 @@ public class TexturedPlane extends Mesh
 	@Override
 	public void unloadGLTexture(GL10 gl)
 	{
+		System.out.println("unload...");
 		new Thread(new Runnable(){
 
 			@Override
@@ -430,7 +434,7 @@ public class TexturedPlane extends Mesh
 				texture[0] = mImameTextureId;
 				GLES10.glDeleteTextures(1, texture, 0);
 				
-				//if texture jpg has been given, will tryy to load it next time
+				//if texture jpg has been given, will try to load it next time
 				if(mPersistentTexturePath!=null)
 					mTextureToLoad = true;
 				
@@ -452,7 +456,7 @@ public class TexturedPlane extends Mesh
 	 */
 	private void loadBitmapTexture(final String imgPath, final int sampleRate)
 	{
-		
+		System.out.println("loading...");
 		new Thread(new Runnable(){
 
 			public void run()
@@ -487,6 +491,7 @@ public class TexturedPlane extends Mesh
 						mBitmapTexture = BitmapDecoder.safeDecodeBitmap(imgPath, iSample);
 						if(iSample != iSampled)
 						{
+							TexturedPlane.this.recycleTexture();
 							return;
 						}
 					}
@@ -504,7 +509,8 @@ public class TexturedPlane extends Mesh
 					
 				}
 				
-				
+				TexturedPlane.this.recycleTexture();
+
 			}
 		}).start();
 		
