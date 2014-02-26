@@ -1,5 +1,7 @@
 package fr.ensicaen.panandroid.insideview;
 
+import java.util.Arrays;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -13,6 +15,7 @@ import fr.ensicaen.panandroid.meshs.NullMesh;
 import android.content.Context;
 import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.GLU;
+import android.opengl.Matrix;
 
 
 /**
@@ -28,6 +31,12 @@ public class InsideRenderer implements Renderer, EulerAngles
 	/* *************
 	 * GLOBAL RENDERING PARAMS
 	 * *************/
+	
+	private static final float[] IDENTITY = {1, 0, 0, 0,
+										   0, 1, 0, 0,
+										   0, 0, 1, 0, 
+										   0, 0, 0, 1};
+	
 	
 	/** Clear colour */
 	private static final float CLEAR_RED = 0.0f;
@@ -57,6 +66,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 	/** The rotation angle of the mesh */
 	private float mYaw; 	/* Rotation around y axis */
 	private float mPitch; 	/* Rotation around x axis */
+	private float mRoll; 	/* Rotation around z axis */
 
 	/** Rotation matrix = modelview matrix **/
 	private float[] mRotationMatrix = new float[16]; 		// While accessing this matrix, the renderer object has to be locked.
@@ -86,14 +96,18 @@ public class InsideRenderer implements Renderer, EulerAngles
 	*/
 	public InsideRenderer(final Context context, Mesh mesh) 
 	{
-		mYaw = mPitch = 0.0f;
+		mYaw = mPitch = mRoll = 0.0f;
 		mMesh = mesh;
 	  	setRotation(mYaw, mPitch);
 	  	fovDeg = DEFAULT_FOV;	
+	  	
+	  	
+	  	mRotationMatrix = Arrays.copyOf(IDENTITY, 16);
+	  	
 	}
 
 	/**
-	 * Constructor with no mesh. Must explicitely call "setSurroundingMesh() later, or nothing will be drawn.
+	 * Constructor with no mesh. Must explicitly call "setSurroundingMesh() later, or nothing will be drawn.
 	 * @param context - Application's context.
 	 */
 	public InsideRenderer(Context context)
@@ -193,12 +207,17 @@ public class InsideRenderer implements Renderer, EulerAngles
 	 */
 	public void setRotation(float pitch, float yaw)
 	{
-		mYaw = yaw;
-		mPitch = pitch;
-		normalizeRotation();
-		computeRotationMatrix();
+		this.setRotation(pitch, yaw, mRoll);
 	}
 	
+	public void setRotation(float pitch, float yaw, float roll)
+	{
+		mYaw = yaw;
+		mPitch = pitch;
+		mRoll = roll;
+		normalizeRotation();
+		computeRotationMatrix();		
+	}
 	/**
 	 * 
 	 * @param pitchSpeed
@@ -245,6 +264,15 @@ public class InsideRenderer implements Renderer, EulerAngles
 	public float getYaw() 
 	{
 		return mYaw;
+	}
+	
+	/**
+	 *   
+	 * @return yaw of the mesh, between -180 and 180.
+	 */
+	public float getRoll() 
+	{
+		return mRoll;
 	}
 		
 	public int getSurfaceWidth()
@@ -307,15 +335,28 @@ public class InsideRenderer implements Renderer, EulerAngles
 	 */
 	private synchronized void computeRotationMatrix()
 	{
+		/*
 		// Rotation matrix in column mode.
 		double yawRad = Math.toRadians(mYaw);
 		double pitchRad = Math.toRadians(mPitch);
+		double rollRad = Math.toRadians(mRoll);
 		
 		float cosYaw = (float) Math.cos(yawRad);
 		float sinYaw = (float) Math.sin(yawRad);
 		float cosPitch = (float) Math.cos(pitchRad);
 		float sinPitch = (float) Math.sin(pitchRad);
 		
+		float sinRoll= (float) Math.sin(rollRad);
+		float cosRoll= (float) Math.cos(rollRad);
+		*/
+		
+	  	mRotationMatrix = Arrays.copyOf(IDENTITY, 16);
+
+		Matrix.rotateM(mRotationMatrix, 0, mPitch, 1, 0, 0);
+		Matrix.rotateM(mRotationMatrix, 0, mYaw, 0, 1, 0);
+		Matrix.rotateM(mRotationMatrix, 0, mRoll, 0, 0, 1);
+		
+		/*
 		mRotationMatrix[0] = cosYaw;
 		mRotationMatrix[1] = sinPitch*sinYaw;
 		mRotationMatrix[2] = (float) ((-1.0)*cosPitch*sinYaw);
@@ -335,6 +376,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 		mRotationMatrix[13] = 0.0f;
 		mRotationMatrix[14] = 0.0f;
 		mRotationMatrix[15] = 1.0f;
+		*/
   	}
 	
 	/**
@@ -356,6 +398,12 @@ public class InsideRenderer implements Renderer, EulerAngles
 			mPitch = -90.0f;
 		else if (mPitch > 90.0f)
 			mPitch = 90.0f;
+		
+		mRoll %= 360.0f;
+		if (mRoll < -180.0f) 
+			mRoll += 360.0f;
+		else if (mRoll > 180.0f)
+			mRoll -= 360.0f;
 		
 	}
 	
@@ -425,6 +473,8 @@ public class InsideRenderer implements Renderer, EulerAngles
   	
 		setRotation(mPitch0+deltaPitch, mYaw0+deltaYaw);
 	}
+
+	
 
 
 

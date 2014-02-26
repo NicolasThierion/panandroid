@@ -89,18 +89,20 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	private SensorManager mSensorManager = null;
 	
 	/** vector that represents orientation of the device **/
-	float[] mOrientation = new float[3];
+	private float[] mOrientation = new float[3];
 	
 	/** corresponding rotation matrix **/
-	float[] mRotationMatrix = new float[16];
+	private float[] mRotationMatrix = new float[16];
 	
 	/**current pitch and yaw **/
-	float mPitch=-1500.0f;
-	float mYaw=-1500.0f;
+	private float mPitch=-1500.0f;
+	private float mYaw=-1500.0f;
+	private float mRoll=-1500.0f;
+
 	
 	/** reference pitch and yaw **/
-	float oPitch = 0.0f, oYaw = 0.0f;
-	boolean mHasToResetYaw = true, mHasToResetPitch = false;
+	float oPitch = 0.0f, oYaw = 0.0f, oRoll=0.0f;
+	boolean mHasToResetYaw = true, mHasToResetPitch = false, mHasToResetRoll=false;
 	
 	boolean mIsStarted;
 	
@@ -195,6 +197,12 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			oYaw = mYaw;
 			mYaw = 0.0f;
 			mHasToResetYaw = false;
+		}	
+		if(mHasToResetRoll)
+		{
+			oRoll = mRoll;
+			mRoll = 0.0f;
+			mHasToResetRoll = false;
 		}	
 	   
 		//throw the event to all listeners
@@ -304,18 +312,28 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		oYaw = 0.0f;
 	}
 	
+	public void resetRoll()
+	{
+		oRoll = 0.0f;
+	}
+	
 	/* **********
 	 * ACCESSORS
 	 * *********/
 	
 	public float getPitch()
 	{
-		return this.mPitch;
+		return mPitch;
 	}
 	
 	public float getYaw()
 	{
-		return this.mYaw;
+		return mYaw;
+	}
+	
+	public float getRoll() 
+	{
+		return mRoll;
 	}
 	
 	public float[] getFusedOrientation()
@@ -408,6 +426,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    // save pitch and yaw.
 	    mYaw = mOrientation[0] * RAD_TO_DEG - oYaw;
 		mPitch = mOrientation[1] * RAD_TO_DEG - oPitch;
+		mRoll = mOrientation[2] * RAD_TO_DEG - oRoll;
 		
 		this.normalize();
 		
@@ -648,6 +667,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		}
 	
 	}
+
+	
 
 	
 

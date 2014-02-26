@@ -765,8 +765,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	}
 	
 	
-	
-	
+
 	private int ceilPowOf2(int val)
 	{
 		int i = 1;
