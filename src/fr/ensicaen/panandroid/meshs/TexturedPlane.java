@@ -424,7 +424,6 @@ public class TexturedPlane extends Mesh
 	@Override
 	public void unloadGLTexture(GL10 gl)
 	{
-		System.out.println("unload...");
 		new Thread(new Runnable(){
 
 			@Override
@@ -456,7 +455,6 @@ public class TexturedPlane extends Mesh
 	 */
 	private void loadBitmapTexture(final String imgPath, final int sampleRate)
 	{
-		System.out.println("loading...");
 		new Thread(new Runnable(){
 
 			public void run()

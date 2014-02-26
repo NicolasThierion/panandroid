@@ -175,6 +175,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ***/
 	/** list of dots **/
 	private List<Snapshot3D> mDots;
+	private ReentrantLock mDotsLock;
 	private List<Snapshot3D> mContours;
 	private List<Snapshot3D> mContours43;
 	private List<Snapshot3D> mContours34;
@@ -229,6 +230,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mContours43 = new LinkedList<Snapshot3D>();
 		mContours34 = new LinkedList<Snapshot3D>();
 		mContours = mContours43;
+		mDotsLock = new ReentrantLock();
 		mSnapshotsLock = new ReentrantLock();
 		mContoursLock = new ReentrantLock();
 	}
@@ -317,13 +319,14 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 */
 	public void setMarkerList(LinkedList<EulerAngles> marks)
 	{
+		mDots = new LinkedList<Snapshot3D>();
+		mContours34 = new LinkedList<Snapshot3D>();
+		mContours43 = new LinkedList<Snapshot3D>();
 		for(EulerAngles a : marks)
 		{	
 			putMarker(a.getPitch(), a.getYaw());
 			putContour(a.getPitch(), a.getYaw());
-		}
-		
-		
+		}		
 	}
 	
     
@@ -389,7 +392,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	@Override
 	public void onDrawFrame(GL10 gl)
-	{    
+	{    		
 		//draws the skybox
 		if(mUseSkybox)
 			super.onDrawFrame(gl);
@@ -447,6 +450,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//draw markers
 		if(mUseMarkers)
 		{
+			mDotsLock.lock();
 			for (Snapshot3D dot : mDots)
 			{		
 				d = getSnapshotDistance(dot);
@@ -463,8 +467,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 					dot.setAlpha(1.0f - d);    
 					dot.draw(gl, super.getRotationMatrix());
 				}
-				
 			}
+			mDotsLock.unlock();
 		}
 		if(mUseContours)
 		{
@@ -498,9 +502,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		//a snapshot has just been taken :
 		
-		//TODO
-		//find corresponding dot and remove it.
-
+		float pitch = snapshot.getPitch();
+		float yaw = snapshot.getYaw();
+		removeDot(pitch, yaw);
+		removeContour(pitch, yaw);
+		
 		//put a new textureSurface with the snapshot in it.
 		putSnapshot(pictureData, snapshot);
 		
@@ -612,6 +618,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
      */
 	private Snapshot3D putMarker(float pitch, float yaw)
 	{
+
 		Snapshot3D dot = new Snapshot3D(mMarkersSize, pitch, yaw);
 		dot.setTexture(mMarkerBitmap);
 		dot.translate(0.0f, 0.0f, MARKERS_DISTANCE);
@@ -652,6 +659,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 */
 	private Snapshot3D putSnapshot(byte[] pictureData, Snapshot snapshot)
 	{
+		
 		//build a snapshot3d from the snapshot2d
 		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, CAMERA_RATIO, snapshot);
 		//fill the snapshot with the byteArray, faster than reading its data from SD.
@@ -670,31 +678,93 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 
 		return snap;
     }
+
+	/**
+	 * Get the distance between the point a and the point b.
+	 * @param a
+	 * @param b
+	 * @return distance of the 2 points.
+	 */
+	private float getSnapshotDistance(EulerAngles a, EulerAngles b)
+	{
+		float oPitch = b.getPitch();
+		float oYaw = b.getYaw();
+		float sPitch , sYaw, dPitch, dYaw, d;	
+			
+		sPitch = a.getPitch();
+		sYaw = a.getYaw();
+		
+		dPitch = sPitch - oPitch;
+		dYaw = sYaw - oYaw;
+		d = (float) Math.sqrt(dPitch*dPitch + dYaw*dYaw);
+		
+		
+		//neutralize yaw if it is a pole
+		if(Math.abs(sPitch)>89.0f)
+			d = dPitch;
+		
+		return d;
+				
+	}
+	
 	/**
 	 * get distance between current orientation and gven snapshot
 	 * @param snapshot
 	 * @return
 	 */
-	private float getSnapshotDistance(EulerAngles snapshot)
+	private float getSnapshotDistance(EulerAngles a)
 	{
-		float oPitch = super.getPitch();
-		float oYaw = super.getYaw();
-		float sPitch , sYaw, dPitch, dYaw, d;	
-			
-        sPitch = snapshot.getPitch();
-        sYaw = snapshot.getYaw();
-        
-        dPitch = Math.abs(Math.abs(sPitch) - Math.abs(oPitch));
-        dYaw = Math.abs(Math.abs(sYaw) - Math.abs(oYaw));
-        d = (dPitch+dYaw);
-        
-        //neutralize yaw if it is a pole
-        if(Math.abs(sPitch)>89.0f)
-        	d = dPitch;
-        
-        return d;
-				
+		return this.getSnapshotDistance(a, new Snapshot(super.getPitch(), super.getYaw()));
 	}
+	
+	/**
+	 * Remove the dot near the given position.
+	 * @param pitch
+	 * @param yaw
+	 */
+	private boolean removeDot(float pitch, float yaw)
+	{
+		final float TRESHOLD = 10.0f;
+		Snapshot o = new Snapshot(pitch, yaw);
+		mDotsLock.lock();
+		for(Snapshot3D dot : mDots)
+		{
+			if(this.getSnapshotDistance(dot, o)<TRESHOLD)
+			{
+				mDots.remove(dot);
+				mDotsLock.unlock();
+				return true;
+			}
+		}
+		mDotsLock.unlock();
+		return false;	
+	}
+	
+	/**
+	 * Remove the dot near the given position.
+	 * @param pitch
+	 * @param yaw
+	 */
+	private boolean removeContour(float pitch, float yaw)
+	{
+		final float TRESHOLD = 10.0f;
+		Snapshot o = new Snapshot(pitch, yaw);
+		mContoursLock.lock();
+		for(Snapshot3D contour : mContours)
+		{
+			if(this.getSnapshotDistance(contour, o)<TRESHOLD)
+			{
+				mContours.remove(contour);
+				mContoursLock.unlock();
+				return true;
+			}
+		}
+		mContoursLock.unlock();
+
+		return false;	
+	}
+	
+	
 	
 	
 	private int ceilPowOf2(int val)

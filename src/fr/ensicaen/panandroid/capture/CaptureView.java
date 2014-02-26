@@ -184,9 +184,12 @@ public class CaptureView extends Inside3dView
 			}
 		}
 		
+		
 		//add poles
 		targets.add(new Snapshot(90.0f, 0.0f));
 		targets.add(new Snapshot(-90.0f, 0.0f));
+		
+		
 
 
 		
