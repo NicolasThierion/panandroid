@@ -5,5 +5,6 @@ public interface EulerAngles
 	
 	public abstract float getPitch();
 	public abstract float getYaw();
+	float getRoll();
 
 }

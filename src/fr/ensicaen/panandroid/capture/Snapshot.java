@@ -1,7 +1,5 @@
 package fr.ensicaen.panandroid.capture;
 
-import junit.framework.Assert;
-
 /**
  *
  * A snapshot represents an image, tagged by its position. 
@@ -27,7 +25,7 @@ public class Snapshot implements EulerAngles
 	
 
 	/**
-	 * Create a new snapshot, marged with the position given by pitch and yaw.
+	 * Create a new snapshot, marked with the position given by pitch and yaw.
 	 * The pitch get normalized between -90 and 90.
 	 * The yaw get normalized between -180 and 180.
 	 * @param pitch - pitch of the snapshot.
@@ -35,27 +33,40 @@ public class Snapshot implements EulerAngles
 	 */
 	public Snapshot(float pitch, float yaw)
 	{
-		mYaw = yaw%360.0f;
-		mPitch = pitch%180.0f;
-
-		if(mYaw>180.0001f)
-		{
-			mYaw-=360.0f;
-		}
-		
-		if(mPitch>90.0001f)
-		{
-			mPitch-=180.0f;
-		}
-		
-		mId = GLOBAL_ID++;
+		this(pitch, yaw, 0.0f);
 
 	}
 	
-	
-	
-	
-	
+	/**
+	 * Create a new snapshot, marked with the position given by pitch and yaw.
+	 * The pitch get normalized between -90 and 90.
+	 * The yaw get normalized between -180 and 180.
+	 * The roll get normalized between -180 and 180.
+	 * @param pitch - pitch of the snapshot.
+	 * @param yaw - yaw of the snapshot.
+	 * @param roll - roll of the snapshot.
+	 */
+	public Snapshot(float pitch, float yaw, float roll)
+	{
+		mYaw = yaw%360.0f;
+		mPitch = pitch%180.0f;
+		mRoll = roll%360.0f;
+
+		//normalize angles
+		if(mYaw>180.0001f)
+			mYaw-=360.0f;
+		
+		if(mPitch>90.0001f)
+			mPitch-=180.0f;
+		
+		if(mRoll>180.0001f)
+			mRoll-=360.0f;
+		
+		mId = GLOBAL_ID++;	
+	}
+
+
+
 
 	@Override
 	public float getYaw()
@@ -69,12 +80,11 @@ public class Snapshot implements EulerAngles
 		return mPitch;
 	}
 	
+	@Override
 	public float getRoll()
 	{
 		return mRoll;
 	}
-	
-	
 
 	public int getId() {
 		return mId;

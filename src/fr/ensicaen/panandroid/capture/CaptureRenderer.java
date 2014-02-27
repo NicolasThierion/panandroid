@@ -32,8 +32,9 @@ import fr.ensicaen.panandroid.tools.BitmapDecoder;
  * The CaptureRenderer use a CameraManager to draw camera preview in foreground. 
  * By default, the renderer starts the cameraManager, and route the preview to a TexturedPlane.
  * @author Nicolas
- * 
- * TODO : add roll
+ * @bug : few snapshot cannot be taken randomly.
+ * @bug : view sometimes not correctly reload the textures
+ * @bug : textures are not reloaded after onResume() 
  */
 public class CaptureRenderer extends InsideRenderer implements SnapshotEventListener
 {
@@ -669,7 +670,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		
 		//put the snapshot at its place.
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
-		snap.rotate(0, 0, mCameraRoll);
+		//snap.rotate(0, 0, mCameraRoll);
 		snap.setVisible(true);
 		mSnapshotsLock.lock();
 		mSnapshots.add(snap);

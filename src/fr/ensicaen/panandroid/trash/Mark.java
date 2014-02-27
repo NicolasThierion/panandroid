@@ -29,4 +29,10 @@ public class Mark implements EulerAngles {
 		return (float) Math.sqrt(Math.pow((mPitch - m2.getPitch()), 2) + Math.pow((mYaw - m2.getYaw()), 2)); 
 	}
 
+	@Override
+	public float getRoll()
+	{
+		return 0;
+	}
+
 }

@@ -687,9 +687,10 @@ public class CameraManager
 			// get snapshot's pitch and yaw
 			float pitch = mSensorFusionManager.getPitch();
             float yaw =  mSensorFusionManager.getYaw();
+            float roll =  mSensorFusionManager.getRoll();
 			
 			// create the Snapshot Object corresponding
-            mTempSnapshot = new Snapshot(pitch, yaw);		
+            mTempSnapshot = new Snapshot(pitch, yaw, roll);		
         }
 	}
 	

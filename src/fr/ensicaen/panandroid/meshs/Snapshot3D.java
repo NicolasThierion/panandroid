@@ -37,10 +37,8 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 	
 	public Snapshot3D(float scale, float ratio, float pitch, float yaw, float roll)
 	{
-		//TODO : roll??
-		
 		super(scale, ratio);
-		super.rotate(-pitch, -yaw, roll);
+		super.rotate(-pitch, -yaw, 180.0f-roll);
 		mSnapshot = new Snapshot(pitch, yaw);
 		
 	}
@@ -50,7 +48,7 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 	{
 		super(scale, ratio);
 		
-		super.rotate(-snapshot.getPitch(), -snapshot.getYaw(), snapshot.getRoll());
+		super.rotate(-snapshot.getPitch(), -snapshot.getYaw(), 180.0f-snapshot.getRoll());
 		mSnapshot = snapshot;
 		super.setTexture(mSnapshot.getFileName());
 		
@@ -66,7 +64,6 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 		return mSnapshot.getYaw();
 	}
 	
-	//TODO;
 	public float getRoll()
 	{
 		return mSnapshot.getRoll();

@@ -26,6 +26,8 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -97,7 +99,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	/**current pitch and yaw **/
 	private float mPitch=-1500.0f;
 	private float mYaw=-1500.0f;
-	private float mRoll=-1500.0f;
+	private float mRoll=0.0f;
 
 	
 	/** reference pitch and yaw **/
@@ -331,9 +333,47 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		return mYaw;
 	}
 	
+	/**
+	 * get the absolute roll the device, regardless screen's orientation.
+	 * See getRelativeRoll() to adapt roll to screen orientation.
+	 * @return
+	 */
 	public float getRoll() 
 	{
 		return mRoll;
+	}
+	
+	/**
+	 * get roll relative to device's current orientation( landscape or portrait).
+	 * 
+	 */
+	public float getRelativeRoll(Context context)
+	{
+		final int screenRotation = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
+		float relativeRoll = 90;
+		switch (screenRotation)
+		{
+			case Surface.ROTATION_0:
+				relativeRoll += 0.0f;
+				break;
+			case Surface.ROTATION_90:
+				relativeRoll += 90.0f;
+				break;
+			case Surface.ROTATION_180:
+				relativeRoll += 180.0f;
+				break;
+			default:
+				relativeRoll += 270.0f;
+				break;
+		};
+		
+		relativeRoll %=360;
+		relativeRoll+=mRoll;
+		if(relativeRoll>180.01f)
+		{
+			relativeRoll-=360.0f;
+		}
+		return relativeRoll;
 	}
 	
 	public float[] getFusedOrientation()
@@ -441,6 +481,11 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		if(mYaw>180.01f)
 		{
 			mYaw-=360.0f;
+		}
+		
+		if(mRoll>180.01f)
+		{
+			mRoll-=360.0f;
 		}
 		
 		if(mPitch>90.01f)

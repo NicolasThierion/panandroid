@@ -335,11 +335,21 @@ public class InsideRenderer implements Renderer, EulerAngles
 	 */
 	private synchronized void computeRotationMatrix()
 	{
+		
+		float rotationMatrix[]  = Arrays.copyOf(IDENTITY, 16);
+		Matrix.rotateM(rotationMatrix, 0, mRoll, 0, 0, 1);
+		Matrix.rotateM(rotationMatrix, 0, mPitch, 1, 0, 0);
+		Matrix.rotateM(rotationMatrix, 0, mYaw, 0, 1, 0);
+		mRotationMatrix = rotationMatrix; 
+		
+		
+		
+		//TODO : remove
 		/*
 		// Rotation matrix in column mode.
-		double yawRad = Math.toRadians(mYaw);
-		double pitchRad = Math.toRadians(mPitch);
-		double rollRad = Math.toRadians(mRoll);
+		double yawRad = -Math.toRadians(mYaw);
+		double pitchRad = -Math.toRadians(mPitch);
+		double rollRad = -Math.toRadians(mRoll);
 		
 		float cosYaw = (float) Math.cos(yawRad);
 		float sinYaw = (float) Math.sin(yawRad);
@@ -347,19 +357,11 @@ public class InsideRenderer implements Renderer, EulerAngles
 		float sinPitch = (float) Math.sin(pitchRad);
 		
 		float sinRoll= (float) Math.sin(rollRad);
-		float cosRoll= (float) Math.cos(rollRad);
-		*/
-		
-	  	mRotationMatrix = Arrays.copyOf(IDENTITY, 16);
-
-		Matrix.rotateM(mRotationMatrix, 0, mPitch, 1, 0, 0);
-		Matrix.rotateM(mRotationMatrix, 0, mYaw, 0, 1, 0);
-		Matrix.rotateM(mRotationMatrix, 0, mRoll, 0, 0, 1);
-		
-		/*
+		float cosRoll= (float) Math.cos(rollRad);  
+		 
 		mRotationMatrix[0] = cosYaw;
 		mRotationMatrix[1] = sinPitch*sinYaw;
-		mRotationMatrix[2] = (float) ((-1.0)*cosPitch*sinYaw);
+		mRotationMatrix[2] = ((-1.0f)*cosPitch*sinYaw);
 		mRotationMatrix[3] = 0.0f;
 		
 		mRotationMatrix[4] = 0.0f;
@@ -368,8 +370,8 @@ public class InsideRenderer implements Renderer, EulerAngles
 		mRotationMatrix[7] = 0.0f;
 		
 		mRotationMatrix[8] = sinYaw;
-		mRotationMatrix[9] = (float) (-1.0*sinPitch*cosYaw);
-		mRotationMatrix[10] = (float) (cosYaw*cosPitch);
+		mRotationMatrix[9] = (-1.0f*sinPitch*cosYaw);
+		mRotationMatrix[10] = (cosYaw*cosPitch);
 		mRotationMatrix[11] = 0.0f;
 		
 		mRotationMatrix[12] = 0.0f;
@@ -377,6 +379,29 @@ public class InsideRenderer implements Renderer, EulerAngles
 		mRotationMatrix[14] = 0.0f;
 		mRotationMatrix[15] = 1.0f;
 		*/
+
+		/*
+		mRotationMatrix[0] = cosYaw*cosRoll; 
+		mRotationMatrix[1] = sinPitch * sinYaw * cosRoll - cosPitch * sinRoll;
+		mRotationMatrix[2] = cosPitch * sinYaw * cosRoll + sinPitch * sinRoll;
+		mRotationMatrix[3] = 0.0f;
+
+		mRotationMatrix[4] = cosYaw*sinRoll; //12
+		mRotationMatrix[5] = sinPitch * sinYaw * sinRoll + cosPitch * cosRoll;
+		mRotationMatrix[6] = cosPitch * sinYaw * sinRoll - sinPitch * cosRoll; //32
+		mRotationMatrix[7] = 0.0f;
+
+		mRotationMatrix[8] = -sinYaw; //13
+		mRotationMatrix[9] = cosYaw* sinPitch; //23
+ 		mRotationMatrix[10] = cosYaw * cosPitch;		//33
+		mRotationMatrix[11] = 0.0f;
+
+		mRotationMatrix[12] = 0.0f; 
+		mRotationMatrix[13] = 0.0f; 
+		mRotationMatrix[14] = 0.0f;
+		mRotationMatrix[15] = 1.0f;
+		*/
+	
   	}
 	
 	/**
