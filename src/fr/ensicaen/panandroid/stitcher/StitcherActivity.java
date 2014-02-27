@@ -49,8 +49,9 @@ public class StitcherActivity extends Activity implements OnClickListener {
         setContentView(R.layout.stitcher);
 
         // Magic grey button !
-        stitch = (Button) findViewById(R.id.stitch);
-        stitch.setOnClickListener(this);
+        //TODO : uncomment
+        //stitch = (Button) findViewById(R.id.stitch);
+        //stitch.setOnClickListener(this);
     }
 
     /**
