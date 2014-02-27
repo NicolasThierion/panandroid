@@ -419,7 +419,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mSnapshotsLock.lock();
 		for (Snapshot3D snap : mSnapshots)
 		{
-			float distance = this.getSnapshotDistance(snap);
+			float distance = this.getAbsSnapshotDistance(snap);
 			
 			if(mHasToFreeMemory && distance>AUTO_UNLOADTEXTURE_ANGLE)
 			{
@@ -705,6 +705,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 				
 	}
 	
+	
+	
 	/**
 	 * get distance between current orientation and gven snapshot
 	 * @param snapshot
@@ -714,6 +716,33 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		return this.getSnapshotDistance(a, new Snapshot(super.getPitch(), super.getYaw()));
 	}
+	
+	private float  getAbsSnapshotDistance(EulerAngles a, EulerAngles b)
+	{
+		float oPitch = b.getPitch();
+		float oYaw = b.getYaw();
+		float sPitch , sYaw, dPitch, dYaw, d;	
+			
+		sPitch = a.getPitch();
+		sYaw = a.getYaw();
+		
+		dPitch = Math.abs(Math.abs(sPitch) - Math.abs(oPitch));
+		dYaw = Math.abs(Math.abs(sYaw) - Math.abs(oYaw));
+		d = (float) Math.sqrt(dPitch*dPitch + dYaw*dYaw);
+		
+		
+		//neutralize yaw if it is a pole
+		if(Math.abs(sPitch)>89.0f)
+			d = dPitch;
+		
+		return d;
+	}
+	
+	private float  getAbsSnapshotDistance(EulerAngles a)
+	{
+		return this.getAbsSnapshotDistance(a, new Snapshot(super.getPitch(), super.getYaw()));
+	}
+
 	
 	/**
 	 * Remove the dot near the given position.
