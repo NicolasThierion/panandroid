@@ -178,7 +178,7 @@ public class CaptureView extends Inside3dView
 		
 		for(float pitch = -90.0f+mPitchStep; pitch < 90.1f-mPitchStep; pitch+=mPitchStep)
 		{
-			for(float yaw = -180.0f; yaw < 180.1f; yaw+=mYawStep)
+			for(float yaw = -180.0f; yaw < 180.1f-mYawStep; yaw+=mYawStep)
 			{
 				targets.add(new Snapshot(pitch, yaw));
 			}

@@ -502,8 +502,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		
 		float pitch = snapshot.getPitch();
 		float yaw = snapshot.getYaw();
-		removeDot(pitch, yaw);
-		removeContour(pitch, yaw);
+		if(!removeDot(pitch, yaw) || !removeContour(pitch, yaw))
+		{
+			Log.e(TAG, "cannot remove mark for snapshot (p="+pitch+", y="+yaw+")");
+		}
+		
 		
 		//put a new textureSurface with the snapshot in it.
 		putSnapshot(pictureData, snapshot);
@@ -756,7 +759,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mDotsLock.lock();
 		for(Snapshot3D dot : mDots)
 		{
-			if(this.getSnapshotDistance(dot, o)<TRESHOLD)
+			if(this.getAbsSnapshotDistance(dot, o)<TRESHOLD)
 			{
 				mDots.remove(dot);
 				mDotsLock.unlock();
