@@ -1,13 +1,27 @@
+/*
+ * Copyright (C) 2013 Nicolas THIERION, Saloua BENSEDDIK, Jean Marguerite.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA  02110-1301, USA.
+ */
 package fr.ensicaen.panandroid.insideview;
 
 import java.util.Arrays;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-
-import junit.framework.Assert;
-
-
 
 import fr.ensicaen.panandroid.capture.EulerAngles;
 import fr.ensicaen.panandroid.meshs.Mesh;
@@ -20,7 +34,7 @@ import android.opengl.Matrix;
 
 /**
  * OpenGL renderer that display a shape from inside, at the center of the view.
- * @author Nicolas
+ * @author Nicolas THIERION.
  *
  */
 public class InsideRenderer implements Renderer, EulerAngles
@@ -31,14 +45,14 @@ public class InsideRenderer implements Renderer, EulerAngles
 	/* *************
 	 * GLOBAL RENDERING PARAMS
 	 * *************/
-	
+	/** Identity matrix **/
 	private static final float[] IDENTITY = {1, 0, 0, 0,
 										   0, 1, 0, 0,
 										   0, 0, 1, 0, 
 										   0, 0, 0, 1};
 	
 	
-	/** Clear colour */
+	/** Clear color */
 	private static final float CLEAR_RED = 0.0f;
 	private static final float CLEAR_GREEN = 0.0f;
 	private static final float CLEAR_BLUE = 0.0f;
@@ -331,7 +345,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 	 * ************/
 
 	/**
-	 * Computes rotation matrix from euler's angles mYaw and mPitch
+	 * Computes rotation matrix from euler's angles mYaw and mPitch.
 	 */
 	private synchronized void computeRotationMatrix()
 	{
@@ -341,67 +355,6 @@ public class InsideRenderer implements Renderer, EulerAngles
 		Matrix.rotateM(rotationMatrix, 0, mPitch, 1, 0, 0);
 		Matrix.rotateM(rotationMatrix, 0, mYaw, 0, 1, 0);
 		mRotationMatrix = rotationMatrix; 
-		
-		
-		
-		//TODO : remove
-		/*
-		// Rotation matrix in column mode.
-		double yawRad = -Math.toRadians(mYaw);
-		double pitchRad = -Math.toRadians(mPitch);
-		double rollRad = -Math.toRadians(mRoll);
-		
-		float cosYaw = (float) Math.cos(yawRad);
-		float sinYaw = (float) Math.sin(yawRad);
-		float cosPitch = (float) Math.cos(pitchRad);
-		float sinPitch = (float) Math.sin(pitchRad);
-		
-		float sinRoll= (float) Math.sin(rollRad);
-		float cosRoll= (float) Math.cos(rollRad);  
-		 
-		mRotationMatrix[0] = cosYaw;
-		mRotationMatrix[1] = sinPitch*sinYaw;
-		mRotationMatrix[2] = ((-1.0f)*cosPitch*sinYaw);
-		mRotationMatrix[3] = 0.0f;
-		
-		mRotationMatrix[4] = 0.0f;
-		mRotationMatrix[5] = cosPitch;
-		mRotationMatrix[6] = sinPitch;
-		mRotationMatrix[7] = 0.0f;
-		
-		mRotationMatrix[8] = sinYaw;
-		mRotationMatrix[9] = (-1.0f*sinPitch*cosYaw);
-		mRotationMatrix[10] = (cosYaw*cosPitch);
-		mRotationMatrix[11] = 0.0f;
-		
-		mRotationMatrix[12] = 0.0f;
-		mRotationMatrix[13] = 0.0f;
-		mRotationMatrix[14] = 0.0f;
-		mRotationMatrix[15] = 1.0f;
-		*/
-
-		/*
-		mRotationMatrix[0] = cosYaw*cosRoll; 
-		mRotationMatrix[1] = sinPitch * sinYaw * cosRoll - cosPitch * sinRoll;
-		mRotationMatrix[2] = cosPitch * sinYaw * cosRoll + sinPitch * sinRoll;
-		mRotationMatrix[3] = 0.0f;
-
-		mRotationMatrix[4] = cosYaw*sinRoll; //12
-		mRotationMatrix[5] = sinPitch * sinYaw * sinRoll + cosPitch * cosRoll;
-		mRotationMatrix[6] = cosPitch * sinYaw * sinRoll - sinPitch * cosRoll; //32
-		mRotationMatrix[7] = 0.0f;
-
-		mRotationMatrix[8] = -sinYaw; //13
-		mRotationMatrix[9] = cosYaw* sinPitch; //23
- 		mRotationMatrix[10] = cosYaw * cosPitch;		//33
-		mRotationMatrix[11] = 0.0f;
-
-		mRotationMatrix[12] = 0.0f; 
-		mRotationMatrix[13] = 0.0f; 
-		mRotationMatrix[14] = 0.0f;
-		mRotationMatrix[15] = 1.0f;
-		*/
-	
   	}
 	
 	/**

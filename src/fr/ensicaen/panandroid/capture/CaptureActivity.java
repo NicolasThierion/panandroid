@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2013 Nicolas THIERION, Saloua BENSEDDIK, Jean Marguerite.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA  02110-1301, USA.
+ */
 package fr.ensicaen.panandroid.capture;
 
 import java.io.File;
@@ -17,20 +35,16 @@ import android.view.WindowManager;
  * 
  * The activity opens a 3D and draws a cubic skybox seen from inside.
  * The view rotates with the device orientation. Dots are put all around the view, and a snapshot is taken automatically when viewfinder and dot are alligned
- * 
- * 
- * @todo Take snaptshots
- * @todo put dots all around
- * @todo use sensor to activate camera
- * @todo put snapshots
- * @todo build a JSON file with position info of each shapshots
  *  
- * @author Nicolas
+ * @author Nicolas THIERION.
  *
  */
 public class CaptureActivity extends Activity
 {
-
+	/* ******
+	 * DEBUG PARAMETERS
+	 * ******/
+	private static final boolean ALTERNATIVE_MARKERS_PLACEMENT = false;
 
 	/* *********
 	 * PARAMETERS
@@ -82,8 +96,17 @@ public class CaptureActivity extends Activity
 		//setup GL view & its renderer
 		this.mCaptureView = new CaptureView(this, mCameraManager);
 		
-		mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
-		mCaptureView.setYawStep(DEFAULT_YAW_STEP);
+		
+		if(ALTERNATIVE_MARKERS_PLACEMENT)
+		{
+			mCaptureView.setMarkersDistance(DEFAULT_PITCH_STEP);
+		}
+		else
+		{
+			mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
+			mCaptureView.setYawStep(DEFAULT_YAW_STEP);
+		}
+		
 		
 		
 		this.setContentView(this.mCaptureView);	

@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2013 Nicolas THIERION, Saloua BENSEDDIK, Jean Marguerite.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA  02110-1301, USA.
+ */
 package fr.ensicaen.panandroid.meshs;
 
 import java.nio.ByteBuffer;
@@ -20,7 +38,7 @@ import android.util.Log;
 
 /**
  * A TexturedPlane is a Mesh composed of 4 vertices. A bitmap texture or an openGL textureID can be applied to it. 
- * @author Nicolas
+ * @author Nicolas THIERION.
  *
  */
 public class TexturedPlane extends Mesh

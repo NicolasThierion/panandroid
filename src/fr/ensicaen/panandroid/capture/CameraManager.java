@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2013 Nicolas THIERION, Saloua BENSEDDIK, Jean Marguerite.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA  02110-1301, USA.
+ */
+
 package fr.ensicaen.panandroid.capture;
 
 import java.io.File;
@@ -26,8 +45,8 @@ import android.util.Log;
  * Capable of tagging pictures (formally Snapshots objects) with their pitch and yaw).
  * Can automate capture with autoShoot(), given a list of targets.
  * 
- * @author Nicolas
- * @author Saloua
+ * @author Nicolas THIERION.
+ * @author Saloua BENSEDDIK.
  * 
  * @bug : raw callback stores 0 bytes files (IOException, NullPointerException)
  * 
@@ -70,11 +89,9 @@ public class CameraManager
 	/** Unique instance of CameraManager **/
 	private static CameraManager mInstance = null;
 	
-	//TODO : remove?
 	/** context f the application **/
-	//private Context mContext;
-	/** sound manager used to mute shutter sound **/
-	//private AudioManager mSoundManager;
+	private Context mContext;
+	
 	
 	/* ***
 	 * camera
@@ -144,11 +161,7 @@ public class CameraManager
 	/** current picture file id **/
 	private int mFileId = 0;
 
-	/** jpeg orientation **/
-	private int mOrientation;
-	
-	private Context mContext;
-	
+
 	
 	
 	
@@ -176,9 +189,6 @@ public class CameraManager
 				if(mInstance==null)
 				{
 					mInstance = new CameraManager();
-					//TODO : remove?
-					//mInstance.mSoundManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
-
 				}
 			}
 		}
@@ -671,7 +681,7 @@ public class CameraManager
 	
 	/**
 	 * If capture is sensorial, get current pitch and current yaw, and fill mTempSnapshot woth it
-	 * @author Nicolas
+	 * @author Nicolas THIERION.
 	 *
 	 */
 	private class OnShutterCallback implements ShutterCallback
@@ -697,7 +707,7 @@ public class CameraManager
 	
 	/**
 	 * if raw callback enabled, save raw to sd.
-	 * @author Nicolas
+	 * @author Nicolas THIERION.
 	 * TODO : bug : save 0 byte raw
 	 */
 	private class RawCallback implements PictureCallback

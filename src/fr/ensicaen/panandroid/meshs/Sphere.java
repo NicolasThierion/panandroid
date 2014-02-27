@@ -8,14 +8,11 @@ import java.util.List;
 
 import javax.microedition.khronos.opengles.GL10;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.opengl.GLES10;
 import android.opengl.GLUtils;
-import android.util.Log;
 
 /**
  * Render a sphere.

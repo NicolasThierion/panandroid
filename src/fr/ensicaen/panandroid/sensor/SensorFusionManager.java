@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2013 Guillaume Lesniak
- * Copyright (C) 2012 Paul Lawitzki
+ * Copyright (C) 2013 Nicolas THIERION, Saloua BENSEDDIK, Jean Marguerite.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,8 +36,8 @@ import junit.framework.Assert;
 
 /**
  * 
- * @author Nicolas
- * @author Saloua
+ * @author Nicolas THIERION.
+ * @author Saloua BENSEDDIK.
  * 
  * SensorFusionManager is basically the same as native SensorManager that register a sensor of type TYPE_VECTOR_ROTATION.
  * Because TYPE_VECTOR_ROTATION uses the gyroscope, not all devices are supported.
@@ -52,8 +51,6 @@ import junit.framework.Assert;
  * Based on picSphere's SensorFusion (Guillaume Lesniak, Paul Lawitzki) for the manager and
  * PanoramaGL library for simulated accelerometer.
  * 
- * TODO : add getRoll() (=0 when simulated gyro??)
- * TODO : add isStable()
  *
  */
 public class SensorFusionManager implements SensorEventListener, EulerAngles
@@ -859,13 +856,9 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		mAccelerationValues[0] = X;
 		mAccelerationValues[1] = Y;
 		mAccelerationValues[2] = Z;
-
-
 	}
-	
-	
-	 
-	
+
+	@SuppressWarnings("unused")
 	private void debugMonitor()
 	{
 		System.out.println("startingh debug");

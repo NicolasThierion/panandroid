@@ -1,6 +1,3 @@
-/**
- *
- */
 package fr.ensicaen.panandroid.meshs;
 
 /**
