@@ -76,12 +76,9 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** Size & distance of the markers **/
 	private static final float MARKERS_SIZE = 0.05f;
 	private static final float MARKERS_DISTANCE = 3.0f;
-	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 15.0f; 		//[ around 1]
+	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 15.0f; 		//[ in percent]
 	
 	private static final float CAMERA_RATIO = 3.0f/4.0f;
-	
-	private static final int MODE_RATIO43 = 0;
-	private static final int MODE_RATIO34 = 1;
 	
 	//TODO : to remove?
 	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
