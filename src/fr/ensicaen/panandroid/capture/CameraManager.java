@@ -147,6 +147,8 @@ public class CameraManager
 	/** jpeg orientation **/
 	private int mOrientation;
 	
+	private Context mContext;
+	
 	
 	
 	
@@ -174,14 +176,13 @@ public class CameraManager
 				if(mInstance==null)
 				{
 					mInstance = new CameraManager();
-					
 					//TODO : remove?
 					//mInstance.mSoundManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
 
 				}
 			}
 		}
-		
+		mInstance.mContext = context;
 		return mInstance;
 
 	}
@@ -842,32 +843,33 @@ public class CameraManager
 		public void onSensorChanged(SensorEvent event)
 		{
 			if(!isOpen() || mCameraIsBusy)
-				return;
-			
+				return;	
 			
 			Assert.assertTrue(isAutoShootEnabled());
 			Assert.assertTrue(mCamera!=null);
 			
 			float oPitch = mSensorFusionManager.getPitch();
 			float oYaw = mSensorFusionManager.getYaw();
+			float oRoll = mSensorFusionManager.getRelativeRoll(mContext);
 			
-			
-			float sPitch , sYaw, dPitch, dYaw, distance;
+			float sPitch , sYaw, sRoll, dPitch, dYaw, dRoll, distance;
 			
 			//seek targets of a near one
 			for (Snapshot snap: mAutoShootTargets)
 			{
 				sPitch = snap.getPitch();
 		        sYaw = snap.getYaw();
+		        sRoll = snap.getRoll();
 		        
 		        dPitch = oPitch - sPitch;
 		        dYaw = oYaw - sYaw;
+		        dRoll = oRoll - sRoll;
 		        
 		        //if target in a pole. neutralize yaw
 		        if(Math.abs(sPitch)>89.0f)
 		        	dYaw=0.0f;
 		        
-		        distance = (float) Math.sqrt(Math.pow(dPitch, 2)+Math.pow(dYaw, 2));
+		        distance = (float) Math.sqrt(Math.pow(dPitch, 2)+Math.pow(dYaw, 2) + Math.pow(dRoll, 2));
 		        if(distance<mAutoShootThreshold)
 		        {
 		        	if(mSensorFusionManager.isStable(mAutoShootPrecision))

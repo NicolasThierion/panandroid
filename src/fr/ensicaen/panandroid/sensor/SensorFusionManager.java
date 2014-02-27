@@ -36,8 +36,9 @@ import fr.ensicaen.panandroid.capture.EulerAngles;
 import junit.framework.Assert;
 
 /**
- * 313
+ * 
  * @author Nicolas
+ * @author Saloua
  * 
  * SensorFusionManager is basically the same as native SensorManager that register a sensor of type TYPE_VECTOR_ROTATION.
  * Because TYPE_VECTOR_ROTATION uses the gyroscope, not all devices are supported.
@@ -62,8 +63,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	 * GLOBAL CONSTANTS
 	 * ********/
 	private static final String TAG = SensorFusionManager.class.getSimpleName();
-	public static final float RAD_TO_DEG =  (float) (180.0f / Math.PI);
-	
+	private static final float RAD_TO_DEG =  (float) (180.0f / Math.PI);
+	private static final float POLE_TRESHOLD = 2.0f;
 	
 	/** interval to listen to sensors, in 'us' */
 	private static final int SENSOR_LISTENING_RATE = 20000;
@@ -146,9 +147,6 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    		if(mInstance == null)
 	    		{
 	    			mInstance = new SensorFusionManager(context);
-	    			
-	    			//TODO : remove
-	    			mInstance.debugMonitor();
 	    		}
 		
 			}
@@ -211,6 +209,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			Log.e(TAG, "sensorFusion not correctly started");
 			return;
 		}
+		
+		
 		
 		if(mHasToResetPitch)
 		{
@@ -529,7 +529,10 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    SensorManager.getOrientation(mRotationMatrix, mOrientation);
 	    
 	    // save pitch and yaw.
-	    mYaw = mOrientation[0] * RAD_TO_DEG - oYaw;
+	    if(Math.abs(mPitch)<90-POLE_TRESHOLD)
+		{
+		    mYaw = mOrientation[0] * RAD_TO_DEG - oYaw;
+		}
 		mPitch = mOrientation[1] * RAD_TO_DEG - oPitch;
 		mRoll = mOrientation[2] * RAD_TO_DEG - oRoll;
 		
