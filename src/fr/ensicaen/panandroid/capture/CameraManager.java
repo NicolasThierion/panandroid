@@ -867,7 +867,10 @@ public class CameraManager
 		        
 		        //if target in a pole. neutralize yaw
 		        if(Math.abs(sPitch)>89.0f)
+		        {
 		        	dYaw=0.0f;
+		        	dRoll = 0.0f;
+		        }
 		        
 		        distance = (float) Math.sqrt(Math.pow(dPitch, 2)+Math.pow(dYaw, 2) + Math.pow(dRoll, 2));
 		        if(distance<mAutoShootThreshold)

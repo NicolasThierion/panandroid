@@ -532,9 +532,11 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    if(Math.abs(mPitch)<90-POLE_TRESHOLD)
 		{
 		    mYaw = mOrientation[0] * RAD_TO_DEG - oYaw;
+			mRoll = mOrientation[2] * RAD_TO_DEG - oRoll;
+
 		}
+
 		mPitch = mOrientation[1] * RAD_TO_DEG - oPitch;
-		mRoll = mOrientation[2] * RAD_TO_DEG - oRoll;
 		
 		this.normalize();
 		
