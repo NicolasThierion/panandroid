@@ -28,7 +28,10 @@ import java.util.LinkedList;
 import junit.framework.Assert;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
@@ -38,6 +41,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.util.Log;
+import android.view.Surface;
+import android.view.WindowManager;
 
 
 /**
@@ -62,6 +67,8 @@ public class CameraManager
 	 * GLOBAL PARAMETERS
 	 * *************/
 	public static final int DEFAULT_PREVIEW_FORMAT = ImageFormat.NV21;
+	
+	private static final int JPEG_COMPRESSION = 90;
 	
 	/** filename prefixes for stored images **/
 	public static final String DEFAULT_FILE_PREFIX = "img";
@@ -160,6 +167,8 @@ public class CameraManager
 	
 	/** current picture file id **/
 	private int mFileId = 0;
+	
+	private int mJpegCompression = JPEG_COMPRESSION;
 
 
 	
@@ -503,6 +512,11 @@ public class CameraManager
 
 	}
 	
+	public void setJpegCompression(int compression)
+	{
+		mJpegCompression = compression;
+	}
+	
 	 /* **************
 	  * ACTIVITY-RELATED METHODS
 	  * *************/
@@ -583,14 +597,15 @@ public class CameraManager
 		mTempFilename = genAbsoluteFilename(filename);
 		filename = mTempFilename;
 		
-		//disable shutter sound
-		//mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
+		//set picture orientation
+		int orientation = getOrientation();
+		Camera.Parameters params = mCamera.getParameters();
+		params.setRotation(orientation);
+		mCamera.setParameters(params);
 		
 		//take a picture in separated thread
-		
 		try
 		{
-			
 			new Thread(new Runnable(){
 	
 				@Override
@@ -611,9 +626,6 @@ public class CameraManager
 		{
 			e.printStackTrace();
 		}
-		
-			
-		
 		
 		return filename;
 	}
@@ -674,7 +686,40 @@ public class CameraManager
 		return mListeners.remove(listener);
 	}
 	
-	
+	private int getOrientation()
+	{
+		final int screenRotation = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
+		int orientation = 90+360;
+		switch (screenRotation)
+		{
+			case Surface.ROTATION_0:
+				orientation += 0;
+				break;
+			case Surface.ROTATION_90:
+				orientation -= 90;
+				break;
+			case Surface.ROTATION_180:
+				orientation -= 180;
+				break;
+			default:
+				orientation -= 270;
+				break;
+		};
+		return orientation%360;
+	}
+	/*
+	private Bitmap rotateBitmap(Bitmap bmp, int angle)
+	{
+		Matrix matrix = new Matrix();
+
+		matrix.postRotate(90);
+
+		Bitmap scaledBitmap = Bitmap.createScaledBitmap(bmp,bmp.getWidth(),bmp.getHeight(),true);
+
+		Bitmap rotatedBitmap = Bitmap.createBitmap(scaledBitmap , 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
+		return rotatedBitmap;
+	}
+	*/
 	/* *************
 	 * PRIVATE CALLBACK CLASSES
 	 * ************/
@@ -783,10 +828,29 @@ public class CameraManager
 					{
 		        		Log.i(TAG, "Saving file at "+jpegFile);
 		        		
-		        		//write image file
-						FileOutputStream fos = new FileOutputStream(jpegFile);
+		        		
+		        		
+						
+		        		FileOutputStream fos = new FileOutputStream(jpegFile);
 						fos.write(data);
-						fos.close();						
+						fos.close();	
+						
+		        		/*
+		        		//create bitmap from picture data.
+						Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
+						Assert.assertTrue(bmp!=null);
+						
+						//get device's orientation, to apply to final jpeg.
+						int rotationAngle = getOrientation();
+				        
+				        //rotates bitmap.
+				        Bitmap rotatedBitmap = rotateBitmap(bmp, rotationAngle);
+				        
+		        		//write image file
+				        FileOutputStream fos = new FileOutputStream(jpegFile);
+				        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_COMPRESSION, fos);
+				        fos.close();
+			*/
 						  
 						    
 						mTempSnapshot.setFileName(jpegFile);
@@ -822,9 +886,6 @@ public class CameraManager
 			//tell camera is ready now
 			mCameraIsBusy = false;
 			
-			//re-enable sound
-			//mSoundManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
-
 			
 			if(takenSnapshot!=null)
 			{
@@ -888,7 +949,7 @@ public class CameraManager
 		        	if(mSensorFusionManager.isStable(mAutoShootPrecision))
 		        	{
 		        		Log.i(TAG, "taking snapshot at angle ("+oPitch+", "+oYaw+")");
-		        		//TODO : save snapshot
+
 		        		mInstance.takeSnapshot();
 		        		mAutoShootTargets.remove(snap);
 		        		return;

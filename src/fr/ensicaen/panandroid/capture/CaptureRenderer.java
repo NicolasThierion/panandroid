@@ -520,7 +520,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		
 		float pitch = snapshot.getPitch();
 		float yaw = snapshot.getYaw();
-		if(!removeDot(pitch, yaw) || !removeContour(pitch, yaw))
+		if(!removeMarker(pitch, yaw) || !removeContour(pitch, yaw))
 		{
 			Log.e(TAG, "cannot remove mark for snapshot (p="+pitch+", y="+yaw+")");
 		}
@@ -770,7 +770,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * @param pitch
 	 * @param yaw
 	 */
-	private boolean removeDot(float pitch, float yaw)
+	private boolean removeMarker(float pitch, float yaw)
 	{
 		final float TRESHOLD = 10.0f;
 		Snapshot o = new Snapshot(pitch, yaw);
@@ -797,15 +797,18 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		final float TRESHOLD = 10.0f;
 		Snapshot o = new Snapshot(pitch, yaw);
+		int i=0;
 		mContoursLock.lock();
 		for(Snapshot3D contour : mContours)
 		{
 			if(this.getSnapshotDistance(contour, o)<TRESHOLD)
 			{
-				mContours.remove(contour);
+				mContours43.remove(i);
+				mContours34.remove(i);
 				mContoursLock.unlock();
 				return true;
 			}
+			++i;
 		}
 		mContoursLock.unlock();
 
