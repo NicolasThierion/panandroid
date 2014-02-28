@@ -583,6 +583,12 @@ public class CameraManager
 			return null;
 		}
 		
+		if(!isOpen())
+		{
+			Log.e(TAG, "trying to take a picture while camera is closed");
+			return null;
+		}
+		
 		mCameraIsBusy = true;
 
 		if(mDirectory == null)

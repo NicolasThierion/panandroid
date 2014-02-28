@@ -22,9 +22,15 @@ import java.io.File;
 import java.io.IOException;
 
 import junit.framework.Assert;
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.util.Log;
+import android.view.View;
+import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -39,12 +45,13 @@ import android.view.WindowManager;
  * @author Nicolas THIERION.
  *
  */
-public class CaptureActivity extends Activity
+public class CaptureActivity extends Activity implements OnSystemUiVisibilityChangeListener
 {
 	/* ******
 	 * DEBUG PARAMETERS
 	 * ******/
 	private static final boolean ALTERNATIVE_MARKERS_PLACEMENT = false;
+	public static final String TAG = CaptureActivity.class.getSimpleName();
 
 	/* *********
 	 * PARAMETERS
@@ -53,6 +60,8 @@ public class CaptureActivity extends Activity
 	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
 	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
 	private static final String PICTURE_DIRECTORY = Environment.getExternalStorageDirectory() + File.separator + "Panandroid";
+	
+	private static final int IMERSIVE_DELAY = 4000; //[s]
 
 	/* *********
 	 * ATTRIBUTES
@@ -76,9 +85,15 @@ public class CaptureActivity extends Activity
 	    
 		//view in fullscreen, and don't turn screen off
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+		// Hide both the navigation bar and the status bar.
+		View decorView = getWindow().getDecorView();
+		decorView.setOnSystemUiVisibilityChangeListener(this);
+		
+		toggleImmersive();
+		
+		
 		//setup camera manager
 		mCameraManager = CameraManager.getInstance(this);
 		try
@@ -116,6 +131,46 @@ public class CaptureActivity extends Activity
 	
 	}
 	
+	
+	@SuppressLint("InlinedApi")
+	public void toggleImmersive()
+	{
+		 // Navigation bar hiding:  Backwards compatible to ICS.
+        if (Build.VERSION.SDK_INT >= 14) 
+        {
+	        int uiOptions = getWindow().getDecorView().getSystemUiVisibility();
+	        int newUiOptions = uiOptions;        
+	        boolean isImmersiveModeEnabled = ((uiOptions  | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == uiOptions);
+	        if (isImmersiveModeEnabled) 
+	        {
+	            Log.i(TAG, "Turning immersive mode mode off. ");
+	        } 
+	        else 
+	        {
+	            Log.i(TAG, "Turning immersive mode mode on.");
+	        }
+	
+	      
+	        newUiOptions ^= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+	
+	
+	        // Status bar hiding: Backwards compatible to Jellybean
+	        if (Build.VERSION.SDK_INT >= 16) 
+	        {
+	            newUiOptions ^= View.SYSTEM_UI_FLAG_FULLSCREEN;
+	        }
+	
+	        
+	
+	        getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
+        }
+        else
+        {
+        	getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 0);
+        }
+
+        //END_INCLUDE (set_ui_flags)
+    }
 
 	/*void generateMarks(float s)
 	{
@@ -173,5 +228,35 @@ public class CaptureActivity extends Activity
 		mCaptureView.onDestroy();
 		super.onDestroy();
 	}
+
+
+	@Override
+	public void onSystemUiVisibilityChange(int visibility)
+	{
+		
 	
+		if ((visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0)
+		{
+			/*
+			visibilityFlags = View.SYSTEM_UI_FLAG_VISIBLE;
+			int uiOptions = visibilityFlags;	
+			decorView.setSystemUiVisibility(uiOptions);*/
+			
+			
+			Handler h = new Handler();
+
+			h.postDelayed(new Runnable() {
+
+			     @Override
+			     public void run() {
+			    	 toggleImmersive();			         
+			    	 //getActionBar().hide();
+			     }
+			 }, IMERSIVE_DELAY);
+	
+		} 
+		
+	}
+	    
+
 }
