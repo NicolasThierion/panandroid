@@ -78,22 +78,23 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     
     
     /** Size & distance of the snapshots **/
-	private static final float SNAPSHOTS_SIZE = 2.8f;
-	private static final float SNAPSHOTS_DISTANCE = 5.0f;
+	private static final float SNAPSHOTS_SIZE = 0.20f;
+	private static final float SNAPSHOTS_DISTANCE = 0.50f;
+	private static final float DEFAULT_SNAPSHOT_ZOOM = 140.0f;
 	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 0;	//[0 for automatic sample rate]
 
 	/** Size & distance of the camera preview **/
-	private static final float CAMERA_SIZE = 1.0f;
-	private static final float CAMERA_DISTANCE = 4.5f;
+	private static final float CAMERA_SIZE = 0.10f;
+	private static final float CAMERA_DISTANCE = 0.45f;
 	
 	/** Size & distance of the viewFinder**/
-	private static final float VIEWFINDER_SIZE = 0.08f;
-	private static final float VIEWFINDER_DISTANCE = 3.0f;
+	private static final float VIEWFINDER_SIZE = 0.010f;
+	private static final float VIEWFINDER_DISTANCE = 0.25f;
 	private static final float VIEWFINDER_ATTENUATION_ALPHA = 1.0f; 	
 	
 	/** Size & distance of the markers **/
-	private static final float MARKERS_SIZE = 0.05f;
-	private static final float MARKERS_DISTANCE = 3.0f;
+	private static final float MARKERS_SIZE = 0.008f;
+	private static final float MARKERS_DISTANCE = 0.30f;
 	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 15.0f; 		//[ in percent]
 	
 	private static final float CAMERA_RATIO = 3.0f/4.0f;
@@ -145,6 +146,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** sizes of camera, markers and snapshots **/
 	private float mCameraSize = CAMERA_SIZE;
 	private float mSnapshotsSize = SNAPSHOTS_SIZE;
+	private float mSnapshotZoom = DEFAULT_SNAPSHOT_ZOOM;
 	private float mMarkersSize = MARKERS_SIZE;
 	private float mViewFinderSize = VIEWFINDER_SIZE;
 	
@@ -219,7 +221,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		super(context);
 		mSkybox = skybox;		
 		super.setSurroundingMesh(mSkybox);
-		
+		super.setFovDeg(80.0f);
 		
 		//init attributes
 		mCameraManager = cameraManager;
@@ -343,6 +345,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			putMarker(a.getPitch(), a.getYaw());
 			putContour(a.getPitch(), a.getYaw());
 		}		
+	}
+	
+	public void setSnapshotZoom(float zoom)
+	{
+		mSnapshotZoom = zoom;
 	}
 	
     
@@ -469,7 +476,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			mDotsLock.lock();
 			for (Snapshot3D dot : mDots)
 			{		
-				d = getSnapshotDistance(dot);
+				d = getAbsSnapshotDistance(dot);
 				if(d>60.0f)
 				{
 					dot.setVisible(false);
@@ -491,7 +498,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			mContoursLock.lock();
 			for (Snapshot3D contour : mContours)
 			{		
-				d = getSnapshotDistance(contour);
+				d = getAbsSnapshotDistance(contour);
 
 				if(d>60.0f)
 				{
@@ -684,6 +691,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//fill the snapshot with the byteArray, faster than reading its data from SD.
 		snap.setSampleRate(mSampleRate);
 		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSampleRate));
+		snap.setZoom(mSnapshotZoom);
 		snap.recycleTexture();
 		
 		//put the snapshot at its place.
@@ -777,7 +785,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mDotsLock.lock();
 		for(Snapshot3D dot : mDots)
 		{
-			if(this.getAbsSnapshotDistance(dot, o)<TRESHOLD)
+			if(this.getSnapshotDistance(dot, o)<TRESHOLD)
 			{
 				mDots.remove(dot);
 				mDotsLock.unlock();

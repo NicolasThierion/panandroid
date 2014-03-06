@@ -27,3 +27,6 @@ public interface SnapshotEventListener
 {
 	abstract void onSnapshotTaken(byte[] pictureData, Snapshot snapshot);
 }
+
+
+

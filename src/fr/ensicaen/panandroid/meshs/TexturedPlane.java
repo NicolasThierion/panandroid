@@ -122,6 +122,8 @@ public class TexturedPlane extends Mesh
 	private boolean mTextureToLoad = false;
 	private boolean mHasToRecycle = false;
 	private String mPersistentTexturePath = null;
+
+	private float mZoom = 1.0f;
 	
 	
 
@@ -184,11 +186,7 @@ public class TexturedPlane extends Mesh
 		mVertexBuffer.position(0);
 		
 		//initialize texcoords data
-		byteBuffer = ByteBuffer.allocateDirect(mTexCoordData.length * Float.SIZE);
-		byteBuffer.order(ByteOrder.nativeOrder());
-		mTexCoordBuffer = byteBuffer.asFloatBuffer();
-		mTexCoordBuffer.put(mTexCoordData);
-		mTexCoordBuffer.position(0);
+		initTexCoord();
 	
 		this.setTexture(mDummyBitmapTexture);
 		mModelMatrix = new float[16];
@@ -209,6 +207,18 @@ public class TexturedPlane extends Mesh
 	    mIsVisible = visible;
 	}
 	
+	/**
+	 * set texture zoom in percent.
+	 * @param zoomLevel
+	 */
+	public void setZoom(float zoomLevel)
+	{
+		mZoom  = zoomLevel/100.0f;
+		mZoom = (mZoom>0.0f?mZoom : 1.0f);
+		initTexCoord();
+		
+	}
+
 	
 	
 	/**
@@ -326,6 +336,8 @@ public class TexturedPlane extends Mesh
 		
 		//enter 2d texture mode
 		gl.glEnable(GL10.GL_TEXTURE_2D);
+		gl.glTexParameterf(GL10.GL_TEXTURE_2D,GL10.GL_TEXTURE_WRAP_S,GL10.GL_CLAMP_TO_EDGE);
+		gl.glTexParameterf(GL10.GL_TEXTURE_2D,GL10.GL_TEXTURE_WRAP_T,GL10.GL_CLAMP_TO_EDGE);
 		
 		//enable depth test
 		gl.glEnable(GL10.GL_DEPTH_TEST);
@@ -465,6 +477,25 @@ public class TexturedPlane extends Mesh
 	/* *******
 	 * PRIVATE FUNCTIONS
 	 * ******/
+	
+	private void initTexCoord()
+	{
+		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(mTexCoordData.length * Float.SIZE);
+		byteBuffer.order(ByteOrder.nativeOrder());
+		mTexCoordBuffer = byteBuffer.asFloatBuffer();
+		
+		final int l=mTexCoordData.length;
+		float texCoordData[] = Arrays.copyOf(mTexCoordData, l);
+		for(int i=0; i<l ; ++i)
+		{
+			float z = (1.0f - mZoom)/2.0f;
+			texCoordData[i]+=z;
+			texCoordData[i] = Math.abs(texCoordData[i]);
+		}
+		
+		mTexCoordBuffer.put(texCoordData);
+		mTexCoordBuffer.position(0);
+	}
 	
 	/**
 	 * Set the given image as current texture, with given sample rate.

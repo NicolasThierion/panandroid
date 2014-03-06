@@ -59,7 +59,7 @@ import android.view.WindowManager;
  * TODO : set preview orientation according to phone orientation
  *
  */
-public class CameraManager
+public class CameraManager /* implements SnapshotObserver */
 {
 	public static final String TAG = CameraManager.class.getSimpleName();
 
@@ -86,7 +86,7 @@ public class CameraManager
 	public static final boolean DEFAULT_SAVE_JPEG = true;
 	
 	//tricky workaround to ensure that camera opening has finished before using it
-	public static final int CAMERA_INIT_DELAY = 1000;
+	public static final int CAMERA_INIT_DELAY = 10000;
 	private boolean mCameraIsBusy = true;
 	
 	/* *************
@@ -607,6 +607,7 @@ public class CameraManager
 		int orientation = getOrientation();
 		Camera.Parameters params = mCamera.getParameters();
 		params.setRotation(orientation);
+		params.setJpegQuality(mJpegCompression);
 		mCamera.setParameters(params);
 		
 		//take a picture in separated thread

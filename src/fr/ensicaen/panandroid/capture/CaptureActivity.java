@@ -21,9 +21,11 @@ package fr.ensicaen.panandroid.capture;
 import java.io.File;
 import java.io.IOException;
 
+import fr.ensicaen.panandroid.R;
 import junit.framework.Assert;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -31,6 +33,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnSystemUiVisibilityChangeListener;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -61,7 +64,9 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
 	private static final String PICTURE_DIRECTORY = Environment.getExternalStorageDirectory() + File.separator + "Panandroid";
 	
+	private static boolean IMMERSIVE_ENABLE = true;
 	private static final int IMERSIVE_DELAY = 4000; //[s]
+	private static final int NAVIGATION_HIDE_TYPE = View.SYSTEM_UI_FLAG_LOW_PROFILE;
 
 	/* *********
 	 * ATTRIBUTES
@@ -70,9 +75,14 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	/** The OpenGL view where to draw the sphere. */
 	private CaptureView mCaptureView;
 	
+	/** shutter button **/
+	ShutterButton mShutterButton;
+	
 	/** The Camera manager **/
 	private CameraManager mCameraManager;
 	
+	/** Instance of SnapshotManager, observer of onSnapshotTaken()**/
+	public SnapshotManager mSnapshotManager;
 	
 	/**
 	 * Called when the activity is first created.
@@ -82,17 +92,26 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	public void onCreate(final Bundle savedInstanceState) 
 	{
 		super.onCreate(savedInstanceState);
-	    
+		
 		//view in fullscreen, and don't turn screen off
-		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+		//bind activity to its layout
+        setContentView(R.layout.capture_activity);
 
 		// Hide both the navigation bar and the status bar.
 		View decorView = getWindow().getDecorView();
 		decorView.setOnSystemUiVisibilityChangeListener(this);
 		
-		toggleImmersive();
+		if(IMMERSIVE_ENABLE)
+		{
+        	getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+			toggleImmersive();
+		}
 		
+		//add shutter button
+        mShutterButton = (ShutterButton) findViewById(R.id.btn_shutter);
 		
 		//setup camera manager
 		mCameraManager = CameraManager.getInstance(this);
@@ -107,10 +126,17 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			return;
 		}
 		
-		
 		//setup GL view & its renderer
-		this.mCaptureView = new CaptureView(this, mCameraManager);
+		mCaptureView = new CaptureView(this, mCameraManager);
 		
+		//and populate the layout with it.
+		ViewGroup parent = (ViewGroup) (mCaptureView.getParent());
+		if(parent !=null)
+			parent.removeView(mCaptureView);
+		
+		ViewGroup container = ((ViewGroup) findViewById(R.id.gl_renderer_container));		
+		container.addView(mCaptureView);
+
 		
 		if(ALTERNATIVE_MARKERS_PLACEMENT)
 		{
@@ -122,11 +148,8 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			mCaptureView.setYawStep(DEFAULT_YAW_STEP);
 		}
 		
-		
-		
-		this.setContentView(this.mCaptureView);	
-		
-		
+		//do not set the view as content cause it is bind to layout.
+		//this.setContentView(this.mCaptureView);	
 		//mCameraManager.startPreview();
 	
 	}
@@ -140,7 +163,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
         {
 	        int uiOptions = getWindow().getDecorView().getSystemUiVisibility();
 	        int newUiOptions = uiOptions;        
-	        boolean isImmersiveModeEnabled = ((uiOptions  | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == uiOptions);
+	        boolean isImmersiveModeEnabled = ((uiOptions  | NAVIGATION_HIDE_TYPE) == uiOptions);
 	        if (isImmersiveModeEnabled) 
 	        {
 	            Log.i(TAG, "Turning immersive mode mode off. ");
@@ -151,15 +174,15 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	        }
 	
 	      
-	        newUiOptions ^= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+	        newUiOptions ^= NAVIGATION_HIDE_TYPE;
 	
-	
+	/*
 	        // Status bar hiding: Backwards compatible to Jellybean
-	        if (Build.VERSION.SDK_INT >= 16) 
+	        if (Build.VERSION.SDK_INT >= 16)
 	        {
 	            newUiOptions ^= View.SYSTEM_UI_FLAG_FULLSCREEN;
 	        }
-	
+	*/
 	        
 	
 	        getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
@@ -168,8 +191,6 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
         {
         	getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 0);
         }
-
-        //END_INCLUDE (set_ui_flags)
     }
 
 	/*void generateMarks(float s)
@@ -228,6 +249,13 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		mCaptureView.onDestroy();
 		super.onDestroy();
 	}
+	
+	@Override
+	public void onBackPressed() 
+	{
+		
+		super.onBackPressed();
+	}
 
 
 	@Override
@@ -235,13 +263,8 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	{
 		
 	
-		if ((visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0)
+		if ((visibility & NAVIGATION_HIDE_TYPE) == 0)
 		{
-			/*
-			visibilityFlags = View.SYSTEM_UI_FLAG_VISIBLE;
-			int uiOptions = visibilityFlags;	
-			decorView.setSystemUiVisibility(uiOptions);*/
-			
 			
 			Handler h = new Handler();
 
@@ -253,10 +276,6 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			    	 //getActionBar().hide();
 			     }
 			 }, IMERSIVE_DELAY);
-	
-		} 
-		
+		} 	
 	}
-	    
-
 }

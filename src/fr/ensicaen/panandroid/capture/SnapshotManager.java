@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2013 Nicolas THIERION, Saloua BENSEDDIK, Jean Marguerite.
- *
+
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -19,6 +19,7 @@
 package fr.ensicaen.panandroid.capture;
 
 import java.io.File;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,13 +32,20 @@ import org.json.JSONObject;
 import android.os.Environment;
 
 
-//TODO : Where is the JAVADOC??!??!
-public class SnapshotManager 
+
+
+//TODO Where is the JAVADOC??!??! done.
+/** 
+ * creates a list of snapshots
+ */
+public class SnapshotManager implements SnapshotEventListener
 {
 	private List<Snapshot> mSnapshots;
+	 
 	
-	
-	
+	/**
+	 *  creates an array of snapshots
+	 */
 	public SnapshotManager()
 	{
 		mSnapshots = new ArrayList<Snapshot>();
@@ -45,17 +53,20 @@ public class SnapshotManager
 	
 	
 	/**
-	 * 
+	 * add a snapshot to the list of snapshots  
 	 * @param snapshot
 	 */
 	public void addSnapshot(Snapshot snapshot)
 	{
-		
 		mSnapshots.add(snapshot);
-		
 	}
 	
-	public boolean createJSONFile()
+	/**
+	 * creates a JSON file named filename from the existing snapshots
+	 * @param filename name of the JSON file 
+	 * @return
+	 */
+	public boolean createJSONFile(String filename)
 	{
 		String panoName = "panoname";
 		
@@ -107,9 +118,35 @@ public class SnapshotManager
 		}
 		
 		return true; 
+	
+	
 	}
 	
+	/**
+	 * Checks if the JSONFile have been correctly created
+	 * @return true if the JSONFile have been created, false if not.
+	 */
+	public boolean createJSONFile()
+	{
+		return this.createJSONFile("panoName");
+	}
+
+
+	@Override
+	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
+	{
+		
+		addSnapshot(snapshot);
+	}
+		
 }
+
+
+	
+	
+	
+
+
 
 	
 	

@@ -760,7 +760,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			    	mMagneticHeading -= step;
 			}
 			mPitch = -mAccelerometerPitch ;
-			mYaw = mMagneticHeading;
+			mYaw = mMagneticHeading;	
+			
 		}
 	
 		@Override
@@ -776,7 +777,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	}
 	
 	/**
-	 * computes
+	 *
 	 */
 	private void computeRotation(SensorEvent event)
 	{

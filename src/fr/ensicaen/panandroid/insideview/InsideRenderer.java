@@ -75,7 +75,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 	protected Mesh mMesh;
 	
 	/** Diagonal field of view **/
-	private float fovDeg; 
+	private float mFovDeg; 
 	
 	/** The rotation angle of the mesh */
 	private float mYaw; 	/* Rotation around y axis */
@@ -113,7 +113,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 		mYaw = mPitch = mRoll = 0.0f;
 		mMesh = mesh;
 	  	setRotation(mYaw, mPitch);
-	  	fovDeg = DEFAULT_FOV;	
+	  	mFovDeg = DEFAULT_FOV;	
 	  	
 	  	
 	  	mRotationMatrix = Arrays.copyOf(IDENTITY, 16);
@@ -260,7 +260,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 	}
 		  
 	/* ************
-	 * GETTERS
+	 * ACCESSORS
 	 * ************/
 	/**
 	 * 
@@ -301,19 +301,19 @@ public class InsideRenderer implements Renderer, EulerAngles
 	  
 	public float getFov() 
 	{
-		return fovDeg;
+		return mFovDeg;
 	}
 	  
 	public float getHFovDeg() 
 	{
 		float viewDiagonal = (float) Math.sqrt(mSurfaceHeight*mSurfaceHeight + mSurfaceWidth*mSurfaceWidth);
-		float hFovDeg = (float) mSurfaceWidth/viewDiagonal * fovDeg;  	
+		float hFovDeg = (float) mSurfaceWidth/viewDiagonal * mFovDeg;  	
 		return hFovDeg;
 	}
 
 	public float getVFovDeg() {
 		float viewDiagonal = (float) Math.sqrt(mSurfaceHeight*mSurfaceHeight + mSurfaceWidth*mSurfaceWidth);	
-		float vFovDeg = (float) mSurfaceHeight/viewDiagonal * fovDeg;
+		float vFovDeg = (float) mSurfaceHeight/viewDiagonal * mFovDeg;
 		return vFovDeg;
 	}
 
@@ -338,6 +338,11 @@ public class InsideRenderer implements Renderer, EulerAngles
 	protected float[] getRotationMatrix()
 	{
 		return mRotationMatrix;
+	}
+	
+	public void setFovDeg(float degree)
+	{
+		mFovDeg = degree;
 	}
 	
 	/* ************

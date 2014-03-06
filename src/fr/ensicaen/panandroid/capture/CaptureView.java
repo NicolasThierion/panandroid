@@ -20,6 +20,7 @@
 package fr.ensicaen.panandroid.capture;
 import java.util.LinkedList;
 
+
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
 import fr.ensicaen.panandroid.meshs.Cube;
@@ -42,7 +43,7 @@ import android.util.Log;
  */
 @SuppressLint("ViewConstructor")
 public class CaptureView extends Inside3dView
-{	
+{
 	
 	private static final String TAG = CaptureView.class.getSimpleName();
 
@@ -74,7 +75,6 @@ public class CaptureView extends Inside3dView
 	
 	/** Sphere renderer **/
 	private CaptureRenderer mRenderer;
-
 	
 	/** SensorFusion used to guide capture **/
 	private SensorFusionManager mSensorManager;
@@ -151,13 +151,12 @@ public class CaptureView extends Inside3dView
 			Log.w(TAG, "not enough memory to load skybox texture.. Forced to downscale texture by "+sampleSize);
 		}		
 		
+		
 		// set glview to use a capture renderer with the provided skybox.
 		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
 		this.updateTargets();
         super.setRenderer(mRenderer);
-        
-     
-        
+  
         //set view rotation parameters
         super.enableSensorialRotation(true);
         super.enableTouchRotation(false);
@@ -273,5 +272,4 @@ public class CaptureView extends Inside3dView
 	{
 		mCameraManager.onClose();
 	}
-
 }
