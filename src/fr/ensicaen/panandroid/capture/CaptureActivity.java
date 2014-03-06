@@ -26,6 +26,7 @@ import junit.framework.Assert;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -253,8 +254,27 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	@Override
 	public void onBackPressed() 
 	{
+		AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+		alertDialog.setMessage(getString(R.string.exit_confrm)).setCancelable(false);
+
+		alertDialog.setPositiveButton(getString(R.string.exit_yes), new DialogInterface.OnClickListener() 
+		{
+			public void onClick(DialogInterface dialog, int id)
+			{
+				CaptureActivity.super.onBackPressed();
+			}
+		});
+		alertDialog.setNegativeButton(R.string.exit_no, new DialogInterface.OnClickListener()
+		{
+			public void onClick(DialogInterface dialog, int id)
+			{
+				dialog.cancel();
+			}
+		});
 		
-		super.onBackPressed();
+		AlertDialog alert = alertDialog.create();
+		alert.show();
+
 	}
 
 

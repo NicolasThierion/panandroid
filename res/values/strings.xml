@@ -117,4 +117,7 @@
     <string name="iso_hint_400">400 ISO</string>
     <string name="iso_hint_800">800 ISO</string>
     <string name="iso_hint_1600">1600 ISO</string>
+    <string name="exit_confrm">Do you really want to exit?</string>
+    <string name="exit_yes">exit</string>
+    <string name="exit_no">don\'t exit</string>
 </resources>
