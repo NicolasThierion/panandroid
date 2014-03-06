@@ -132,6 +132,7 @@ public class SnapshotManager implements SnapshotEventListener
 	}
 
 
+	
 	@Override
 	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
 	{
