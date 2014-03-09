@@ -19,7 +19,6 @@
 package fr.ensicaen.panandroid.capture;
 
 import java.io.File;
-
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,80 +28,90 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.os.Environment;
 
 
 
-
-//TODO Where is the JAVADOC??!??! done.
 /** 
  * creates a list of snapshots
  */
 public class SnapshotManager implements SnapshotEventListener
 {
-	private List<Snapshot> mSnapshots;
-	 
+	/* ******
+	 * PARAMETERS
+	 * *****/
+	private static final String DEFAULT_JSON_FILENAME = "PanoData.json";
 	
+	
+	/* ******
+	 * ATTRIBUTES
+	 * *****/
+	private List<Snapshot> mSnapshots;
+	private JSONArray mJsonArray;
+	
+	
+	/* ******
+	 * CONSTRUCTOR
+	 * ******/
 	/**
 	 *  creates an array of snapshots
 	 */
 	public SnapshotManager()
 	{
 		mSnapshots = new ArrayList<Snapshot>();
+		mJsonArray = new JSONArray();
 	}
 	
-	
+	/* *******
+	 * METHODS
+	 * *******/
 	/**
-	 * add a snapshot to the list of snapshots  
+	 * add a snapshot to the list of snapshots.
 	 * @param snapshot
 	 */
 	public void addSnapshot(Snapshot snapshot)
 	{
 		mSnapshots.add(snapshot);
+		
+		JSONObject jso = new JSONObject();
+		try 
+		{
+			jso.put("snapshotId", snapshot.getId());
+			jso.put("urlName", snapshot.getFileName());
+			jso.put("pitch", snapshot.getPitch());	
+			jso.put("yaw", snapshot.getYaw());
+			mJsonArray.put(jso);
+		}
+		catch (JSONException e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	/**
-	 * creates a JSON file named filename from the existing snapshots
-	 * @param filename name of the JSON file 
-	 * @return
+	 * save the snapshot collection to a JSON file
+	 * @param directory Directory to save the JSON file. Directories will be created if don't exists.
+	 * @param filename name of the JSON file.
+	 * @return absolute path + filename of the created JSon file.
 	 */
-	public boolean createJSONFile(String filename)
+	public String toJSON(String directory, String filename)
 	{
-		String panoName = "panoname";
-		
 		JSONObject snapshots = new JSONObject();
+		String absoluteFilename = null;
+		
 		
 		try {
-			snapshots.put("panoName", panoName);
+			snapshots.put("panoName", filename);	
+			snapshots.put("panoData", mJsonArray);
+			File dir = new File(directory);
 	
-		
-			JSONArray list = new JSONArray();
-			
-			for( int i = 0; i < mSnapshots.size(); i++)
+			if (!dir.exists()) 
 			{
-				JSONObject snapshot = new JSONObject();
-				Snapshot currentSnapshot = mSnapshots.get(i);
-				snapshot.put("snapshotId", currentSnapshot.getId());
-				
-				snapshot.put("urlName", currentSnapshot.getFileName());
-				snapshot.put("pitch", currentSnapshot.getPitch());	
-				snapshot.put("yaw", currentSnapshot.getYaw());
-				
-				list.put(snapshot);
-			}
-	 
-			snapshots.put("panoData", list);
-		 
-			File directory = new File(Environment.getExternalStorageDirectory()
-		                + File.separator + "Panandroid");
-	
-			if (!directory.exists()) {
-				directory.mkdirs();
+				dir.mkdirs();
 			}
 			try
 			{
-		 
-				FileWriter file = new FileWriter(directory.getAbsolutePath()+File.separator+panoName+".json");
+				absoluteFilename = genPathName(dir.getAbsolutePath(), filename);
+				FileWriter file = new FileWriter(absoluteFilename);
 				file.write(snapshots.toString());
 				file.flush();
 				file.close();
@@ -110,34 +119,45 @@ public class SnapshotManager implements SnapshotEventListener
 			}
 			catch (IOException e) {
 				e.printStackTrace();
-				return false;
+				return null;
 			}
 		} catch (JSONException e1) {
 			e1.printStackTrace();
-			return false;
+			return null;
 		}
 		
-		return true; 
+		return absoluteFilename; 
 	
 	
 	}
 	
 	/**
-	 * Checks if the JSONFile have been correctly created
-	 * @return true if the JSONFile have been created, false if not.
+	 * save the snapshot collection to a JSON file
+	 * @param directory Directory to save the JSON file. Directories will be created if don't exists.
+	 * @return absolute path + filename of the created JSon file.
 	 */
-	public boolean createJSONFile()
+	public String toJSON(String directory)
 	{
-		return this.createJSONFile("panoName");
+		return toJSON(directory, DEFAULT_JSON_FILENAME);
 	}
 
 
-	
 	@Override
 	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
 	{
-		
 		addSnapshot(snapshot);
+	}
+	
+	/* ******
+	 * PRIVATE METHODS
+	 * ******/
+	/**
+	 * Generate a complete pathname given the provided filename and path.
+	 */
+	private String genPathName(String path, String filename)
+	{				
+		String absoluteFilename = path+File.separator+filename;
+		return absoluteFilename;
 	}
 		
 }

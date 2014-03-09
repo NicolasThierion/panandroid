@@ -154,9 +154,10 @@ public class CaptureView extends Inside3dView
 		
 		// set glview to use a capture renderer with the provided skybox.
 		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
-		this.updateTargets();
         super.setRenderer(mRenderer);
   
+		updateTargets();
+
         //set view rotation parameters
         super.enableSensorialRotation(true);
         super.enableTouchRotation(false);

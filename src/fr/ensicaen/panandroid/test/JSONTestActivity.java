@@ -44,7 +44,8 @@ public class JSONTestActivity extends Activity
 		mView = new View(this);
 		this.setContentView(this.mView);	
 		
-		mSnapshotManager.createJSONFile();
+		//TODO
+		//mSnapshotManager.createJSONFile();
 	}
 	
 	  

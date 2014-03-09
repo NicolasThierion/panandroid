@@ -302,18 +302,27 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	} 
 	
 	
-	
+	/**
+	 * Unregister all the used sensors. same as unregisterListener().
+	 */
 	public void onPauseOrStop()
 	{
 	    unregisterListener();
 	}
 	
+	/**
+	 * Re register the used sensors. Same as registerListener().
+	 */
 	public void onResume()
 	{
 	    // restore the sensor listeners when user resumes the application.
 	    registerListener(mIsGyroscopeSupported);
 	}
 	
+	/**
+	 * Return true if the devce has a gyroscope. SensorFusionManager have to have been started at least once to know if gyroscope is supported.
+	 * @return True if gyroscope is supported.
+	 */
 	public boolean isGyroscopeSupported()
 	{
 		return mIsGyroscopeSupported;

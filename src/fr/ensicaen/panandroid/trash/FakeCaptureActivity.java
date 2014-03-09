@@ -117,7 +117,9 @@ public class FakeCaptureActivity extends Activity implements CvCameraViewListene
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(mContext, StitcherActivity.class);
-                mSnapshotManager.createJSONFile();
+                
+                //TODO
+                //mSnapshotManager.createJSONFile();
                 startActivity(intent);
             }
         });

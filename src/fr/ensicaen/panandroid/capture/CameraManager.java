@@ -28,10 +28,7 @@ import java.util.LinkedList;
 import junit.framework.Assert;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
@@ -292,7 +289,7 @@ public class CameraManager /* implements SnapshotObserver */
 			startPreview();
 		return res;
 	}
-	
+
 	
 	 /* **************
 	  * ACCESSORS
@@ -479,7 +476,7 @@ public class CameraManager /* implements SnapshotObserver */
 		
 		for(EulerAngles a : targets)
 			mAutoShootTargets.add(new Snapshot(a.getPitch(), a.getYaw()));
-		if(this.isAutoShootEnabled())
+		if(isAutoShootEnabled())
 			mSensorFusionManager.addSensorEventListener(mSensorListener);
 		else
 			mSensorFusionManager.removeSensorEventListener(mSensorListener);
@@ -529,6 +526,7 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		mCameraIsBusy = false;
 		mCamera.release();
+		mCamera = null;
 		mSensorFusionManager.onPauseOrStop();
 	}
 	
@@ -714,25 +712,13 @@ public class CameraManager /* implements SnapshotObserver */
 		};
 		return orientation%360;
 	}
-	/*
-	private Bitmap rotateBitmap(Bitmap bmp, int angle)
-	{
-		Matrix matrix = new Matrix();
-
-		matrix.postRotate(90);
-
-		Bitmap scaledBitmap = Bitmap.createScaledBitmap(bmp,bmp.getWidth(),bmp.getHeight(),true);
-
-		Bitmap rotatedBitmap = Bitmap.createBitmap(scaledBitmap , 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
-		return rotatedBitmap;
-	}
-	*/
+	
 	/* *************
 	 * PRIVATE CALLBACK CLASSES
 	 * ************/
 	
 	/**
-	 * If capture is sensorial, get current pitch and current yaw, and fill mTempSnapshot woth it
+	 * If capture is sensorial, get current pitch and current yaw, and fill mTempSnapshot with it.
 	 * @author Nicolas THIERION.
 	 *
 	 */
@@ -834,32 +820,12 @@ public class CameraManager /* implements SnapshotObserver */
 					try 
 					{
 		        		Log.i(TAG, "Saving file at "+jpegFile);
-		        		
-		        		
-		        		
+		
 						
 		        		FileOutputStream fos = new FileOutputStream(jpegFile);
 						fos.write(data);
 						fos.close();	
-						
-		        		/*
-		        		//create bitmap from picture data.
-						Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
-						Assert.assertTrue(bmp!=null);
-						
-						//get device's orientation, to apply to final jpeg.
-						int rotationAngle = getOrientation();
-				        
-				        //rotates bitmap.
-				        Bitmap rotatedBitmap = rotateBitmap(bmp, rotationAngle);
-				        
-		        		//write image file
-				        FileOutputStream fos = new FileOutputStream(jpegFile);
-				        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_COMPRESSION, fos);
-				        fos.close();
-			*/
-						  
-						    
+				
 						mTempSnapshot.setFileName(jpegFile);
 						takenSnapshot = mTempSnapshot;
 						mTempSnapshot = null;
@@ -976,16 +942,16 @@ public class CameraManager /* implements SnapshotObserver */
 	/**
 	 * Generate a complete filename given the provided prefix.
 	 */
-	private String genAbsoluteFilename(String filename)
+	private String genAbsoluteFilename(String prefix)
 	{
 		
 		final String path=mDirectory.getAbsolutePath()+File.separator;
 		int id = 0;
 		
-		if(filename.equals(mPrefix))
+		if(prefix.equals(mPrefix))
 			id = mFileId;
 		
-		String absoluteFilename = path+filename;
+		String absoluteFilename = path+prefix;
 		
 		File fJpeg = new File(absoluteFilename+".jpg");
 		File fRaw = new File(absoluteFilename+".raw");
@@ -993,7 +959,7 @@ public class CameraManager /* implements SnapshotObserver */
 		{
 			do
 			{
-				absoluteFilename = path+filename+(id++);
+				absoluteFilename = path+prefix+(id++);
 				fJpeg = new File(absoluteFilename+".jpg");
 				fRaw = new File(absoluteFilename+".raw");
 
@@ -1011,10 +977,7 @@ public class CameraManager /* implements SnapshotObserver */
 		return mpx;
 	}
 
-	
-	
-	
-	
-	
+
+
 	
 }

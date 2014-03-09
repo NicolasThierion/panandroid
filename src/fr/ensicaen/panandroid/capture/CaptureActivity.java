@@ -54,18 +54,23 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	/* ******
 	 * DEBUG PARAMETERS
 	 * ******/
-	private static final boolean ALTERNATIVE_MARKERS_PLACEMENT = false;
 	public static final String TAG = CaptureActivity.class.getSimpleName();
+	
+	private static final boolean ALTERNATIVE_MARKERS_PLACEMENT = false;
+	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
+	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
 
 	/* *********
 	 * PARAMETERS
 	 * *********/
 
-	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
-	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
-	private static final String PICTURE_DIRECTORY = Environment.getExternalStorageDirectory() + File.separator + "Panandroid";
-	
+	/** Directory where pictures will be saved **/
+	private static final String APP_DIRECTORY = Environment.getExternalStorageDirectory() + File.separator + "Panandroid";
+	private static final String TEMP_PREFIX = "temp";
+	/** immersive mode will hide status bar and navigation bar **/
 	private static boolean IMMERSIVE_ENABLE = true;
+	
+	/** delay for hiding bars **/
 	private static final int IMERSIVE_DELAY = 4000; //[s]
 	private static final int NAVIGATION_HIDE_TYPE = View.SYSTEM_UI_FLAG_LOW_PROFILE;
 
@@ -76,14 +81,15 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	/** The OpenGL view where to draw the sphere. */
 	private CaptureView mCaptureView;
 	
-	/** shutter button **/
-	ShutterButton mShutterButton;
-	
 	/** The Camera manager **/
 	private CameraManager mCameraManager;
 	
 	/** Instance of SnapshotManager, observer of onSnapshotTaken()**/
-	public SnapshotManager mSnapshotManager;
+	private SnapshotManager mSnapshotManager;
+	
+	/** directory where images and JSon file are stored **/
+	private String mWorkingDir = APP_DIRECTORY;
+	private String mPanoName;
 	
 	/**
 	 * Called when the activity is first created.
@@ -111,14 +117,15 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			toggleImmersive();
 		}
 		
-		//add shutter button
-        mShutterButton = (ShutterButton) findViewById(R.id.btn_shutter);
-		
+		//set up pano name and working dir
+		mPanoName = genPanoName(TEMP_PREFIX);
+		mWorkingDir = genWorkingDir(mPanoName);
+
 		//setup camera manager
 		mCameraManager = CameraManager.getInstance(this);
 		try
 		{
-			mCameraManager.setTargetDir(PICTURE_DIRECTORY);
+			mCameraManager.setTargetDir(mWorkingDir);
 			mCameraManager.open();
 		}
 		catch (IOException e)
@@ -126,7 +133,10 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			e.printStackTrace();
 			return;
 		}
-		
+		//setup JSON and snapshot manager
+		mSnapshotManager = new SnapshotManager();
+		mCameraManager.addSnapshotEventListener(mSnapshotManager);
+				
 		//setup GL view & its renderer
 		mCaptureView = new CaptureView(this, mCameraManager);
 		
@@ -156,6 +166,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	}
 	
 	
+
 	@SuppressLint("InlinedApi")
 	public void toggleImmersive()
 	{
@@ -221,6 +232,10 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 	}*/
 	
+	
+	/* ********
+	 * OVERRIDES
+	 * ********/
 	/**
 	 * Remember to resume the glSurface.
 	 */
@@ -240,7 +255,14 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	protected void onPause()
 	{
 		Assert.assertTrue(mCaptureView!=null);
-		this.mCaptureView.onPause();
+		//pause camera, GL context, etc.
+		mCaptureView.onPause();
+		
+		//save project to json
+		String res = mSnapshotManager.toJSON(mWorkingDir);
+		Log.i(TAG,  "saving project to "+res);
+		
+		//call parent
 		super.onPause();
 	}
 	
@@ -298,4 +320,41 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			 }, IMERSIVE_DELAY);
 		} 	
 	}
+	
+	/* ******
+	 * PRIVATE METHODS
+	 * ******/
+
+	private String genWorkingDir(String panoName)
+	{
+
+		File dir = new File(APP_DIRECTORY+File.separator+panoName);
+		dir.mkdirs();	
+		return APP_DIRECTORY+File.separator+panoName;
+	}
+
+
+	private String genPanoName(String prefix)
+	{
+
+		int id = 1;
+				
+		String path = APP_DIRECTORY+File.separator+prefix;
+		
+		File dir = new File(path);
+		if(dir.exists())
+		{
+			do
+			{
+				path = APP_DIRECTORY+File.separator+prefix+(id++);
+				dir = new File(path);
+
+			}while(dir.exists());
+			return prefix+(--id);
+		}
+		
+		return prefix;	
+	}
+	
+	
 }
