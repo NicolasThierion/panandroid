@@ -93,7 +93,7 @@ string result_name = "result.jpg";
 
 static int parseCmdArgs(int argc, char** argv)
 {
-        for (int i = 1; i < argc; ++i) {
+        for (int i = 0; i < argc; ++i) {
                 if (string(argv[i]) == "--preview") {
                         preview = true;
                 } else if (string(argv[i]) == "--try_gpu") {
@@ -351,6 +351,10 @@ Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_openCVStitcher(
         matcher.collectGarbage();
         __android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching, time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
+        #ifdef DEBUG
+                t = getTickCount();
+        #endif
+
         // Check if we should save matches graph
         if (save_graph) {
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Saving matches graph...");
@@ -461,6 +465,7 @@ Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_openCVStitcher(
                 }
         }
 
+        __android_log_print(ANDROID_LOG_INFO, TAG, "Some stuff on images, time: %f sec", ((getTickCount() - t) / getTickFrequency()));
         __android_log_print(ANDROID_LOG_INFO, TAG, "Warping images (auxiliary)...");
 
         #ifdef DEBUG
@@ -555,6 +560,10 @@ Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_openCVStitcher(
 
         __android_log_print(ANDROID_LOG_INFO, TAG, "Warping images, time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
+        #ifdef DEBUG
+                t = getTickCount();
+        #endif
+
         Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(expos_comp_type);
         compensator->feed(corners, images_warped, masks_warped);
 
@@ -598,6 +607,7 @@ Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_openCVStitcher(
         images_warped_f.clear();
         masks.clear();
 
+        __android_log_print(ANDROID_LOG_INFO, TAG, "Some stuff on images 2, time: %f sec", ((getTickCount() - t) / getTickFrequency()));
         __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing...");
 
         #ifdef DEBUG

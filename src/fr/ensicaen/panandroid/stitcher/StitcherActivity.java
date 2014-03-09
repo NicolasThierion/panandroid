@@ -23,6 +23,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -30,9 +34,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
 import fr.ensicaen.panandroid.R;
 
 /**
@@ -40,7 +41,7 @@ import fr.ensicaen.panandroid.R;
  * @author Jean Marguerite <jean.marguerite@ecole.ensicaen.fr>
  * @version 0.0.1 - Sat Feb 01 2014
  */
-public class StitcherActivity extends Activity implements OnClickListener {
+public class StitcherActivity extends Activity {
     private static final String TAG = StitcherActivity.class.getSimpleName();
     private File mFolderSnapshot;
 
@@ -53,16 +54,9 @@ public class StitcherActivity extends Activity implements OnClickListener {
         super.onCreate(savedInstanceState);
 
         mFolderSnapshot = new File(Environment.getExternalStorageDirectory()
-                + File.separator + "Sample");
+                + File.separator + "Panandroid" + File.separator
+                + "temp");
         setContentView(R.layout.stitcher);
-
-    }
-
-    /**
-     * Called when the stitch button has been clicked.
-     */
-    @Override
-    public void onClick(View v) {
         new StitcherTask().execute();
     }
 
@@ -89,16 +83,35 @@ public class StitcherActivity extends Activity implements OnClickListener {
         @Override
         protected Integer doInBackground(Void... params) {
             String[] paths = mFolderSnapshot.list();
-            List<String> snapshots = new ArrayList<String>();
+            List<String> arguments = new ArrayList<String>();
 
             for (int i = 0; i < paths.length; ++i) {
-                snapshots.add(paths[i]);
-                Log.i(TAG, mFolderSnapshot.getAbsolutePath()
-                        + File.separator + paths[i]);
+                if (!paths[i].endsWith(".json")) {
+                    arguments.add(mFolderSnapshot.getAbsolutePath() + File.separator
+                            + paths[i]);
+                    Log.i(TAG, mFolderSnapshot.getAbsolutePath()
+                            + File.separator + paths[i]);
+                } else {
+                    try {
+                        JSONObject jso = new JSONObject(mFolderSnapshot.getAbsolutePath()
+                                + File.separator + "PanoData.json");
+                        JSONArray pictureData = jso.getJSONArray("panoData");
+
+                        for (int j = 0; i < pictureData.length(); ++i) {
+                            JSONObject data = pictureData.getJSONObject(i);
+                            Log.i(TAG, data.getString("snapshotId"));
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
 
-            return OpenCVStitcher(mFolderSnapshot.getAbsoluteFile()
-                    + File.separator, snapshots.toArray());
+            arguments.add("--result");
+            arguments.add(mFolderSnapshot.getAbsolutePath() + File.separator
+                    + "panorama.jpg");
+
+            return openCVStitcher(arguments.toArray());
         }
 
         /**
@@ -131,8 +144,7 @@ public class StitcherActivity extends Activity implements OnClickListener {
 
     /**
      * Declaration of the native function.
-     * @param snapshots Paths to the set of pictures.
-     * @return Result of the stitching
+     * @return Result of the stitching.
      */
-    public native int OpenCVStitcher(String folder, Object[] snapshots);
+    public native int openCVStitcher(Object[] arguments);
 }
