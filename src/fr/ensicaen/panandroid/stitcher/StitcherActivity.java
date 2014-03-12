@@ -19,7 +19,11 @@
 
 package fr.ensicaen.panandroid.stitcher;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,9 +37,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
-import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.capture.CaptureActivity;
 
 /**
@@ -45,7 +47,7 @@ import fr.ensicaen.panandroid.capture.CaptureActivity;
  */
 public class StitcherActivity extends Activity {
     private static final String TAG = StitcherActivity.class.getSimpleName();
-    private File mFolderSnapshot;
+    private File mFolder;
 
     /**
      * Called when StitcherActivity is starting.
@@ -56,9 +58,43 @@ public class StitcherActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
-        mFolderSnapshot = new File(intent.getStringExtra(CaptureActivity.FOLDER));
-        setContentView(R.layout.stitcher);
+        mFolder = new File(intent.getStringExtra(
+                CaptureActivity.FOLDER));
         new StitcherTask().execute();
+    }
+
+    /**
+     * Reads content of PanoData.json file.
+     * @return String representing content of PanoData.json
+     */
+    public String readPanoData() {
+        BufferedReader br = null;
+        String content = null;
+
+        try {
+            br = new BufferedReader(new FileReader(
+                    mFolder.getAbsoluteFile() + File.separator
+                    + "PanoData.json"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            StringBuilder sb = new StringBuilder();
+            String line = br.readLine();
+
+            while (line != null) {
+                sb.append(line);
+                line = br.readLine();
+            }
+
+            content = sb.toString();
+            br.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return content;
     }
 
     /**
@@ -83,33 +119,33 @@ public class StitcherActivity extends Activity {
          */
         @Override
         protected Integer doInBackground(Void... params) {
-            String[] paths = mFolderSnapshot.list();
+            String[] paths = mFolder.list();
             List<String> arguments = new ArrayList<String>();
 
             for (int i = 0; i < paths.length; ++i) {
-                if (!paths[i].endsWith(".json")) {
-                    arguments.add(mFolderSnapshot.getAbsolutePath() + File.separator
-                            + paths[i]);
-                    Log.i(TAG, mFolderSnapshot.getAbsolutePath()
-                            + File.separator + paths[i]);
-                } else {
+                if (paths[i].endsWith(".json")) {
                     try {
-                        JSONObject jso = new JSONObject(mFolderSnapshot.getAbsolutePath()
-                                + File.separator + "PanoData.json");
-                        JSONArray pictureData = jso.getJSONArray("panoData");
+                        JSONObject file = new JSONObject(readPanoData());
 
-                        for (int j = 0; i < pictureData.length(); ++i) {
-                            JSONObject data = pictureData.getJSONObject(i);
+                        JSONArray pictureData = file.getJSONArray("panoData");
+
+                        for (int j = 0; j < pictureData.length(); ++j) {
+                            JSONObject data = pictureData.getJSONObject(j);
                             Log.i(TAG, data.getString("snapshotId"));
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
+                } else {
+                    arguments.add(mFolder.getAbsolutePath() + File.separator
+                            + paths[i]);
+                    Log.i(TAG, mFolder.getAbsolutePath()
+                            + File.separator + paths[i]);
                 }
             }
 
             arguments.add("--result");
-            arguments.add(mFolderSnapshot.getAbsolutePath() + File.separator
+            arguments.add(mFolder.getAbsolutePath() + File.separator
                     + "panorama.jpg");
 
             return openCVStitcher(arguments.toArray());
