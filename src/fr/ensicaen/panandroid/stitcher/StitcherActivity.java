@@ -30,11 +30,13 @@ import org.json.JSONObject;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.capture.CaptureActivity;
 
 /**
  * StitcherActivity class provides the stitcher of the application.
@@ -53,9 +55,8 @@ public class StitcherActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mFolderSnapshot = new File(Environment.getExternalStorageDirectory()
-                + File.separator + "Panandroid" + File.separator
-                + "temp");
+        Intent intent = getIntent();
+        mFolderSnapshot = new File(intent.getStringExtra(CaptureActivity.FOLDER));
         setContentView(R.layout.stitcher);
         new StitcherTask().execute();
     }
