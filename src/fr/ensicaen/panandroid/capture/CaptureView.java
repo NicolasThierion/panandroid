@@ -77,7 +77,7 @@ public class CaptureView extends Inside3dView
 	private CaptureRenderer mRenderer;
 	
 	/** SensorFusion used to guide capture **/
-	private SensorFusionManager mSensorManager;
+	//private SensorFusionManager mSensorManager;
 	
 	private float mPitchStep = DEFAULT_PITCH_STEP;
 	private float mYawStep = DEFAULT_YAW_STEP;
@@ -96,18 +96,22 @@ public class CaptureView extends Inside3dView
 		super(context);
 	
 		//setup sensors
-		mSensorManager = SensorFusionManager.getInstance(context);
+		/*
+		mSensorManager = new SensorFusionManager(context);
 		if(!mSensorManager.start())
 		{
 			//TODO : error toast
 			Log.e(TAG, "Rotation not supported");
 		}
-		
+		*/
 		//setup cameraManager
 		mCameraManager = cameraManager;	
-		mCameraManager.setSensorFusionManager(mSensorManager);
+		mCameraManager.setSensorialCaptureEnabled(true);
 		
 		//adapt precision according to sensorFusion type.
+		mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_GRYO_THREASHOLD);
+
+		/*
 		if(mSensorManager.isGyroscopeSupported())
 		{
 			mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_GRYO_THREASHOLD);
@@ -116,7 +120,7 @@ public class CaptureView extends Inside3dView
 		{
 			mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_ACCELEROMETER_THREASHOLD);
 		}
-
+		 */
 		
 		//init the skybox
 		Cube skybox = null;
@@ -256,7 +260,8 @@ public class CaptureView extends Inside3dView
 	{
 		super.onPause();
 		mCameraManager.onPause();
-		mSensorManager.onResume();
+		//TODO : remove
+		//mSensorManager.onResume();
 	}
 	
 	@Override
@@ -264,7 +269,7 @@ public class CaptureView extends Inside3dView
 	{
 		super.onResume();
 		mCameraManager.onResume();
-		mSensorManager.onResume();
+		//mSensorManager.onResume();
 		
 	}
 	

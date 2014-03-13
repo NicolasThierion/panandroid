@@ -92,7 +92,8 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	protected Inside3dView(Context context, Mesh mesh, InsideRenderer renderer)
 	{
 		super(context);
-			
+		super.setPreserveEGLContextOnPause(true);
+
 		//if renderer is set, assign the view to it.
 		if(renderer != null)
 		{        
@@ -217,7 +218,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		
 		if(mRollEnable)
 		{
-			float roll = mSensorFusionManager.getRelativeRoll(this.getContext());
+			float roll = mSensorFusionManager.getRelativeRoll();
 			this.mRenderer.setRotation(pitch, yaw, roll);
 		}
 		else
@@ -314,7 +315,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		if(enable)
 		{
 			//create a new sensor manager
-			this.mSensorFusionManager = SensorFusionManager.getInstance(this.getContext());
+			mSensorFusionManager = new SensorFusionManager(getContext());
 			
 			boolean initialized = true;
 			if(!mSensorFusionManager.isStarted())
@@ -337,7 +338,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		{
 			mSensorialRotationEnable = false;
 			mSensorFusionManager.removeSensorEventListener(this);
-			this.mSensorFusionManager.onPauseOrStop();
+			mSensorFusionManager.stop();;
 			mSensorFusionManager = null;
 		}
 		return true;

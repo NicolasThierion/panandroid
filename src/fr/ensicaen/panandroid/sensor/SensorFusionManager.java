@@ -124,44 +124,19 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	/** current and computed rotation values **/
 	private float[] mRotationValues = new float[3];
 	private float[] mCurrRotationValues = new float[3];
+	private Context mContext;
 
 	
 	/* *********
 	 * CONSTRUCTOR
 	 * ********/
 	
-	/**
-	 * Don't forget to call registerListeners() once to start the sensor.
-	 * @param context
-	 * @return
-	 */
-	public static SensorFusionManager getInstance(Context context)
+	
+	public SensorFusionManager(Context context)
 	{
-		if(mInstance == null)
-		{
-			synchronized(SensorFusionManager.class)
-			{
-	    		if(mInstance == null)
-	    		{
-	    			mInstance = new SensorFusionManager(context);
-	    		}
+		this(context, true);
+	}
 		
-			}
-		}
-		return mInstance;
-	}
-	
-	/**
-	 * Init a sensorManager and listen to TYPE_ROTATION_VECTOR events.
-	 * 
-	 * @param context
-	 */
-	private SensorFusionManager(Context context)
-	{
-	    // get sensorManager and initialise sensor listeners
-	    this(context, true);
-	}
-	
 	/**
 	 * allow to force fallback mode.
 	 * for debug purpose only.
@@ -170,6 +145,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	 */
 	private SensorFusionManager(Context context, boolean useGyroscope)
 	{
+		mContext = context;
+		
 	    // get sensorManager and initialise sensor listeners
 	    mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 	    registerListener(useGyroscope);
@@ -181,15 +158,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	@Override
 	public void onSensorChanged(SensorEvent event) 
 	{
-		
-		//don't know why this test.
-		/*
-	    if (mRotationMatrix == null) {
-	        mRotationMatrix = new float[16];
-	    }
-	    */	
-		
-		
+
 		if(mIsGyroscopeSupported)
 		{
 			if(event.sensor.getType()==Sensor.TYPE_ROTATION_VECTOR)
@@ -240,6 +209,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    {
 	    	l.onSensorChanged(event);
 	    }
+	    
 	}
 	
 	@Override
@@ -385,9 +355,9 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	 * get roll relative to device's current orientation( landscape or portrait).
 	 * 
 	 */
-	public float getRelativeRoll(Context context)
+	public float getRelativeRoll()
 	{
-		final int screenRotation = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
+		final int screenRotation = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
 		float relativeRoll = 90;
 		switch (screenRotation)
 		{

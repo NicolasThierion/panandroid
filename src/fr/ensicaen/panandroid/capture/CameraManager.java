@@ -71,10 +71,10 @@ public class CameraManager /* implements SnapshotObserver */
 	public static final String DEFAULT_FILE_PREFIX = "img";
 
 	/** accepted distance between targeted shoot and current one **/
-	public static final float DEFAULT_AUTOSHOOT_THRESHOLD = 1.0f;
+	public static final float DEFAULT_AUTOSHOOT_THRESHOLD = 3.0f;
 
 	/** vibration tolerance for autoShoot **/
-	public static final float DEFAULT_AUTOSHOOT_PRECISION = 0.1f;
+	public static final float DEFAULT_AUTOSHOOT_PRECISION = 0.3f;
 	
 	/** raw callback enabled by default?? ie : if we want to save raw picture **/
 	public static final boolean DEFAULT_SAVE_RAW = false;	//TODO : debug raw callback
@@ -411,9 +411,23 @@ public class CameraManager /* implements SnapshotObserver */
 		return mCamera.getParameters().getPreviewSize();
 	}
 	
-	public void setSensorFusionManager(SensorFusionManager sensorFusionManager )
-	{
-		mSensorFusionManager = sensorFusionManager ;
+	public boolean setSensorialCaptureEnabled(boolean enable)
+	{	
+		
+		if(enable)
+		{
+			mSensorFusionManager = new SensorFusionManager(mContext);	
+			boolean res = mSensorFusionManager.start();
+			if (!res)
+				mSensorFusionManager=null;
+			return res;
+		}
+		if(mSensorFusionManager!=null)
+		{
+			mSensorFusionManager.stop();
+		}
+		return true;
+		
 	}
 	
 	/**
@@ -894,7 +908,7 @@ public class CameraManager /* implements SnapshotObserver */
 			
 			float oPitch = mSensorFusionManager.getPitch();
 			float oYaw = mSensorFusionManager.getYaw();
-			float oRoll = mSensorFusionManager.getRelativeRoll(mContext);
+			float oRoll = mSensorFusionManager.getRelativeRoll();
 			
 			float sPitch , sYaw, sRoll, dPitch, dYaw, dRoll, distance;
 			
