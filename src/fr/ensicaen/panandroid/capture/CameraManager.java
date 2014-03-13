@@ -534,6 +534,7 @@ public class CameraManager /* implements SnapshotObserver */
 	public void onResume()
 	{
 		reOpen();
+		mSensorFusionManager.onResume();
 	}
 	
 	public void onPause()
@@ -616,9 +617,7 @@ public class CameraManager /* implements SnapshotObserver */
 		filename = mTempFilename;
 		
 		//set picture orientation
-		int orientation = getOrientation();
 		Camera.Parameters params = mCamera.getParameters();
-		params.setRotation(orientation);
 		params.setJpegQuality(mJpegCompression);
 		mCamera.setParameters(params);
 		
@@ -874,6 +873,7 @@ public class CameraManager /* implements SnapshotObserver */
 			mCameraIsBusy = false;
 			
 			
+
 			if(takenSnapshot!=null)
 			{
 				for (SnapshotEventListener listener : mListeners)

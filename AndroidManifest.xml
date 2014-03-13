@@ -33,6 +33,7 @@ or revised without written permission of the authors.
             android:label="@string/app_name"
             android:launchMode="singleInstance"
             android:configChanges="orientation|screenSize">
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

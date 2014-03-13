@@ -64,7 +64,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	private static final float POLE_TRESHOLD = 2.0f;
 	
 	/** interval to listen to sensors, in 'us' */
-	private static final int SENSOR_LISTENING_RATE = 20000;
+	private static final int SENSOR_LISTENING_RATE = 20000; //20ms
 
 	private static final float THRESHOLD_ACCELERATION = .05f;
 	private static final float THRESHOLD_ROTATION = .05f;
@@ -79,9 +79,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	
 	/* *********
 	 * ATTRIBUTES
-	 * ********/
-	private static SensorFusionManager mInstance;
-	
+	 * ********/	
 	
 	/** if device has gyroscope or have to use our simulated one **/
 	private boolean mIsGyroscopeSupported = false;
@@ -150,6 +148,10 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	    // get sensorManager and initialise sensor listeners
 	    mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 	    registerListener(useGyroscope);
+	    
+	    //fill acceleration & rotation with invalid values
+	    mRotationValues[0] = 15000;
+	    mAccelerationValues[0] = 15000;
 	}
 	
 	/* *********

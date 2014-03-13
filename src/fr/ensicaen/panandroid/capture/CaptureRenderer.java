@@ -21,6 +21,7 @@ package fr.ensicaen.panandroid.capture;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
+import android.graphics.SurfaceTexture.OnFrameAvailableListener;
 import android.opengl.GLES10;
 import android.opengl.GLES11Ext;
 import android.opengl.Matrix;
@@ -54,7 +55,7 @@ import fr.ensicaen.panandroid.tools.BitmapDecoder;
  * @bug : view sometimes not correctly reload the textures
  * @bug : textures are not reloaded after onResume() 
  */
-public class CaptureRenderer extends InsideRenderer implements SnapshotEventListener
+public class CaptureRenderer extends InsideRenderer implements SnapshotEventListener, OnFrameAvailableListener
 {
 	
 	/* *******
@@ -75,7 +76,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     private static final float AUTO_UNLOADTEXTURE_ANGLE = 150.0f;		//[deg]
     private static final float AUTO_LOADTEXTURE_ANGLE = 90.0f;			//[deg]
     
-    
+    /** field of vision of the scene **/
+    private static final float DEFAULT_FOV_DEG = 130;
     
     /** Size & distance of the snapshots **/
 	private static final float SNAPSHOTS_SIZE = 0.20f;
@@ -169,6 +171,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	/** 3d plane holding this texture **/
 	private TexturedPlane mCameraSurface;
+	private boolean mCameraFrameAvaible = false;
+
 	
 	//TODO : remove?
 	/** current ratio of TexturedPlanes, determined by screen orientation **/
@@ -221,7 +225,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		super(context);
 		mSkybox = skybox;		
 		super.setSurroundingMesh(mSkybox);
-		super.setFovDeg(80.0f);
+		super.setFovDeg(DEFAULT_FOV_DEG);
 		
 		//init attributes
 		mCameraManager = cameraManager;
@@ -421,8 +425,12 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			super.onDrawFrame(gl);
 		
 		//refresh camera texture
-		mCameraSurfaceTex.updateTexImage();
-		
+		if(mCameraFrameAvaible)
+		{
+			mCameraSurfaceTex.updateTexImage();
+			mCameraFrameAvaible = false;
+		}
+		mCameraSurfaceTex.setOnFrameAvailableListener(this);
 		//draw camera surface
 		gl.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
 	    mCameraSurface.draw(gl, mViewMatrix);
@@ -476,7 +484,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			mDotsLock.lock();
 			for (Snapshot3D dot : mDots)
 			{		
-				d = getAbsSnapshotDistance(dot);
+				d = getSnapshotDistance(dot);
 				if(d>60.0f)
 				{
 					dot.setVisible(false);
@@ -498,7 +506,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			mContoursLock.lock();
 			for (Snapshot3D contour : mContours)
 			{		
-				d = getAbsSnapshotDistance(contour);
+				d = getSnapshotDistance(contour);
 
 				if(d>60.0f)
 				{
@@ -835,6 +843,13 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		}
 		
 		return i;
+	}
+
+	@Override
+	public void onFrameAvailable(SurfaceTexture arg0) {
+
+			mCameraFrameAvaible  = true;
+		
 	}
 	
 	
