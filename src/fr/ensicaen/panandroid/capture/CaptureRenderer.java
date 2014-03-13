@@ -77,7 +77,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     private static final float AUTO_LOADTEXTURE_ANGLE = 90.0f;			//[deg]
     
     /** field of vision of the scene **/
-    private static final float DEFAULT_FOV_DEG = 130;
+    private static final float DEFAULT_FOV_DEG = 110;
     
     /** Size & distance of the snapshots **/
 	private static final float SNAPSHOTS_SIZE = 0.20f;

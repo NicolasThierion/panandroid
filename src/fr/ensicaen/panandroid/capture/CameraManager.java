@@ -237,6 +237,8 @@ public class CameraManager /* implements SnapshotObserver */
 
 		Log.i(TAG, "opening camera "+camId);
 		
+		mCameraIsBusy = false;
+		/*
 		//TODO : fix by another way.
 		new Thread(new Runnable(){
 			public void run()
@@ -247,7 +249,7 @@ public class CameraManager /* implements SnapshotObserver */
 				mCameraIsBusy = false;
 			}
 		}).start();
-		
+		*/
 		return true;
 	}
 	
@@ -539,9 +541,12 @@ public class CameraManager /* implements SnapshotObserver */
 	
 	public void onPause()
 	{
-		mCameraIsBusy = false;
-		mCamera.release();
-		mCamera = null;
+		mCameraIsBusy = true;
+		if(mCamera!=null)
+		{
+			mCamera.release();
+			mCamera = null;
+		}
 		mSensorFusionManager.onPauseOrStop();
 	}
 	
@@ -672,7 +677,7 @@ public class CameraManager /* implements SnapshotObserver */
 		{
 			Log.w(TAG, "Trying to take a 'sensored snapshot' while no sensorFusionanager has been provided. Forget to call setSensorFusionManager() ?");
 		}
-		this.takePicture(filename);
+		takePicture(filename);
 		return mTempSnapshot;
 	}
 
@@ -871,18 +876,13 @@ public class CameraManager /* implements SnapshotObserver */
 			
 			//tell camera is ready now
 			mCameraIsBusy = false;
-			
-			
 
 			if(takenSnapshot!=null)
 			{
 				for (SnapshotEventListener listener : mListeners)
 					listener.onSnapshotTaken(data, takenSnapshot);
-			
 			}
-
 		}
-		
 	}
 	
 

@@ -109,7 +109,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
 		//bind activity to its layout
-                setContentView(R.layout.capture_activity);
+		setContentView(R.layout.capture_activity);
 
 		// Hide both the navigation bar and the status bar.
 		View decorView = getWindow().getDecorView();
@@ -247,7 +247,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	protected void onResume()
 	{
 		Assert.assertTrue(mCaptureView!=null);
-		this.mCaptureView.onResume();
+		mCaptureView.onResume();
 		super.onResume();
 
 	}
@@ -258,10 +258,12 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	@Override
 	protected void onPause()
 	{
+		Log.i(TAG, "onPause()");
+		
 		Assert.assertTrue(mCaptureView!=null);
 		//pause camera, GL context, etc.
 		mCaptureView.onPause();
-
+		mCameraManager.onPause();
 		//save project to json
 		String res = mSnapshotManager.toJSON(mWorkingDir);
 		Log.i(TAG,  "saving project to "+res);

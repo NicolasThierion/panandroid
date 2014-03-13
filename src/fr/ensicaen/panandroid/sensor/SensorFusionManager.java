@@ -174,7 +174,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		
 		if(mPitch<-361 || mYaw<-361)
 		{	
-			Log.e(TAG, "sensorFusion not correctly started");
+			Log.w(TAG, "sensorFusion not yet started");
 			return;
 		}
 		
