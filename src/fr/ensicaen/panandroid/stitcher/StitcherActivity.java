@@ -41,7 +41,7 @@ import android.util.Log;
 import fr.ensicaen.panandroid.capture.CaptureActivity;
 
 /**
- * StitcherActivity class provides the stitcher of the application.
+ * StitcherActivity class provides the stitcher of the great application.
  * @author Jean Marguerite <jean.marguerite@ecole.ensicaen.fr>
  * @version 0.0.1 - Sat Feb 01 2014
  */
