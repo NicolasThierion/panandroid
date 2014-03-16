@@ -345,6 +345,8 @@ public class InsideRenderer implements Renderer, EulerAngles
 		mFovDeg = degree;
 	}
 	
+	
+	
 	/* ************
 	 * PRIVATE METHODS
 	 * ************/

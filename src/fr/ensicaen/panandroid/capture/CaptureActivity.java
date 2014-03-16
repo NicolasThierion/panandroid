@@ -279,6 +279,9 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		super.onDestroy();
 	}
 
+	/**
+	 * Show a confirmation dialog before exit. Exit to stitcher activity.
+	 */
 	@Override
 	public void onBackPressed()
 	{
@@ -312,8 +315,6 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	@Override
 	public void onSystemUiVisibilityChange(int visibility)
 	{
-
-
 		if ((visibility & NAVIGATION_HIDE_TYPE) == 0)
 		{
 
@@ -324,7 +325,6 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			     @Override
 			     public void run() {
 			    	 toggleImmersive();
-			    	 //getActionBar().hide();
 			     }
 			 }, IMERSIVE_DELAY);
 		}

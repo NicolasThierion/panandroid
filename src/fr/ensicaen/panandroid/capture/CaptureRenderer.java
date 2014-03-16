@@ -197,11 +197,10 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * ***/
 	/** list of dots **/
 	private List<Snapshot3D> mDots;
-	private ReentrantLock mDotsLock;
+	private ReentrantLock mTargetsLock;
 	private List<Snapshot3D> mContours;
 	private List<Snapshot3D> mContours43;
 	private List<Snapshot3D> mContours34;
-	private ReentrantLock mContoursLock;
 
 	/** plane holding viewFinder at the center of the view **/
 	private TexturedPlane mViewFinder;
@@ -252,9 +251,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mContours43 = new LinkedList<Snapshot3D>();
 		mContours34 = new LinkedList<Snapshot3D>();
 		mContours = mContours43;
-		mDotsLock = new ReentrantLock();
+		mTargetsLock = new ReentrantLock();
 		mSnapshotsLock = new ReentrantLock();
-		mContoursLock = new ReentrantLock();
 	}
     
 	/**
@@ -341,20 +339,28 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 */
 	public void setMarkerList(LinkedList<EulerAngles> marks)
 	{
+		mTargetsLock.lock();
 		mDots = new LinkedList<Snapshot3D>();
+		boolean is43=(mContours == mContours43?true:false);
+		
 		mContours34 = new LinkedList<Snapshot3D>();
 		mContours43 = new LinkedList<Snapshot3D>();
 		for(EulerAngles a : marks)
 		{	
 			putMarker(a.getPitch(), a.getYaw());
 			putContour(a.getPitch(), a.getYaw());
-		}		
+		}	
+		mContours = (is43?mContours43:mContours34);
+		mTargetsLock.unlock();
+
 	}
 	
 	public void setSnapshotZoom(float zoom)
 	{
 		mSnapshotZoom = zoom;
 	}
+	
+	
 	
     
     /* ********
@@ -481,7 +487,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//draw markers
 		if(mUseMarkers)
 		{
-			mDotsLock.lock();
+			mTargetsLock.lock();
 			for (Snapshot3D dot : mDots)
 			{		
 				d = getSnapshotDistance(dot);
@@ -499,11 +505,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 					dot.draw(gl, super.getRotationMatrix());
 				}
 			}
-			mDotsLock.unlock();
+			mTargetsLock.unlock();
 		}
 		if(mUseContours)
 		{
-			mContoursLock.lock();
+			mTargetsLock.lock();
 			for (Snapshot3D contour : mContours)
 			{		
 				d = getSnapshotDistance(contour);
@@ -523,7 +529,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 				}
 				
 			}
-			mContoursLock.unlock();
+			mTargetsLock.unlock();
 		}
 		
 	}
@@ -610,7 +616,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//for an unknown reason, the camera preview is not in correct direction by default. Need to rotate it
 		final int screenRotation = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
 		mCameraRoll = 270;
-		mContoursLock.lock();
+		mTargetsLock.lock();
 		switch (screenRotation)
 		{
 			case Surface.ROTATION_0:
@@ -630,7 +636,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 				mContours = mContours43;
 				break;
 		};
-		mContoursLock.unlock();
+		mTargetsLock.unlock();
 		
 		mCameraRoll%=360;
 		
@@ -662,7 +668,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     }
 	
     /**
-     * put a contour in the contour list, at the given pitch and yaw
+     * put a contour in the contour list, at the given pitch and yaw.
      * @param pitch - pitch where to put the contour.
      * @param yaw - yaw where to put the contour.
      * @return the created Snapshot3D representing the contour.
@@ -790,17 +796,17 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		final float TRESHOLD = 10.0f;
 		Snapshot o = new Snapshot(pitch, yaw);
-		mDotsLock.lock();
+		mTargetsLock.lock();
 		for(Snapshot3D dot : mDots)
 		{
 			if(this.getSnapshotDistance(dot, o)<TRESHOLD)
 			{
 				mDots.remove(dot);
-				mDotsLock.unlock();
+				mTargetsLock.unlock();
 				return true;
 			}
 		}
-		mDotsLock.unlock();
+		mTargetsLock.unlock();
 		return false;	
 	}
 	
@@ -814,19 +820,19 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		final float TRESHOLD = 10.0f;
 		Snapshot o = new Snapshot(pitch, yaw);
 		int i=0;
-		mContoursLock.lock();
+		mTargetsLock.lock();
 		for(Snapshot3D contour : mContours)
 		{
 			if(this.getSnapshotDistance(contour, o)<TRESHOLD)
 			{
 				mContours43.remove(i);
 				mContours34.remove(i);
-				mContoursLock.unlock();
+				mTargetsLock.unlock();
 				return true;
 			}
 			++i;
 		}
-		mContoursLock.unlock();
+		mTargetsLock.unlock();
 
 		return false;	
 	}
@@ -845,16 +851,17 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		return i;
 	}
 
+	/**
+	 * update camera board only if a new frame is avaible.
+	 */
 	@Override
 	public void onFrameAvailable(SurfaceTexture arg0) {
 
 			mCameraFrameAvaible  = true;
 		
 	}
-	
-	
 
-	
+
 	 
 }
 

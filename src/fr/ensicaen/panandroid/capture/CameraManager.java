@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.concurrent.locks.ReentrantLock;
 
 import junit.framework.Assert;
 import fr.ensicaen.panandroid.sensor.SensorFusionManager;
@@ -127,7 +128,8 @@ public class CameraManager /* implements SnapshotObserver */
 	private final PictureCallback mJpegCallback = new JpegCallback();
 	
 	private LinkedList<SnapshotEventListener> mListeners = new LinkedList<SnapshotEventListener>();
-	
+	private ReentrantLock mListenersLock;
+
 
 	
 	/* ***
@@ -144,6 +146,7 @@ public class CameraManager /* implements SnapshotObserver */
 	
 	/** targeted points by auto shoot **/
 	private LinkedList<Snapshot> mAutoShootTargets;
+	private ReentrantLock mTargetsLock;
 	
 	private final SensorListener mSensorListener;
 
@@ -175,6 +178,8 @@ public class CameraManager /* implements SnapshotObserver */
 	private CameraManager()
 	{
 		mSensorListener = new SensorListener();
+		mListenersLock = new ReentrantLock();
+		mTargetsLock = new ReentrantLock();
 	}
 	
 
@@ -418,7 +423,7 @@ public class CameraManager /* implements SnapshotObserver */
 		
 		if(enable)
 		{
-			mSensorFusionManager = new SensorFusionManager(mContext);	
+			mSensorFusionManager = SensorFusionManager.getInstance(mContext);	
 			boolean res = mSensorFusionManager.start();
 			if (!res)
 				mSensorFusionManager=null;
@@ -487,11 +492,14 @@ public class CameraManager /* implements SnapshotObserver */
 	 */
 	public void setAutoShootTargetList(LinkedList<EulerAngles> targets )
 	{
-		mAutoShootTargets = new LinkedList<Snapshot>();
+		mTargetsLock.lock();
 		
-		
+		mAutoShootTargets = new LinkedList<Snapshot>();	
 		for(EulerAngles a : targets)
 			mAutoShootTargets.add(new Snapshot(a.getPitch(), a.getYaw()));
+		
+		mTargetsLock.unlock();
+
 		if(isAutoShootEnabled())
 			mSensorFusionManager.addSensorEventListener(mSensorListener);
 		else
@@ -694,8 +702,10 @@ public class CameraManager /* implements SnapshotObserver */
 	 */
 	public boolean addSnapshotEventListener(SnapshotEventListener listener)
 	{
-		if(listener != null && !mListeners.contains(listener))
-			return mListeners.add(listener);
+		mListenersLock.lock();
+			if(listener != null && !mListeners.contains(listener))
+				return mListeners.add(listener);
+		mListenersLock.unlock();
 		return false;
 	}
 	
@@ -706,7 +716,11 @@ public class CameraManager /* implements SnapshotObserver */
 	 */
 	public boolean removeSnapshotEventListener(SnapshotEventListener listener)
 	{
-		return mListeners.remove(listener);
+		mListenersLock.lock();
+		boolean res = mListeners.remove(listener);
+		mListenersLock.unlock();
+		return res;
+
 	}
 	
 	private int getOrientation()
@@ -879,8 +893,11 @@ public class CameraManager /* implements SnapshotObserver */
 
 			if(takenSnapshot!=null)
 			{
+				mListenersLock.lock();
 				for (SnapshotEventListener listener : mListeners)
 					listener.onSnapshotTaken(data, takenSnapshot);
+				mListenersLock.unlock();
+
 			}
 		}
 	}

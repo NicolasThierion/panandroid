@@ -30,6 +30,7 @@ import android.view.WindowManager;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 import fr.ensicaen.panandroid.capture.EulerAngles;
 import junit.framework.Assert;
@@ -80,7 +81,6 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	/* *********
 	 * ATTRIBUTES
 	 * ********/	
-	
 	/** if device has gyroscope or have to use our simulated one **/
 	private boolean mIsGyroscopeSupported = false;
 	
@@ -91,7 +91,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	private SimulatedRotationVector mSimulatedRotationVector;
 	
 	/** List of all listeners **/
-	List<SensorEventListener> mListeners = new LinkedList<SensorEventListener>();
+	private List<SensorEventListener> mListeners = new LinkedList<SensorEventListener>();
+	private ReentrantLock mListenersLock;
 	
 	/** Internal sensor manager **/
 	private SensorManager mSensorManager = null;
@@ -110,8 +111,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	
 	/** reference pitch and yaw **/
 	float oPitch = 0.0f, oYaw = 0.0f, oRoll=0.0f;
-	boolean mHasToResetYaw = true, mHasToResetPitch = false, mHasToResetRoll=false;
-
+	boolean mHasToResetYaw = false, mHasToResetPitch = false, mHasToResetRoll=false;
+	
 	private boolean mIsStarted;
 	
 	/** current and computed acceleration values **/
@@ -123,14 +124,34 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	private float[] mRotationValues = new float[3];
 	private float[] mCurrRotationValues = new float[3];
 	private Context mContext;
-
+	private static SensorFusionManager mInstance= null;
 	
 	/* *********
 	 * CONSTRUCTOR
 	 * ********/
+	/**
+	 * Don't forget to call registerListeners() once to start the sensor.
+	 * @param context
+	 * @return
+	 */
+	public static SensorFusionManager getInstance(Context context)
+	{
+		if(mInstance == null)
+		{
+			synchronized(SensorFusionManager.class)
+			{
+	    		if(mInstance == null)
+	    		{
+	    			mInstance = new SensorFusionManager(context);
+	    		}
+		
+			}
+		}
+		return mInstance;
+	}
 	
 	
-	public SensorFusionManager(Context context)
+	private SensorFusionManager(Context context)
 	{
 		this(context, true);
 	}
@@ -144,7 +165,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	private SensorFusionManager(Context context, boolean useGyroscope)
 	{
 		mContext = context;
-		
+		mListenersLock = new ReentrantLock();
 	    // get sensorManager and initialise sensor listeners
 	    mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 	    registerListener(useGyroscope);
@@ -178,8 +199,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			return;
 		}
 		
-		
-		
+
 		if(mHasToResetPitch)
 		{
 			oPitch = mPitch;
@@ -198,19 +218,22 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			mRoll = 0.0f;
 			mHasToResetRoll = false;
 		}	
-		
+
 		if(event.sensor.getType()==Sensor.TYPE_ACCELEROMETER)
 			computeAcceleration(event);
 		
 		//if(event.sensor.getType()==Sensor.TYPE_GYROSCOPE)
 		computeRotation(event);
 		
-		
-		//throw the event to all listeners
+	
+		mListenersLock.lock();
 	    for(SensorEventListener l : mListeners)
 	    {
 	    	l.onSensorChanged(event);
 	    }
+	    mListenersLock.unlock();
+	
+
 	    
 	}
 	
@@ -220,15 +243,35 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	}
 	
 	
-	public void addSensorEventListener(SensorEventListener listener)
+	public void addSensorEventListener(final SensorEventListener listener)
 	{
-		mListeners.add(listener);
+		//add in a separate threade, cause locks seems to work only if not in the same 'main' thread ???!?!??
+		//else, it crashes.
+		new Thread(new Runnable(){
+			
+			public void run()
+			{
+				mListenersLock.lock();
+				mListeners.add(listener);
+				mListenersLock.unlock();
+			}
+		}).start();
+		
 	}
 	
 	
-	public boolean removeSensorEventListener(SensorEventListener listener)
+	public void removeSensorEventListener(final SensorEventListener listener)
 	{
-		return mListeners.remove(listener);
+		new Thread(new Runnable()
+		{
+			
+			public void run()
+			{
+			mListenersLock.lock();
+			mListeners.remove(listener);
+			mListenersLock.unlock();
+			}
+		}).start();
 	}
 	
 	
@@ -258,7 +301,8 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	public boolean start()
 	{
 		boolean res =  this.registerListener(mIsGyroscopeSupported);
-		this.setReferenceYaw();
+		
+		//this.setReferenceYaw();
 	
 		return res;
 	}
@@ -269,8 +313,11 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	public void stop()
 	{
     	unregisterListener();
+    	//todo 
+    	/*
     	resetPitch();
     	resetYaw();
+    	*/
 	} 
 	
 	
@@ -303,6 +350,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	/**
 	 * Set reference pitch to current pitch.
 	 */
+
 	public void setReferencePitch()
 	{
 		mHasToResetPitch = true;
@@ -328,7 +376,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	{
 		oRoll = 0.0f;
 	}
-	
+
 	/* **********
 	 * ACCESSORS
 	 * *********/
@@ -400,12 +448,12 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	
 	public boolean isStable()
 	{
-		return this.isStable(THRESHOLD_ACCELERATION, THRESHOLD_ROTATION);
+		return isStable(THRESHOLD_ACCELERATION, THRESHOLD_ROTATION);
 		
 	}
 	public boolean isStable(float threshold)
 	{
-		return this.isStable(threshold, threshold);
+		return isStable(threshold, threshold);
 	}
 	
 	public boolean isStable(float accelerationThreshold, float rotationThreshold)
@@ -419,6 +467,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		float y = mAccelerationValues[1];
 		float z = mAccelerationValues[2];
 		
+
 		return ( x+y+z < 3*threshold);
 	}
 	
@@ -428,7 +477,6 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		float yaw = mRotationValues[1];
 		float roll = mRotationValues[2];
 
-		
 		return (pitch + yaw + roll < 3*threshold );
 		
 	}
@@ -515,7 +563,6 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 		}
 
 		mPitch = mOrientation[1] * RAD_TO_DEG - oPitch;
-		
 		this.normalize();
 		
 	}
@@ -850,32 +897,33 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 			@Override
 			public void run() {
 				
-				while(true){
-				float x = mAccelerationValues[0];
-				float y = mAccelerationValues[1];
-				float z = mAccelerationValues[2];
-				
-				float pitch = mRotationValues[0];
-				float yaw = mRotationValues[1];
-				float roll = mRotationValues[2];
-				
-				System.out.println("=======GYRO============");
-				System.out.println("pitch="+pitch);
-				System.out.println("yaw="+yaw);
-				System.out.println("roll="+roll);
-				System.out.println("Stable : "+ isGyroStable(THRESHOLD_ROTATION));
-				
-				System.out.println("=======ACC============");
-				System.out.println("x="+x);
-				System.out.println("y="+y);
-				System.out.println("z="+z);
-				System.out.println("Stable : "+ isAccelerometerStable(THRESHOLD_ACCELERATION));
-				
-				try {
-					Thread.sleep(50);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+				while(true)
+				{
+					float x = mAccelerationValues[0];
+					float y = mAccelerationValues[1];
+					float z = mAccelerationValues[2];
+					
+					float pitch = mRotationValues[0];
+					float yaw = mRotationValues[1];
+					float roll = mRotationValues[2];
+					
+					System.out.println("=======GYRO============");
+					System.out.println("pitch="+pitch);
+					System.out.println("yaw="+yaw);
+					System.out.println("roll="+roll);
+					System.out.println("Stable : "+ isGyroStable(THRESHOLD_ROTATION));
+					
+					System.out.println("=======ACC============");
+					System.out.println("x="+x);
+					System.out.println("y="+y);
+					System.out.println("z="+z);
+					System.out.println("Stable : "+ isAccelerometerStable(THRESHOLD_ACCELERATION));
+					
+					try {
+						Thread.sleep(50);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 			

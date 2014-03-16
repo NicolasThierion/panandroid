@@ -69,8 +69,8 @@ public class SphereViewerActivity extends Activity {
     this.setContentView(this.mSphereView);
     
     
-    mSphereView.enableInertialRotation(true);
-    mSphereView.enableTouchRotation(true);
+    mSphereView.setEnableInertialRotation(true);
+    mSphereView.setEnableTouchRotation(true);
     mSphereView.setInertiaFriction(50.0f);
   }
 

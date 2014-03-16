@@ -8,7 +8,7 @@
 
     <!-- gl renderer -->
 
-    <FrameLayout
+    <RelativeLayout
         android:id="@+id/gl_renderer_container"
         android:layout_width="match_parent"
         android:layout_height="348dp"
@@ -16,7 +16,15 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true" >
 
-    </FrameLayout>
+        <ProgressBar
+            android:id="@+id/starting_progress_spinner"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true" />
+
+    </RelativeLayout>
 
     <fr.ensicaen.panandroid.capture.ShutterButton
         android:id="@+id/btn_shutter"

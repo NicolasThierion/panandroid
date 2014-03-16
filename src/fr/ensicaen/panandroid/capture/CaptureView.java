@@ -18,9 +18,19 @@
  */
 
 package fr.ensicaen.panandroid.capture;
+import java.security.Timestamp;
 import java.util.LinkedList;
 
 
+
+
+
+
+
+
+
+
+import android.app.Activity;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
 import fr.ensicaen.panandroid.meshs.Cube;
@@ -31,7 +41,15 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 
 
 /**
@@ -42,15 +60,11 @@ import android.util.Log;
  *
  */
 @SuppressLint("ViewConstructor")
-public class CaptureView extends Inside3dView
+public class CaptureView extends Inside3dView implements SensorEventListener, SnapshotEventListener
 {
 	
 	private static final String TAG = CaptureView.class.getSimpleName();
 
-	
-	
-	
-	
 	/* *********
 	 * CONSTANTS
 	 * *********/
@@ -62,14 +76,19 @@ public class CaptureView extends Inside3dView
 	private static final float DEFAULT_YAW_STEP 		= 360.0f/12.0f;
 
 	/** angle difference before considering a picture has to be captured **/
-	private static final float DEFAULT_AUTOSHOOT_GRYO_THREASHOLD 			= 3.0f; //[deg]
+	private static final float DEFAULT_AUTOSHOOT_THREASHOLD 			= 3.0f; //[deg]
+	private static final float DEFAULT_AUTOSHOOT_PRECISION				= 0.3f;  //[~deg/s]
 	private static final float DEFAULT_AUTOSHOOT_ACCELEROMETER_THREASHOLD 	= 8.0f; //[deg]
 
-	
+	/** starting parameters **/
+	private static final int START_DELAY = 5000 ; //[ms]
+	private static int startIn=START_DELAY;
+	private static int currentTime=0;
+
 	/* **********
 	 * ATTRIBUTES
 	 * *********/
-	
+
 	/** Camera manager, **/
 	private CameraManager mCameraManager;
 	
@@ -77,10 +96,16 @@ public class CaptureView extends Inside3dView
 	private CaptureRenderer mRenderer;
 	
 	/** SensorFusion used to guide capture **/
-	//private SensorFusionManager mSensorManager;
+	private SensorFusionManager mSensorManager;
 	
 	private float mPitchStep = DEFAULT_PITCH_STEP;
 	private float mYawStep = DEFAULT_YAW_STEP;
+	//private float mYawOffset = 0.0f;
+
+	
+	private boolean mCaptureIsStared = false;
+	private ProgressBar mStartingProgressSpinner;
+
 
 	/* **********
 	 * CONSTRUCTORS
@@ -91,26 +116,42 @@ public class CaptureView extends Inside3dView
 	 * @param context - context of application.
 	 * @param mCameraManager - Camera manager, to redirect camera preview.
 	 */
-	public CaptureView(Context context, CameraManager cameraManager)
+	public CaptureView(Context context, CameraManager cameraManager) 
 	{
 		super(context);
-	
-		//setup sensors
-		/*
-		mSensorManager = new SensorFusionManager(context);
+		
+		//add the starting spinner at the center of the view.
+		ViewGroup layout = (ViewGroup) ((Activity)context).findViewById(android.R.id.content).getRootView();
+		mStartingProgressSpinner = new ProgressBar((Activity)context,null,android.R.attr.progressBarStyleLarge);
+		mStartingProgressSpinner.setIndeterminate(true);
+		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
+
+		RelativeLayout.LayoutParams params = new 
+		        RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
+
+		RelativeLayout rl = new RelativeLayout(context);
+
+		rl.setGravity(Gravity.CENTER);
+		rl.addView(mStartingProgressSpinner);
+
+		layout.addView(rl,params);
+		
+		//setup sensors	
+		mSensorManager = SensorFusionManager.getInstance(getContext());	
 		if(!mSensorManager.start())
 		{
 			//TODO : error toast
 			Log.e(TAG, "Rotation not supported");
 		}
-		*/
+		
 		//setup cameraManager
 		mCameraManager = cameraManager;	
 		mCameraManager.setSensorialCaptureEnabled(true);
 		
 		//adapt precision according to sensorFusion type.
-		mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_GRYO_THREASHOLD);
-
+		mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_THREASHOLD);
+		mCameraManager.setAutoShootPrecision(DEFAULT_AUTOSHOOT_PRECISION);
+		
 		/*
 		if(mSensorManager.isGyroscopeSupported())
 		{
@@ -160,36 +201,50 @@ public class CaptureView extends Inside3dView
 		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
         super.setRenderer(mRenderer);
   
-		updateTargets();
+        //set first dot only. Other targers will be placed after first shoot
+        LinkedList<EulerAngles> initialTarget = new LinkedList<EulerAngles>();
+        initialTarget.add(new Snapshot(0.0f, 0.0f) );
+		mRenderer.setMarkerList(initialTarget);
 
+        
         //set view rotation parameters
-        super.enableSensorialRotation(true);
-        super.enableTouchRotation(false);
-        super.enableInertialRotation(false);
+        super.setEnableSensorialRotation(true);
+        super.setEnableTouchRotation(false);
+        super.setEnableInertialRotation(false);
+        
+        //TODO
+        //disable yaw. Will be enabled back after first shoot    
+        super.setEnablePitchRotation(true);
+        super.setEnableRollRotation(true);
+        super.setEnableYawRotation(false);
+        
 	}
 	/**
-	 * Set pitch interval between markers and updates camera autoShoot targets.
+	 * Set pitch interval between markers and updates camera autoShoot targets, if the capture is started.
 	 * @param step - pitch interval.
 	 */
 	public void setPitchStep(float step)
 	{
 		mPitchStep = step;
-		updateTargets();
+		if(mCaptureIsStared)
+			setTargets();
 		
 	
 	}
 	
 	/**
-	 * Set yaw interval between markers and updates camera autoShoot targets.
+	 * Set yaw interval between markers and updates camera autoShoot targets, if the capture is started.
 	 * @param step - yaw interval.
 	 */
 	public void setYawStep(float step)
 	{
 		mYawStep = step;
-		updateTargets();
-	}
+		if(mCaptureIsStared)
+			setTargets();	}
 
-	private LinkedList<EulerAngles> updateTargets()
+	
+	
+	private LinkedList<EulerAngles> setTargets()
 	{
 		//updates camera autoshoot targets
 		
@@ -200,7 +255,7 @@ public class CaptureView extends Inside3dView
 		{
 			for(float yaw = -180.0f; yaw < 180.1f-mYawStep; yaw+=mYawStep)
 			{
-				targets.add(new Snapshot(pitch, yaw));
+				targets.add(new Snapshot(pitch, (yaw)%360));
 			}
 		}
 		
@@ -208,11 +263,7 @@ public class CaptureView extends Inside3dView
 		//add poles
 		targets.add(new Snapshot(90.0f, 0.0f));
 		targets.add(new Snapshot(-90.0f, 0.0f));
-		
-		
 
-
-		
 		mRenderer.setMarkerList(targets);
 		mCameraManager.setAutoShootTargetList(targets);
 
@@ -250,18 +301,77 @@ public class CaptureView extends Inside3dView
 		//add poles
 	}
 
+	/**
+	 * Watch pitch for starting initial shoot.
+	 */
+	@Override
+	public void onSensorChanged(SensorEvent e)
+	{
+		super.onSensorChanged(e);
 	
+		//if capture already started, continue
+		if(mCaptureIsStared)
+			return;
+		
+		//else, first call?
+		if(currentTime==0)
+		{
+			currentTime = (int) (System.currentTimeMillis());
+			return;
+		}
+		
+		//else, wait viewFinder to be on target for enough time.
+		int time = (int) (System.currentTimeMillis());
+		int elapsed = time - currentTime;
+		currentTime = time;
+
+		//viewFinder on target?
+		if(Math.abs(mSensorManager.getPitch())<DEFAULT_AUTOSHOOT_THREASHOLD
+				&& Math.abs(mSensorManager.getRelativeRoll())<DEFAULT_AUTOSHOOT_THREASHOLD)
+		{
+			mStartingProgressSpinner.setVisibility(View.VISIBLE);
+			mStartingProgressSpinner.requestLayout();
+			startIn-=elapsed;
+			
+			if(startIn<=0)
+			{
+				Log.i(TAG, "Starting capture");
+
+				//set orientation's origin to current
+				mSensorManager.setReferenceYaw();	
+				
+				mCameraManager.addSnapshotEventListener(this);
+				mCaptureIsStared  = true;
+				
+				//set all targets
+				setTargets();
+			}
+		}
+		//viewFinder not on target => reset delay.
+		else
+		{
+			startIn=START_DELAY;
+			mStartingProgressSpinner.setVisibility(View.INVISIBLE);
+			mStartingProgressSpinner.requestLayout();
+
+		}
+		
+		
+		
+		
+		
+	}
 	/* **********
 	 * VIEW OVERRIDES
 	 * *********/
+	
 	
 	@Override
 	public void onPause()
 	{
 		super.onPause();
 		mCameraManager.onPause();
-		//TODO : remove
-		//mSensorManager.onResume();
+		mSensorManager.onResume();
 	}
 	
 	@Override
@@ -269,7 +379,7 @@ public class CaptureView extends Inside3dView
 	{
 		super.onResume();
 		mCameraManager.onResume();
-		//mSensorManager.onResume();
+		mSensorManager.onResume();
 		
 	}
 	
@@ -278,4 +388,15 @@ public class CaptureView extends Inside3dView
 	{
 		mCameraManager.onClose();
 	}
+	@Override
+	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
+	{
+		mCameraManager.removeSnapshotEventListener(this);
+		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
+		mStartingProgressSpinner.requestLayout();
+		super.setEnableYawRotation(true);
+	}
+	
+	
 }
+	

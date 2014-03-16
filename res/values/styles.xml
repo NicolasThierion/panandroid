@@ -6,7 +6,7 @@
     -->
     
     
-	<style name="AppTheme" parent="android:Theme.Light.NoActionBar.Fullscreen">
+	<style name="AppTheme" parent="android:Theme.android:Theme.Holo.NoActionBar.Fullscreen">
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowBackground">@null</item>
     </style>

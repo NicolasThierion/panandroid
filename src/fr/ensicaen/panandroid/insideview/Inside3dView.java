@@ -70,9 +70,13 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
     /** if sensorial rotation is enabled **/
 	private boolean mSensorialRotationEnable;
 	private boolean mRollEnable = true;
+	private boolean mPitchEnable = true;
+	private boolean mYawEnable = true;
     
 	/** The sensorFusion manager for sensorial rotation **/
 	private SensorFusionManager mSensorFusionManager = null;
+
+	private float mYawOffset = 0.0f;
 
 	/** Mesh that is drawed, given to the renderer **/
 	//protected Mesh mMesh;
@@ -213,16 +217,20 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	@Override
 	public void onSensorChanged(SensorEvent event)
 	{
-		float pitch = mSensorFusionManager.getPitch();
-		float yaw = mSensorFusionManager.getYaw();
+		float roll = 0.0f;
+		float pitch = 0.0f;
+		float yaw = -this.mYawOffset;
+		
+		if(mPitchEnable)
+			pitch = mSensorFusionManager.getPitch();
+		
+		if(mYawEnable)
+			yaw += mSensorFusionManager.getYaw();
 		
 		if(mRollEnable)
-		{
-			float roll = mSensorFusionManager.getRelativeRoll();
-			this.mRenderer.setRotation(pitch, yaw, roll);
-		}
-		else
-			this.mRenderer.setRotation(pitch, yaw);
+			roll = mSensorFusionManager.getRelativeRoll();		
+				
+		mRenderer.setRotation(pitch, yaw, roll);
 
 			
 	}
@@ -261,7 +269,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	 * Enable inertia rotation. Only works when touch scroll is enabled.
 	 * @param enabled
 	 */
-	public void enableInertialRotation(boolean enabled)
+	public void setEnableInertialRotation(boolean enabled)
 	{
 		this.mInertiaEnable = enabled;		
 	}
@@ -284,7 +292,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	 * Enable touch rotation.
 	 * @param enable
 	 */
-	public void enableTouchRotation(boolean enable)
+	public void setEnableTouchRotation(boolean enable)
 	{
 		this.mTouchScrollEnable = enable;
 	}
@@ -310,12 +318,12 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	 * @param enable
 	 * @return
 	 */
-	public boolean enableSensorialRotation(boolean enable) 
+	public boolean setEnableSensorialRotation(boolean enable) 
 	{	
 		if(enable)
 		{
 			//create a new sensor manager
-			mSensorFusionManager = new SensorFusionManager(getContext());
+			mSensorFusionManager = SensorFusionManager.getInstance(getContext());
 			
 			boolean initialized = true;
 			if(!mSensorFusionManager.isStarted())
@@ -346,21 +354,43 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	}
 	
 	/**
-	 * if sensorialROtation should rotate around Z axis too.
+	 * if sensorialRotation should rotate around Z axis.
 	 * @param enable
 	 */
-	public void enableRollRotation(boolean enable)
+	public void setEnableRollRotation(boolean enable)
 	{
 		mRollEnable = enable;
 	}
 	
-	public boolean isSensorialRotationEnabled()
+	/**
+	 * if sensorialRotation should rotate around X axis.
+	 * @param enable
+	 */
+	public void setEnablePitchRotation(boolean enable)
 	{
-		return this.mSensorialRotationEnable;
+		mPitchEnable = enable;
 	}
 	
+	/**
+	 * if sensorialRotation should rotate around Y axis.
+	 * @param enable
+	 */
+	public void setEnableYawRotation(boolean enable)
+	{
+		mYawEnable = enable;
+	}
 	
+	public boolean isSensorialRotationEnabled()
+	{
+		return mSensorialRotationEnable;
+	}
 	
+	/*
+	protected void setYawOffset(float yawOffset) 
+	{
+		System.out.println("yaw "+this.mSensorFusionManager.getYaw());
+		mYawOffset = yawOffset;
+	}*/
 	
 	/* *********
 	 * PRIVATE METHODS
