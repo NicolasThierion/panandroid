@@ -101,23 +101,12 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	
 	private static final float CAMERA_RATIO = 3.0f/4.0f;
 	
-	//TODO : to remove?
-	/** Ratio of snapshot surfaces when in portrait/landscape mode **/
-	/*
-	private static final float CAMERA_RATIO34 = 3.0f/4.0f;	//portait
-	private static final float CAMERA_RATIO43 = 4.0f/3.0f;	//landscape
-	*/
-	
 	
 	/** default textures **/
 	private static final int MARKER_RESSOURCE_ID = R.drawable.capture_snapshot_marker;
 	private static final int CONTOUR_RESSOURCE_ID = R.drawable.capture_snapshot_contour;
 	private static final int VIEWFINDER_RESSOURCE_ID = R.drawable.capture_viewfinder;
 	
-	
-	//TODO : remove ??
-	/** if camera preview should same ratio as screen ratio **/
-	//private static final boolean USE_SCREEN_RATIO = false;
 	
 	/* ********
 	 * ATTRIBUTES
@@ -172,13 +161,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** 3d plane holding this texture **/
 	private TexturedPlane mCameraSurface;
 	private boolean mCameraFrameAvaible = false;
-
 	
-	//TODO : remove?
-	/** current ratio of TexturedPlanes, determined by screen orientation **/
-	//private float mCameraRatio;
-	
-	//TODO : implement
 	private float mCameraRoll;
 	
 	
@@ -388,30 +371,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	public void onSurfaceChanged(GL10 gl, int width, int height)
 	{
 		super.onSurfaceChanged(gl, width, height);
-		//TODO : remove?
-		/*
-		if(USE_SCREEN_RATIO)
-		{
-			if(width>height)
-				mCameraRatio = (float)((float)width/(float)height);
-			else
-				mCameraRatio = (float)((float)height/(float)width);
-				
-		}
-		else
-		{
-			
-			//ratio of the camera, not the screen		
-			if(width>height)
-				mCameraRatio=CAMERA_RATIO43;
-			else
-				mCameraRatio=CAMERA_RATIO34;
-			;
-
-			mCameraRatio=CAMERA_RATIO34;
-		}
-		
-		Log.i(TAG, "surface changed : width="+width+", height="+height+"(ratio:"+mCameraRatio+")");*/
 		try
 		{
 			reinitCameraSurface();
@@ -545,8 +504,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		{
 			Log.e(TAG, "cannot remove mark for snapshot (p="+pitch+", y="+yaw+")");
 		}
-		
-		
+			
 		//put a new textureSurface with the snapshot in it.
 		putSnapshot(pictureData, snapshot);
 		
@@ -719,37 +677,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 
 		return snap;
     }
-
-	/**
-	 * Get the distance between the point a and the point b.
-	 * @param a
-	 * @param b
-	 * @return distance of the 2 points.
-	 */
-	/*
-	private float getSnapshotDistance(EulerAngles a, EulerAngles b)
-	{
-		float oPitch = b.getPitch();
-		float oYaw = b.getYaw();
-		float sPitch , sYaw, dPitch, dYaw, d;	
-			
-		sPitch = a.getPitch();
-		sYaw = a.getYaw();
-		
-		dPitch = sPitch - oPitch;
-		dYaw = sYaw - oYaw;
-		d = (float) Math.sqrt(dPitch*dPitch + dYaw*dYaw);
-		
-		
-		//neutralize yaw if it is a pole
-		if(Math.abs(sPitch)>89.0f)
-			d = dPitch;
-		
-		return d;
-				
-	}
-	*/
-	
 	
 	/**
 	 * get distance between current orientation and gven snapshot
@@ -762,39 +689,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		Snapshot s = new Snapshot(super.getPitch(), super.getYaw());
 		return s.getDistance(a); 
 	}
-	
-	/*
-	private float getSnapshotDistance(EulerAngles a)
-	{
-		return this.getSnapshotDistance(a, new Snapshot(super.getPitch(), super.getYaw()));
-	}
-	
-	private float  getAbsSnapshotDistance(EulerAngles a, EulerAngles b)
-	{
-		float oPitch = b.getPitch();
-		float oYaw = b.getYaw();
-		float sPitch , sYaw, dPitch, dYaw, d;	
-			
-		sPitch = a.getPitch();
-		sYaw = a.getYaw();
-		
-		dPitch = Math.abs(Math.abs(sPitch) - Math.abs(oPitch));
-		dYaw = Math.abs(Math.abs(sYaw) - Math.abs(oYaw));
-		d = (float) Math.sqrt(dPitch*dPitch + dYaw*dYaw);
-		
-		
-		//neutralize yaw if it is a pole
-		if(Math.abs(sPitch)>89.0f)
-			d = dPitch;
-		
-		return d;
-	}
-	
-	private float  getAbsSnapshotDistance(EulerAngles a)
-	{
-		return this.getAbsSnapshotDistance(a, new Snapshot(super.getPitch(), super.getYaw()));
-	}
-*/
 	
 	/**
 	 * Remove the dot near the given position.
@@ -845,8 +739,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 
 		return false;	
 	}
-	
-	
 
 	private int ceilPowOf2(int val)
 	{
@@ -864,14 +756,10 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * update camera board only if a new frame is avaible.
 	 */
 	@Override
-	public void onFrameAvailable(SurfaceTexture arg0) {
-
-			mCameraFrameAvaible  = true;
-		
+	public void onFrameAvailable(SurfaceTexture unused)
+	{
+		mCameraFrameAvaible  = true;	
 	}
-
-
-	 
 }
 
 

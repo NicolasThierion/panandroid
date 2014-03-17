@@ -459,6 +459,10 @@ public class InsideRenderer implements Renderer, EulerAngles
 		setRotation(mPitch0+deltaPitch, mYaw0+deltaYaw);
 	}
 
+	public void setRotationMatrix(float[] rotationMatrix) {
+		mRotationMatrix = rotationMatrix;
+	}
+
 	
 
 

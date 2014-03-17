@@ -18,17 +18,7 @@
  */
 
 package fr.ensicaen.panandroid.capture;
-import java.security.Timestamp;
 import java.util.LinkedList;
-
-
-
-
-
-
-
-
-
 
 
 import android.app.Activity;
@@ -44,7 +34,6 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -79,7 +68,6 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	/** angle difference before considering a picture has to be captured **/
 	private static final float DEFAULT_AUTOSHOOT_THREASHOLD 			= 3.0f; //[deg]
 	private static final float DEFAULT_AUTOSHOOT_PRECISION				= 0.3f;  //[~deg/s]
-	private static final float DEFAULT_AUTOSHOOT_ACCELEROMETER_THREASHOLD 	= 8.0f; //[deg]
 
 	/** starting parameters **/
 	private static final int START_DELAY = 5000 ; //[ms]
@@ -101,8 +89,6 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	
 	private float mPitchStep = DEFAULT_PITCH_STEP;
 	private float mYawStep = DEFAULT_YAW_STEP;
-	//private float mYawOffset = 0.0f;
-
 	
 	private boolean mCaptureIsStared = false;
 	private ProgressBar mStartingProgressSpinner;
@@ -153,6 +139,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_THREASHOLD);
 		mCameraManager.setAutoShootPrecision(DEFAULT_AUTOSHOOT_PRECISION);
 		
+		//TODO : implement or remove
 		/*
 		if(mSensorManager.isGyroscopeSupported())
 		{
@@ -200,26 +187,26 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		
 		// set glview to use a capture renderer with the provided skybox.
 		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
-        super.setRenderer(mRenderer);
-  
-        //set first dot only. Other targers will be placed after first shoot
-        LinkedList<EulerAngles> initialTarget = new LinkedList<EulerAngles>();
-        initialTarget.add(new Snapshot(0.0f, 0.0f) );
+		super.setRenderer(mRenderer);
+		  
+		//set first dot only. Other targers will be placed after first shoot
+		LinkedList<EulerAngles> initialTarget = new LinkedList<EulerAngles>();
+		initialTarget.add(new Snapshot(0.0f, 0.0f) );
 		mRenderer.setMarkerList(initialTarget);
-
-        
-        //set view rotation parameters
-        super.setEnableSensorialRotation(true);
-        super.setEnableTouchRotation(false);
-        super.setEnableInertialRotation(false);
-        
-        //TODO
-        //disable yaw. Will be enabled back after first shoot    
-        super.setEnablePitchRotation(true);
-        super.setEnableRollRotation(true);
-        super.setEnableYawRotation(false);
-        
+		
+		
+		//set view rotation parameters
+		super.setEnableSensorialRotation(true);
+		super.setEnableTouchRotation(false);
+		super.setEnableInertialRotation(false);
+		
+		//disable yaw. Will be enabled back after first shoot    
+		super.setEnablePitchRotation(true);
+		super.setEnableRollRotation(true);
+		super.setEnableYawRotation(false);
+		
 	}
+	
 	/**
 	 * Set pitch interval between markers and updates camera autoShoot targets, if the capture is started.
 	 * @param step - pitch interval.
@@ -229,8 +216,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		mPitchStep = step;
 		if(mCaptureIsStared)
 			setTargets();
-		
-	
+
 	}
 	
 	/**
@@ -241,37 +227,15 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	{
 		mYawStep = step;
 		if(mCaptureIsStared)
-			setTargets();	}
+			setTargets();	
+	}
 
 	
 	
 	private LinkedList<EulerAngles> setTargets()
 	{
 		//updates camera autoshoot targets
-		
-		/*
 		LinkedList<EulerAngles> targets = new LinkedList<EulerAngles>();
-		
-		for(float pitch = -90.0f+mPitchStep; pitch < 90.1f-mPitchStep; pitch+=mPitchStep)
-		{
-			for(float yaw = -180.0f; yaw < 180.1f-mYawStep; yaw+=mYawStep)
-			{
-				targets.add(new Snapshot(pitch, (yaw)%360));
-			}
-		}
-		
-		
-		//add poles
-		targets.add(new Snapshot(90.0f, 0.0f));
-		targets.add(new Snapshot(-90.0f, 0.0f));
-
-		mRenderer.setMarkerList(targets);
-		mCameraManager.setAutoShootTargetList(targets);
-		 */
-		
-		
-		LinkedList<EulerAngles> targets = new LinkedList<EulerAngles>();
-		
 		
 		double currentPitch, currentYaw;
 		double pitchStep = 180.0 / ((int)(180.0f / mPitchStep));
@@ -286,7 +250,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 			double cosPhi = Math.cos(phi);
 			double lambda = Math.acos((Math.cos(s)-sinPhi*sinPhi)/(cosPhi*cosPhi));
 			yawStep = Math.toDegrees(lambda);
-			for(currentYaw = -180.0f; currentYaw < 180.1f - yawStep; currentYaw+=yawStep)
+			for(currentYaw = -180.0; currentYaw < 180.0 - yawStep; currentYaw+=yawStep)
 			{
 				float p = (float)currentPitch;
 				float y = ((float)(currentYaw))%360;
@@ -299,13 +263,10 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		//add poles
 		targets.add(new Snapshot(90.0f, 0.0f));
 		targets.add(new Snapshot(-90.0f, 0.0f));
-
-		
 		
 		mCameraManager.setAutoShootTargetList(targets);
 		mRenderer.setMarkerList(targets);
 
-		
 		return targets;
 	}
 	
@@ -363,13 +324,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 			startIn=START_DELAY;
 			mStartingProgressSpinner.setVisibility(View.INVISIBLE);
 			mStartingProgressSpinner.requestLayout();
-
-		}
-		
-		
-		
-		
-		
+		}		
 	}
 	/* **********
 	 * VIEW OVERRIDES
@@ -389,15 +344,15 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	{
 		super.onResume();
 		mCameraManager.onResume();
-		mSensorManager.onResume();
-		
+		mSensorManager.onResume();	
 	}
-	
 	
 	public void onDestroy()
 	{
 		mCameraManager.onClose();
 	}
+	
+	
 	@Override
 	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
 	{

@@ -39,8 +39,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.util.Log;
-import android.view.Surface;
-import android.view.WindowManager;
 
 
 /**
@@ -54,7 +52,6 @@ import android.view.WindowManager;
  * @bug : raw callback stores 0 bytes files (IOException, NullPointerException)
  * 
  * TODO : remove automatic exposure, zoom, etc..
- * TODO : set preview orientation according to phone orientation
  *
  */
 public class CameraManager /* implements SnapshotObserver */
@@ -243,18 +240,6 @@ public class CameraManager /* implements SnapshotObserver */
 		Log.i(TAG, "opening camera "+camId);
 		
 		mCameraIsBusy = false;
-		/*
-		//TODO : fix by another way.
-		new Thread(new Runnable(){
-			public void run()
-			{
-				try {
-					Thread.sleep(CAMERA_INIT_DELAY);
-				} catch (InterruptedException e) {}
-				mCameraIsBusy = false;
-			}
-		}).start();
-		*/
 		return true;
 	}
 	
@@ -452,20 +437,6 @@ public class CameraManager /* implements SnapshotObserver */
 		}
 	}
 
-	//TODO : implement or remove
-	/**
-	 * set the camera orientation in degrees
-	 * @param orientation
-	 */
-	/*
-	public void setOrientation(int orientation)
-	{
-		mOrientation = orientation;
-
-	}
-	*/
-	
-	
 	 
 	/**
 	 * Capture is sensorial when a sensorFusionManager has been set.
@@ -641,15 +612,11 @@ public class CameraManager /* implements SnapshotObserver */
 	
 				@Override
 				public void run() {
+					// Call to garbage collector to avoid bug http://code.opencv.org/issues/2961 
+				    System.gc();
+				    
 					mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
-					
-					//Reset camera preview : on some devices, camera preview sometimes stops.
-					try
-					{
-						mCamera.startPreview();
-					}
-					catch(Exception e)
-					{}
+			
 				}
 			}).start();
 		}
@@ -721,28 +688,6 @@ public class CameraManager /* implements SnapshotObserver */
 		mListenersLock.unlock();
 		return res;
 
-	}
-	
-	private int getOrientation()
-	{
-		final int screenRotation = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();	
-		int orientation = 90+360;
-		switch (screenRotation)
-		{
-			case Surface.ROTATION_0:
-				orientation += 0;
-				break;
-			case Surface.ROTATION_90:
-				orientation -= 90;
-				break;
-			case Surface.ROTATION_180:
-				orientation -= 180;
-				break;
-			default:
-				orientation -= 270;
-				break;
-		};
-		return orientation%360;
 	}
 	
 	/* *************
@@ -934,7 +879,8 @@ public class CameraManager /* implements SnapshotObserver */
 			{
 				
 				distance = os.getDistanceRoll(snap);
-				
+
+		        if(distance<mAutoShootThreshold)
 		        {
 		        	if(mSensorFusionManager.isStable(mAutoShootPrecision))
 		        	{

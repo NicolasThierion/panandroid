@@ -200,9 +200,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 			mSensorFusionManager.onPauseOrStop();
 		}
 	}
-	
-	
-	
 
 	/* *********
 	 * SENSORLISTENER OVERRIDES
@@ -231,7 +228,8 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 			roll = mSensorFusionManager.getRelativeRoll();		
 				
 		mRenderer.setRotation(pitch, yaw, roll);
-
+		
+		//mRenderer.setRotationMatrix(mSensorFusionManager.getRotationMatrix());
 			
 	}
 	/* *********
@@ -385,12 +383,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		return mSensorialRotationEnable;
 	}
 	
-	/*
-	protected void setYawOffset(float yawOffset) 
-	{
-		System.out.println("yaw "+this.mSensorFusionManager.getYaw());
-		mYawOffset = yawOffset;
-	}*/
 	
 	/* *********
 	 * PRIVATE METHODS

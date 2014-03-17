@@ -58,7 +58,6 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	 * ******/
 	public static final String TAG = CaptureActivity.class.getSimpleName();
 
-	private static final boolean ALTERNATIVE_MARKERS_PLACEMENT = false;
 	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
 	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
 
@@ -202,33 +201,6 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
         	getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 0);
         }
     }
-
-	/*void generateMarks(float s)
-	{
-		float radius = 1;
-		float phi = s/radius;
-		LinkedList<Mark> marks;
-
-
-		double theta = Math.PI; //equateur
-		phi = 0;
-		Mark mark;
-
-		mark.mPitch = theta;
-		mark.mYaw = phi;
-
-		marks.add(mark);
-
-		while(   ) { //test d'arret pour recouvrir tte la sphere
-			phi += phi;
-			mark.mPitch = theta;
-			mark.mYaw = phi;
-
-			marks.add(mark);
-
-		}
-
-	}*/
 
 
 	/* ********

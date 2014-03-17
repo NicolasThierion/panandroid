@@ -12,7 +12,8 @@ public class ShutterButton extends ImageView
 	/* ******
 	 * PARAMETERS
 	 * ******/
-    private final String TAG = ShutterButton.class.getSimpleName();
+    @SuppressWarnings("unused")
+	private final String TAG = ShutterButton.class.getSimpleName();
 	private static final int SHUTTER_BUTTON_ID= R.drawable.btn_shutter_photo;
 
 	/* ******
