@@ -91,6 +91,32 @@ string result_name = "result.jpg";
 #define DEBUG
 #define TAG "OpenCV stitcher"
 
+static char** imagesPath;
+
+extern "C"
+{
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_storeImagesPath
+        (JNIEnv* env, jobject obj, jobjectArray files)
+        {
+                jstring tmp;
+                const char* path;
+                int numImages = env->GetArrayLength(files);
+
+                imagesPath = new char*[numImages];
+
+                for (int i = 0; i < numImages; ++i) {
+                        tmp = (jstring) env->GetObjectArrayElement(files, i);
+                        path = env->GetStringUTFChars(tmp, 0);
+                        imagesPath[i] = new char[strlen(path) + 1];
+                        strcpy(imagesPath[i], path);
+                        env->ReleaseStringUTFChars(tmp, path);
+                }
+
+                return 0;
+        }
+}
+
 static int parseCmdArgs(int argc, char** argv)
 {
         for (int i = 0; i < argc; ++i) {
@@ -698,7 +724,7 @@ Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_openCVStitcher(
                         blender = Blender::createDefault(blend_type, try_gpu);
                         Size dst_sz = resultRoi(corners, sizes).size();
                         float blend_width = sqrt(static_cast<float>(dst_sz.area())) * blend_strength / 100.f;
-            
+
                         if (blend_width < 1.f)
                                 blender = Blender::createDefault(Blender::NO, try_gpu);
                         else if (blend_type == Blender::MULTI_BAND) {
