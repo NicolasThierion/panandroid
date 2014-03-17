@@ -153,15 +153,9 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		container.addView(mCaptureView);
 
 
-		if(ALTERNATIVE_MARKERS_PLACEMENT)
-		{
-			mCaptureView.setMarkersDistance(DEFAULT_PITCH_STEP);
-		}
-		else
-		{
-			mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
-			mCaptureView.setYawStep(DEFAULT_YAW_STEP);
-		}
+		mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
+		mCaptureView.setYawStep(DEFAULT_YAW_STEP);
+	
 
 		//do not set the view as content cause it is bind to layout.
 		//this.setContentView(this.mCaptureView);

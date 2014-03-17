@@ -30,6 +30,7 @@ import java.util.LinkedList;
 
 
 
+
 import android.app.Activity;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
@@ -248,7 +249,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	{
 		//updates camera autoshoot targets
 		
-		
+		/*
 		LinkedList<EulerAngles> targets = new LinkedList<EulerAngles>();
 		
 		for(float pitch = -90.0f+mPitchStep; pitch < 90.1f-mPitchStep; pitch+=mPitchStep)
@@ -266,40 +267,49 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 
 		mRenderer.setMarkerList(targets);
 		mCameraManager.setAutoShootTargetList(targets);
-
-		return targets;
-	}
-	
-	public void setMarkersDistance(float s)
-	{
+		 */
+		
 		
 		LinkedList<EulerAngles> targets = new LinkedList<EulerAngles>();
-
-		//on ne sait se deplacer qu'en termes de pitch et de yaw
-		float yawStep;
-		float r, theta;
-		for( float pitch = -90+mPitchStep; pitch < 90-mPitchStep; pitch+=mPitchStep)
+		
+		
+		double currentPitch, currentYaw;
+		double pitchStep = 180.0 / ((int)(180.0f / mPitchStep));
+		double yawStep = 360.0 / ((int)(360.0f / mYawStep));
+		double s = Math.toRadians(yawStep);
+		
+		
+		for(currentPitch=0; currentPitch< 90.1f - pitchStep; currentPitch+=pitchStep)
 		{
-			theta = 90.0f + pitch;
-			
-			r = (float) Math.sin(theta);
-			
-			yawStep = s/r;
-			yawStep = Math.abs(yawStep);
-			
-			for(float yaw = 0; yaw < 360; yaw+=yawStep)
+			double phi = Math.toRadians(currentPitch);
+			double sinPhi = Math.sin(phi);
+			double cosPhi = Math.cos(phi);
+			double lambda = Math.acos((Math.cos(s)-sinPhi*sinPhi)/(cosPhi*cosPhi));
+			yawStep = Math.toDegrees(lambda);
+			for(currentYaw = -180.0f; currentYaw < 180.1f - yawStep; currentYaw+=yawStep)
 			{
-				targets.add(new Snapshot(pitch, yaw));
+				float p = (float)currentPitch;
+				float y = ((float)(currentYaw))%360;
+				targets.add(new Snapshot(p, y));
+				if(p!=0)
+					targets.add(new Snapshot(-p, y));
 			}
 		}
+		
+		//add poles
+		targets.add(new Snapshot(90.0f, 0.0f));
+		targets.add(new Snapshot(-90.0f, 0.0f));
+
 		
 		
 		mCameraManager.setAutoShootTargetList(targets);
 		mRenderer.setMarkerList(targets);
 
 		
-		//add poles
+		return targets;
 	}
+	
+	
 
 	/**
 	 * Watch pitch for starting initial shoot.

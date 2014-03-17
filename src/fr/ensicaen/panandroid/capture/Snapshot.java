@@ -117,8 +117,64 @@ public class Snapshot implements EulerAngles
 	public void setFileName(String mFileName) {
 		this.mFileName = mFileName;
 	}
-	
-	
 
-	
+	/**
+	 * get the distance between this snapshot and the given eulerAngle, regardless of the roll.
+	 * See "getDistanceRoll()" for taking roll in account.
+	 * @param eulerAngle
+	 * @return
+	 */
+	public float getDistance(EulerAngles eulerAngle) {
+		float d;
+		
+		Snapshot s = new Snapshot(eulerAngle.getPitch(), eulerAngle.getYaw(), eulerAngle.getRoll());
+		float dPitch, dYaw;
+		
+		
+		dPitch = Math.abs(mPitch - s.mPitch);
+		dYaw =  Math.abs(mYaw-s.mYaw);
+		if(dYaw>180.0f)
+		{
+			dYaw = 360.0f - dYaw;
+		}
+		
+
+		
+		float pitchCoef = (float) Math.cos(Math.toRadians(Math.max(Math.abs(mPitch),  Math.abs(s.mPitch))));
+		d = (dYaw * pitchCoef + dPitch);
+		
+		return d;
+	}
+
+	/**
+	 * get the distance between this snapshot and the given eulerAngle, taking the roll in account.
+	 * @param eulerAngle
+	 * @return
+	 */
+	public float getDistanceRoll(EulerAngles eulerAngle)
+	{
+		float d;
+		
+		Snapshot s = new Snapshot(eulerAngle.getPitch(), eulerAngle.getYaw(), eulerAngle.getRoll());
+		float dPitch, dYaw, dRoll;
+		
+		
+		dPitch = Math.abs(mPitch - s.mPitch);
+		dYaw =  Math.abs(mYaw-s.mYaw);
+		if(dYaw>180.0f)
+		{
+			dYaw = 360.0f - dYaw;
+		}
+		
+		dRoll = Math.abs(mRoll - s.mRoll);
+		if(dRoll>180.0f)
+		{
+			dRoll = 360.0f - dRoll;;
+		}
+		
+		float pitchCoef = (float) Math.cos(Math.toRadians(Math.max(Math.abs(mPitch),  Math.abs(s.mPitch))));
+		d = (dRoll*pitchCoef + dYaw * pitchCoef + dPitch);
+		
+		return d;
+	}
 }

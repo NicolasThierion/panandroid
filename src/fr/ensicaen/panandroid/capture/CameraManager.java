@@ -926,29 +926,15 @@ public class CameraManager /* implements SnapshotObserver */
 			float oPitch = mSensorFusionManager.getPitch();
 			float oYaw = mSensorFusionManager.getYaw();
 			float oRoll = mSensorFusionManager.getRelativeRoll();
-			
-			float sPitch , sYaw, sRoll, dPitch, dYaw, dRoll, distance;
-			
+
+			float distance;
+			Snapshot os = new Snapshot(oPitch, oYaw, oRoll);
 			//seek targets of a near one
 			for (Snapshot snap: mAutoShootTargets)
 			{
-				sPitch = snap.getPitch();
-		        sYaw = snap.getYaw();
-		        sRoll = snap.getRoll();
-		        
-		        dPitch = oPitch - sPitch;
-		        dYaw = oYaw - sYaw;
-		        dRoll = oRoll - sRoll;
-		        
-		        //if target in a pole. neutralize yaw
-		        if(Math.abs(sPitch)>89.0f)
-		        {
-		        	dYaw=0.0f;
-		        	dRoll = 0.0f;
-		        }
-		        
-		        distance = (float) Math.sqrt(Math.pow(dPitch, 2)+Math.pow(dYaw, 2) + Math.pow(dRoll, 2));
-		        if(distance<mAutoShootThreshold)
+				
+				distance = os.getDistanceRoll(snap);
+				
 		        {
 		        	if(mSensorFusionManager.isStable(mAutoShootPrecision))
 		        	{

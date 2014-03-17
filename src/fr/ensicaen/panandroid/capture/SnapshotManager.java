@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -40,6 +41,9 @@ public class SnapshotManager implements SnapshotEventListener
 	 * PARAMETERS
 	 * *****/
 	private static final String DEFAULT_JSON_FILENAME = "PanoData.json";
+
+
+	private static final float NEIGHBOR_DISTANCE = 30.0f;
 	
 	
 	/* ******
@@ -159,7 +163,40 @@ public class SnapshotManager implements SnapshotEventListener
 		String absoluteFilename = path+File.separator+filename;
 		return absoluteFilename;
 	}
+
+	public LinkedList<LinkedList<Snapshot>> getNeighbors()
+	{
+		LinkedList<LinkedList<Snapshot>> neighborsList = new LinkedList<LinkedList<Snapshot>>();
+		LinkedList<Snapshot> snapshots = new LinkedList<Snapshot>(mSnapshots);
 		
+		
+		for( int i = 0; i < snapshots.size(); i++ )
+		{
+			LinkedList<Snapshot> currentList = new LinkedList<Snapshot>();
+			neighborsList.add(currentList);
+			
+			
+			Snapshot currentSnapshot = snapshots.get(i);
+			currentList.add(currentSnapshot);	
+			for (int j = i+1; j < snapshots.size(); j++)
+			{
+
+				Snapshot currentNeighbor = snapshots.get(j);
+				
+				if(currentSnapshot.getDistance(currentNeighbor) < NEIGHBOR_DISTANCE )
+				{
+					currentList.add(currentNeighbor);
+					snapshots.remove(currentNeighbor);
+					
+				}
+			}
+		}
+		
+		
+		
+		return null;
+		
+	}
 }
 
 

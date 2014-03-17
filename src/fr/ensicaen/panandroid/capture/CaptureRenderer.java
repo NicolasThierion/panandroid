@@ -325,7 +325,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 
 	/**
 	 * set how fast markers disappears when going far from them.
-	 * @param factor - factor. A high value set markers to disappear quickly.
+	 * @param factor - factor. A high value set markers to disappear quickly. Setting to zero will make them to never dissapear.
 	 */
 	public void setMarkersAttenuationFactor(float factor)
 	{
@@ -458,13 +458,13 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mSnapshotsLock.lock();
 		for (Snapshot3D snap : mSnapshots)
 		{
-			float distance = this.getAbsSnapshotDistance(snap);
+			float distance = this.getSnapshotDisnance(snap);
 			
 			if(mHasToFreeMemory && distance>AUTO_UNLOADTEXTURE_ANGLE)
 			{
 				snap.unloadGLTexture(gl);
 			}
-			else if(this.getSnapshotDistance(snap)<AUTO_LOADTEXTURE_ANGLE)
+			else if(this.getSnapshotDisnance(snap)<AUTO_LOADTEXTURE_ANGLE)
 			{
 				snap.loadGLTexture(gl);
 			}
@@ -490,7 +490,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			mTargetsLock.lock();
 			for (Snapshot3D dot : mDots)
 			{		
-				d = getSnapshotDistance(dot);
+				d = getSnapshotDisnance(dot);
 				if(d>60.0f)
 				{
 					dot.setVisible(false);
@@ -512,7 +512,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			mTargetsLock.lock();
 			for (Snapshot3D contour : mContours)
 			{		
-				d = getSnapshotDistance(contour);
+				d = getSnapshotDisnance(contour);
 
 				if(d>60.0f)
 				{
@@ -726,6 +726,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * @param b
 	 * @return distance of the 2 points.
 	 */
+	/*
 	private float getSnapshotDistance(EulerAngles a, EulerAngles b)
 	{
 		float oPitch = b.getPitch();
@@ -747,7 +748,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		return d;
 				
 	}
-	
+	*/
 	
 	
 	/**
@@ -755,6 +756,14 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 * @param snapshot
 	 * @return
 	 */
+	private float getSnapshotDisnance(EulerAngles a)
+	{
+		
+		Snapshot s = new Snapshot(super.getPitch(), super.getYaw());
+		return s.getDistance(a); 
+	}
+	
+	/*
 	private float getSnapshotDistance(EulerAngles a)
 	{
 		return this.getSnapshotDistance(a, new Snapshot(super.getPitch(), super.getYaw()));
@@ -785,7 +794,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		return this.getAbsSnapshotDistance(a, new Snapshot(super.getPitch(), super.getYaw()));
 	}
-
+*/
 	
 	/**
 	 * Remove the dot near the given position.
@@ -799,7 +808,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mTargetsLock.lock();
 		for(Snapshot3D dot : mDots)
 		{
-			if(this.getSnapshotDistance(dot, o)<TRESHOLD)
+			if(o.getDistance(dot)<TRESHOLD)
 			{
 				mDots.remove(dot);
 				mTargetsLock.unlock();
@@ -823,7 +832,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mTargetsLock.lock();
 		for(Snapshot3D contour : mContours)
 		{
-			if(this.getSnapshotDistance(contour, o)<TRESHOLD)
+			if(o.getDistance(contour)<TRESHOLD)
 			{
 				mContours43.remove(i);
 				mContours34.remove(i);
