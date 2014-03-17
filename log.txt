@@ -1,0 +1,61 @@
+02-27 18:05:57.437: D/dalvikvm(21944): Trying to load lib /data/app-lib/fr.ensicaen.panandroid-2/libocvstitcher.so 0x42f01b80
+02-27 18:05:57.457: D/dalvikvm(21944): Added shared lib /data/app-lib/fr.ensicaen.panandroid-2/libocvstitcher.so 0x42f01b80
+02-27 18:05:57.457: D/dalvikvm(21944): No JNI_OnLoad found in /data/app-lib/fr.ensicaen.panandroid-2/libocvstitcher.so 0x42f01b80, skipping init
+02-27 18:05:57.557: I/StitcherActivity(21944): /storage/emulated/0/sample/p986.jpg
+02-27 18:05:57.557: I/StitcherActivity(21944): /storage/emulated/0/sample/p987.jpg
+02-27 18:05:57.557: I/StitcherActivity(21944): /storage/emulated/0/sample/p988.jpg
+02-27 18:05:57.557: I/StitcherActivity(21944): /storage/emulated/0/sample/p989.jpg
+02-27 18:05:57.557: I/StitcherActivity(21944): /storage/emulated/0/sample/p990.jpg
+02-27 18:05:57.557: I/StitcherActivity(21944): /storage/emulated/0/sample/p991.jpg
+02-27 18:05:57.557: I/StitcherActivity(21944): /storage/emulated/0/sample/p992.jpg
+02-27 18:05:57.557: I/StitcherActivity(21944): /storage/emulated/0/sample/p993.jpg
+02-27 18:05:57.557: E/NavigationBar(21944): meta-data ==> set Navi Bg (package:fr.ensicaen.panandroid, portResource ID:0, landResource ID:0, alpha:0)
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/p986.jpg
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/p987.jpg
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/p988.jpg
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/p989.jpg
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/p990.jpg
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/p991.jpg
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/p992.jpg
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/p993.jpg
+02-27 18:05:57.557: D/OpenCV stitcher(21944): --result
+02-27 18:05:57.557: D/OpenCV stitcher(21944): /storage/emulated/0/sample/panorama.jpg
+02-27 18:05:57.557: I/OpenCV stitcher(21944): 8
+02-27 18:05:57.557: I/OpenCV stitcher(21944): Finding features...
+02-27 18:05:57.577: D/libEGL(21944): loaded /vendor/lib/egl/libEGL_adreno.so
+02-27 18:05:57.577: D/libEGL(21944): loaded /vendor/lib/egl/libGLESv1_CM_adreno.so
+02-27 18:05:57.587: D/libEGL(21944): loaded /vendor/lib/egl/libGLESv2_adreno.so
+02-27 18:05:57.587: W/Adreno-GSL(21944): <get_panel_settings:3801>: Android framework reported version 2. So, don't force ES30
+02-27 18:05:57.587: I/Adreno-EGL(21944): <qeglDrvAPI_eglInitialize:316>: EGL 1.4 QUALCOMM build:  (CL3851443)
+02-27 18:05:57.587: I/Adreno-EGL(21944): OpenGL ES Shader Compiler Version: 17.01.09
+02-27 18:05:57.587: I/Adreno-EGL(21944): Build Date: 08/16/13 Fri
+02-27 18:05:57.587: I/Adreno-EGL(21944): Local Branch: PMH2-JB_MR1_RB1-AU142
+02-27 18:05:57.587: I/Adreno-EGL(21944): Remote Branch: 
+02-27 18:05:57.587: I/Adreno-EGL(21944): Local Patches: 
+02-27 18:05:57.587: I/Adreno-EGL(21944): Reconstruct Branch: 
+02-27 18:05:57.607: D/OpenGLRenderer(21944): Enabling debug mode 0
+02-27 18:05:57.997: I/OpenCV stitcher(21944): Features in image #1: 1061
+02-27 18:05:58.417: I/OpenCV stitcher(21944): Features in image #2: 1120
+02-27 18:05:58.807: I/OpenCV stitcher(21944): Features in image #3: 1328
+02-27 18:05:59.257: I/OpenCV stitcher(21944): Features in image #4: 1370
+02-27 18:05:59.637: I/OpenCV stitcher(21944): Features in image #5: 1359
+02-27 18:06:00.337: I/OpenCV stitcher(21944): Features in image #6: 1415
+02-27 18:06:00.997: I/OpenCV stitcher(21944): Features in image #7: 1302
+02-27 18:06:01.567: I/OpenCV stitcher(21944): Features in image #8: 1408
+02-27 18:06:01.577: I/OpenCV stitcher(21944): Finding features, time: 4.018065 sec
+02-27 18:06:01.577: I/OpenCV stitcher(21944): Pairwise matching...
+02-27 18:06:28.737: I/OpenCV stitcher(21944): Pairwise matching, time: 27.158711 sec
+02-27 18:06:34.627: I/OpenCV stitcher(21944): Warping images (auxiliary)...
+02-27 18:06:36.657: I/OpenCV stitcher(21944): Warping images, time: 2.033204 sec
+02-27 18:06:56.747: I/OpenCV stitcher(21944): Compositing...
+02-27 18:06:56.747: I/OpenCV stitcher(21944): Compositing image #1
+02-27 18:06:57.367: I/OpenCV stitcher(21944): Multi-band blender, number of bands: 5
+02-27 18:06:57.637: I/OpenCV stitcher(21944): Compositing image #2
+02-27 18:06:58.637: I/OpenCV stitcher(21944): Compositing image #3
+02-27 18:06:59.447: I/OpenCV stitcher(21944): Compositing image #4
+02-27 18:07:00.217: I/OpenCV stitcher(21944): Compositing image #5
+02-27 18:07:01.117: I/OpenCV stitcher(21944): Compositing image #6
+02-27 18:07:02.287: I/OpenCV stitcher(21944): Compositing image #7
+02-27 18:07:03.467: I/OpenCV stitcher(21944): Compositing image #8
+02-27 18:07:05.257: I/OpenCV stitcher(21944): Compositing, time: 8.512364 sec
+02-27 18:07:05.477: I/OpenCV stitcher(21944): Finished, total time: 67.921418 sec

@@ -60,12 +60,13 @@ public class StitcherActivity extends Activity {
         Intent intent = getIntent();
         mFolder = new File(intent.getStringExtra(
                 CaptureActivity.FOLDER));
+
         new StitcherTask().execute();
     }
 
     /**
      * Reads content of PanoData.json file.
-     * @return String representing content of PanoData.json
+     * @return String with content of PanoData.json
      */
     public String readPanoData() {
         BufferedReader br = null;
@@ -98,9 +99,27 @@ public class StitcherActivity extends Activity {
     }
 
     /**
-     * StitcherTask class provides the treatment on the set of images.
+     * Gets images from current folder.
+     * @return List of images path.
      */
-    class StitcherTask extends AsyncTask<Void, Void, Integer> {
+    public List<String> getImagesPath() {
+        List<String> imagesPath = new ArrayList<String>();
+        String[] filesPath = mFolder.list();
+
+        for (int i = 0; i < filesPath.length; ++i) {
+            if (!filesPath[i].endsWith(".json")) {
+                imagesPath.add(mFolder.getAbsolutePath() + File.separator
+                        + filesPath[i]);
+            }
+        }
+
+        return imagesPath;
+    }
+
+    /**
+     * StitcherTask class provides treatments on the set of images.
+     */
+    class StitcherTask extends AsyncTask<Void, Integer, Integer> {
         public final int SUCCESS = 0;
         private ProgressDialog mProgress;
 
@@ -110,15 +129,55 @@ public class StitcherActivity extends Activity {
          */
         @Override
         protected void onPreExecute() {
-            mProgress = ProgressDialog.show(StitcherActivity.this,
-                    "Stitching in progress", "Please wait", true, false);
+            mProgress = new ProgressDialog(StitcherActivity.this);
+            mProgress.setMessage("Stitching en cours");
+            mProgress.setIndeterminate(false);
+            mProgress.setMax(100);
+            mProgress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            mProgress.setCancelable(true);
+            mProgress.show();
         }
 
         /**
-         * Stitches images with OpenCV features in a JNI.
+         * Shows a dialog to the user corresponding to the result of
+         * the stitching.
+         * It runs on the UI thread after doInBackground.
+         */
+        @Override
+        protected void onPostExecute(Integer result) {
+            Dialog dialog = new Dialog(StitcherActivity.this);
+
+            mProgress.dismiss();
+
+            if (result == SUCCESS) {
+                dialog.setTitle("Success");
+            } else {
+                dialog.setTitle("Failure");
+            }
+
+            dialog.show();
+        }
+
+        /**
+         * Stitches images with OpenCV features through JNI.
          */
         @Override
         protected Integer doInBackground(Void... params) {
+            if (storeImagesPath(getImagesPath().toArray()) == SUCCESS) {
+                mProgress.setProgress(10);
+            }
+
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            mProgress.setProgress(50);
+
+            return SUCCESS;
+            /*
             String[] paths = mFolder.list();
             List<String> arguments = new ArrayList<String>();
 
@@ -149,26 +208,7 @@ public class StitcherActivity extends Activity {
                     + "panorama.jpg");
 
             return openCVStitcher(arguments.toArray());
-        }
-
-        /**
-         * Shows a dialog to the user corresponding to the result of
-         * the stitching.
-         * It runs on the UI thread after doInBackground.
-         */
-        @Override
-        protected void onPostExecute(Integer result) {
-            Dialog dialog = new Dialog(StitcherActivity.this);
-
-            mProgress.dismiss();
-
-            if (result == SUCCESS) {
-                dialog.setTitle("Success");
-            } else {
-                dialog.setTitle("Failure");
-            }
-
-            dialog.show();
+            */
         }
     }
 
@@ -184,4 +224,11 @@ public class StitcherActivity extends Activity {
      * @return Result of the stitching.
      */
     public native int openCVStitcher(Object[] arguments);
+
+    /**
+     * Store images path for OpenCV.
+     * @param files Path to all images in the current folder.
+     * @return Result of images storage.
+     */
+    public native int storeImagesPath(Object[] files);
 }
