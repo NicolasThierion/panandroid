@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.util.List;
 
 import fr.ensicaen.panandroid.capture.CameraManager;
-import fr.ensicaen.panandroid.capture.Snapshot;
-import fr.ensicaen.panandroid.sensor.SensorFusionManager;
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+import fr.ensicaen.panandroid.tools.SensorFusionManager;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;

@@ -27,7 +27,10 @@ import java.util.LinkedList;
 import java.util.concurrent.locks.ReentrantLock;
 
 import junit.framework.Assert;
-import fr.ensicaen.panandroid.sensor.SensorFusionManager;
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+import fr.ensicaen.panandroid.snapshot.SnapshotEventListener;
+import fr.ensicaen.panandroid.tools.EulerAngles;
+import fr.ensicaen.panandroid.tools.SensorFusionManager;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;

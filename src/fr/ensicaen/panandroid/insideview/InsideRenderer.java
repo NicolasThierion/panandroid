@@ -23,9 +23,9 @@ import java.util.Arrays;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import fr.ensicaen.panandroid.capture.EulerAngles;
 import fr.ensicaen.panandroid.meshs.Mesh;
 import fr.ensicaen.panandroid.meshs.NullMesh;
+import fr.ensicaen.panandroid.tools.EulerAngles;
 import android.content.Context;
 import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.GLU;

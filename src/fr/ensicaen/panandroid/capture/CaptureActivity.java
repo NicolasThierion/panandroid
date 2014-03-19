@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 
 import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 import fr.ensicaen.panandroid.stitcher.StitcherActivity;
 import junit.framework.Assert;
 import android.annotation.SuppressLint;

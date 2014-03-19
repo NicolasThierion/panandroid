@@ -17,7 +17,7 @@
  * MA  02110-1301, USA.
  */
 
-package fr.ensicaen.panandroid.capture;
+package fr.ensicaen.panandroid.tools;
 
 /**
  * 

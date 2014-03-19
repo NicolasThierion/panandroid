@@ -21,12 +21,19 @@ package fr.ensicaen.panandroid.capture;
 import java.util.LinkedList;
 
 
+
+
+
+
 import android.app.Activity;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
 import fr.ensicaen.panandroid.meshs.Cube;
-import fr.ensicaen.panandroid.sensor.SensorFusionManager;
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+import fr.ensicaen.panandroid.snapshot.SnapshotEventListener;
 import fr.ensicaen.panandroid.tools.BitmapDecoder;
+import fr.ensicaen.panandroid.tools.EulerAngles;
+import fr.ensicaen.panandroid.tools.SensorFusionManager;
 import junit.framework.Assert;
 import android.annotation.SuppressLint;
 import android.content.Context;

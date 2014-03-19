@@ -17,7 +17,7 @@
  * MA  02110-1301, USA.
  */
 
-package fr.ensicaen.panandroid.sensor;
+package fr.ensicaen.panandroid.tools;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -32,7 +32,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
-import fr.ensicaen.panandroid.capture.EulerAngles;
 import junit.framework.Assert;
 
 /**

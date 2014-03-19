@@ -16,7 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301, USA.
  */
-package fr.ensicaen.panandroid.capture;
+package fr.ensicaen.panandroid.snapshot;
+
+import fr.ensicaen.panandroid.tools.EulerAngles;
 
 /**
  *

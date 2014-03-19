@@ -22,7 +22,7 @@ package fr.ensicaen.panandroid.insideview;
 import java.util.Stack;
 
 import fr.ensicaen.panandroid.meshs.Mesh;
-import fr.ensicaen.panandroid.sensor.SensorFusionManager;
+import fr.ensicaen.panandroid.tools.SensorFusionManager;
 import junit.framework.Assert;
 
 

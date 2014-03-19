@@ -43,7 +43,10 @@ import fr.ensicaen.panandroid.insideview.InsideRenderer;
 import fr.ensicaen.panandroid.meshs.Cube;
 import fr.ensicaen.panandroid.meshs.Snapshot3D;
 import fr.ensicaen.panandroid.meshs.TexturedPlane;
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+import fr.ensicaen.panandroid.snapshot.SnapshotEventListener;
 import fr.ensicaen.panandroid.tools.BitmapDecoder;
+import fr.ensicaen.panandroid.tools.EulerAngles;
 
 /**
  * CaptureRenderer is basically an Inside3dRenderer, with a cube as preffered surrounding mesh.

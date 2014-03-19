@@ -21,8 +21,8 @@ package fr.ensicaen.panandroid.meshs;
 
 import javax.microedition.khronos.opengles.GL10;
 
-import fr.ensicaen.panandroid.capture.EulerAngles;
-import fr.ensicaen.panandroid.capture.Snapshot;
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+import fr.ensicaen.panandroid.tools.EulerAngles;
 
 
 /**

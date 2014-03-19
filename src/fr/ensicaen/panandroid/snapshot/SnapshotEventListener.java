@@ -16,7 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301, USA.
  */
-package fr.ensicaen.panandroid.capture;
+package fr.ensicaen.panandroid.snapshot;
+
 
 /**
  * When the camera build a snapshot object from a picture it has just taken, it throw the event onSnapshotTaken.
