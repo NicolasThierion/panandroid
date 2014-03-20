@@ -170,7 +170,7 @@ public class TexturedPlane extends Mesh
 		if(ratio>1)
 			ratioX = ratio;
 		else
-			ratioY=ratio;
+			ratioY=1/ratio;
 		
 		for(int i=0; i< mVertices.length; i+=3)
 		{

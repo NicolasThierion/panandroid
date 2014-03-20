@@ -42,6 +42,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.util.Log;
+import android.view.Surface;
+import android.view.WindowManager;
 
 
 /**
@@ -237,7 +239,9 @@ public class CameraManager /* implements SnapshotObserver */
 		mCamera = Camera.open(camId);
 
 		mCameraParameters = mCamera.getParameters();
+		mCameraParameters.set("orientation", "portrait");
 		
+		mCamera.setParameters(mCameraParameters);
 		setPreviewFormat(DEFAULT_PREVIEW_FORMAT);
 
 		Log.i(TAG, "opening camera "+camId);
@@ -267,7 +271,7 @@ public class CameraManager /* implements SnapshotObserver */
 		}
 		
 		
-		if(this.mCameraParameters!=null)
+		if(mCameraParameters!=null)
 		{
 			mCamera.setParameters(mCameraParameters);
 		}
@@ -403,7 +407,7 @@ public class CameraManager /* implements SnapshotObserver */
 		}
 		if(!isOpen())
 			throw new IOException("Cannot open camera.");
-		return mCamera.getParameters().getPreviewSize();
+		return mCameraParameters.getPreviewSize();
 	}
 	
 	public boolean setSensorialCaptureEnabled(boolean enable)
@@ -504,7 +508,6 @@ public class CameraManager /* implements SnapshotObserver */
 		if(!isOpen())
 			open();
 		mCamera.setDisplayOrientation(degrees);
-
 	}
 	
 	public void setJpegCompression(int compression)
@@ -603,14 +606,19 @@ public class CameraManager /* implements SnapshotObserver */
 		mTempFilename = genAbsoluteFilename(filename);
 		filename = mTempFilename;
 		
+		//TODO
 		//set picture orientation
-		Camera.Parameters params = mCamera.getParameters();
-		params.setJpegQuality(mJpegCompression);
-		mCamera.setParameters(params);
+		mCameraParameters = mCamera.getParameters();
+		int rotation = getCameraRotation();
+		mCameraParameters.setRotation(rotation);
+		mCameraParameters.setJpegQuality(mJpegCompression);
+
 		
 		//take a picture in separated thread
 		try
 		{
+			mCamera.setParameters(mCameraParameters);
+
 			new Thread(new Runnable(){
 	
 				@Override
@@ -849,7 +857,34 @@ public class CameraManager /* implements SnapshotObserver */
 			}
 		}
 	}
-	
+	/* *************
+	 * PRIVATE METHODS
+	 * ************/
+	private int getCameraRotation()
+	{
+		int screenRot = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+		int rotation=90;
+		switch(screenRot){
+		case Surface.ROTATION_0:
+			System.out.println("rot=0");
+			rotation+=0;
+			break;
+		case Surface.ROTATION_90:
+			System.out.println("rot=90");
+			rotation-=90;			
+			break;
+		case Surface.ROTATION_180:
+			System.out.println("rot=180");
+			rotation-=180;			
+			break;
+		case Surface.ROTATION_270:
+			System.out.println("rot=270");
+			rotation-=270;			
+			break;
+		}
+		rotation+=360;
+		return rotation%360;
+	}
 
 	
 	/* *************
@@ -938,7 +973,8 @@ public class CameraManager /* implements SnapshotObserver */
 
 
 	public double getCameraResolution() {
-		Camera.Size size = mCamera.getParameters().getPictureSize();
+		Camera.Size size = mCameraParameters.getPictureSize();
+		
 		double mpx = (double)(size.height * size.width) /1024000.0 ;
 		return mpx;
 	}

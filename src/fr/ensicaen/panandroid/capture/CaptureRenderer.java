@@ -83,9 +83,9 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     private static final float DEFAULT_FOV_DEG = 110;
     
     /** Size & distance of the snapshots **/
-	private static final float SNAPSHOTS_SIZE = 0.20f;
+	private static final float SNAPSHOTS_SIZE = 0.15f;
 	private static final float SNAPSHOTS_DISTANCE = 0.50f;
-	private static final float DEFAULT_SNAPSHOT_ZOOM = 140.0f;
+	private static final float DEFAULT_SNAPSHOT_ZOOM = 140.0f;		//percent
 	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 0;	//[0 for automatic sample rate]
 
 	/** Size & distance of the camera preview **/
@@ -102,7 +102,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private static final float MARKERS_DISTANCE = 0.30f;
 	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 15.0f; 		//[ in percent]
 	
-	private static final float CAMERA_RATIO = 3.0f/4.0f;
+	private static final float CAMERA_RATIO = 4.0f/3.0f;
 	
 	
 	/** default textures **/
@@ -662,7 +662,13 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		
 		//build a snapshot3d from the snapshot2d
-		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, CAMERA_RATIO, snapshot);
+		float rotation = (int) (180 + snapshot.getRoll())%360;
+		float ratio = CAMERA_RATIO;
+		if((rotation>=45 && rotation<=135) || (rotation>=225 && rotation<=315) )
+			ratio = 1/ratio;
+			
+		
+		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, ratio, snapshot);
 		//fill the snapshot with the byteArray, faster than reading its data from SD.
 		snap.setSampleRate(mSampleRate);
 		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSampleRate));
@@ -671,7 +677,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		
 		//put the snapshot at its place.
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
-		//snap.rotate(0, 0, mCameraRoll);
+		
+		//and with the correct rotation
+		//final int rotation=(int) snap.getRoll();	
+		
+		snap.rotate(0, 0, rotation);
 		snap.setVisible(true);
 		mSnapshotsLock.lock();
 		mSnapshots.add(snap);

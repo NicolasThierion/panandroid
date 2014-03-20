@@ -34,7 +34,7 @@ public class PanandroidApplication extends Application
 	 * PARAMETERS
 	 * ******/
     private final static String TAG = PanandroidApplication.class.getSimpleName();
-    
+
 	/* *******
 	 * ATTRIBUTES
 	 * ******/
