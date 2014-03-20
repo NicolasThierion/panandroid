@@ -19,6 +19,7 @@
 
 package fr.ensicaen.panandroid.capture;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -32,7 +33,10 @@ import fr.ensicaen.panandroid.snapshot.SnapshotEventListener;
 import fr.ensicaen.panandroid.tools.EulerAngles;
 import fr.ensicaen.panandroid.tools.SensorFusionManager;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
@@ -41,6 +45,7 @@ import android.hardware.Camera.Size;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.media.ExifInterface;
 import android.util.Log;
 import android.view.Surface;
 import android.view.WindowManager;
@@ -88,7 +93,8 @@ public class CameraManager /* implements SnapshotObserver */
 	//tricky workaround to ensure that camera opening has finished before using it
 	public static final int CAMERA_INIT_DELAY = 10000;
 	private boolean mCameraIsBusy = true;
-	
+	//private int mTempSnapshotOrientation;
+
 	/* *************
 	 * ATTRIBUTES
 	 * *************/
@@ -171,7 +177,7 @@ public class CameraManager /* implements SnapshotObserver */
 	private int mFileId = 0;
 	
 	private int mJpegCompression = JPEG_COMPRESSION;
-
+	private int mTempExifOrientation;
 
 	
 	
@@ -609,8 +615,6 @@ public class CameraManager /* implements SnapshotObserver */
 		//TODO
 		//set picture orientation
 		mCameraParameters = mCamera.getParameters();
-		int rotation = getCameraRotation();
-		mCameraParameters.setRotation(rotation);
 		mCameraParameters.setJpegQuality(mJpegCompression);
 
 		
@@ -618,6 +622,7 @@ public class CameraManager /* implements SnapshotObserver */
 		try
 		{
 			mCamera.setParameters(mCameraParameters);
+			mTempExifOrientation = getExifOrientation();
 
 			new Thread(new Runnable(){
 	
@@ -713,10 +718,10 @@ public class CameraManager /* implements SnapshotObserver */
 	private class OnShutterCallback implements ShutterCallback
 	{
 
+
 		@Override
 		public void onShutter() 
 		{
-			
 			
 			if(!isSensorialCaptureEnabled())
 				return;
@@ -800,6 +805,24 @@ public class CameraManager /* implements SnapshotObserver */
 			
 			if(mJpegCallbackEnabled)
 			{
+				//since cameraParams.setRotation don't work the same on all device, we can only rely on ourselves and implement 
+				//snapshot rotation there
+				/*
+				//convert byte array to bitmap
+				Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
+				data=null;
+				//Use this to rotate the image by providing the right angle
+				Matrix matrix = new Matrix();
+				matrix.postRotate(mTempSnapshotRotation);
+				
+				//create a rotated bitmap
+				bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), matrix, true);
+				
+				//Then back to the array:
+				ByteArrayOutputStream stream = new ByteArrayOutputStream();
+				bmp.compress(Bitmap.CompressFormat.JPEG, mJpegCompression, stream);
+				data = stream.toByteArray();
+				*/
 				try 
 				{
 					//save to sd card
@@ -809,7 +832,7 @@ public class CameraManager /* implements SnapshotObserver */
 					{
 		        		Log.i(TAG, "Saving file at "+jpegFile);
 		
-						
+		        		
 		        		FileOutputStream fos = new FileOutputStream(jpegFile);
 						fos.write(data);
 						fos.close();	
@@ -818,6 +841,18 @@ public class CameraManager /* implements SnapshotObserver */
 						takenSnapshot = mTempSnapshot;
 						mTempSnapshot = null;
 						mTempFilename = null;
+						
+						
+						
+						//put exifs
+						ExifInterface exif = new ExifInterface(jpegFile);
+		        		String exifOrientation = ""+mTempExifOrientation;
+		        		exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation);
+		        		System.out.println("Saving exif orientation : "+mTempExifOrientation);
+		        		System.out.println(jpegFile);
+		        		exif.saveAttributes();
+		        		exif = new ExifInterface(jpegFile);
+		        		System.out.println("reading exif orientation : "+exif.getAttribute(ExifInterface.TAG_ORIENTATION));
 
 				    } 
 					catch (FileNotFoundException e) 
@@ -857,34 +892,7 @@ public class CameraManager /* implements SnapshotObserver */
 			}
 		}
 	}
-	/* *************
-	 * PRIVATE METHODS
-	 * ************/
-	private int getCameraRotation()
-	{
-		int screenRot = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
-		int rotation=90;
-		switch(screenRot){
-		case Surface.ROTATION_0:
-			System.out.println("rot=0");
-			rotation+=0;
-			break;
-		case Surface.ROTATION_90:
-			System.out.println("rot=90");
-			rotation-=90;			
-			break;
-		case Surface.ROTATION_180:
-			System.out.println("rot=180");
-			rotation-=180;			
-			break;
-		case Surface.ROTATION_270:
-			System.out.println("rot=270");
-			rotation-=270;			
-			break;
-		}
-		rotation+=360;
-		return rotation%360;
-	}
+	
 
 	
 	/* *************
@@ -980,6 +988,54 @@ public class CameraManager /* implements SnapshotObserver */
 	}
 
 
-
+	private int getCameraRotation()
+	{
+		int screenRot = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+		int rotation=90;
+		switch(screenRot){
+		case Surface.ROTATION_0:
+			System.out.println("rot=0");
+			rotation+=0;
+			break;
+		case Surface.ROTATION_90:
+			System.out.println("rot=90");
+			rotation-=90;			
+			break;
+		case Surface.ROTATION_180:
+			System.out.println("rot=180");
+			rotation-=180;			
+			break;
+		case Surface.ROTATION_270:
+			System.out.println("rot=270");
+			rotation-=270;			
+			break;
+		}
+		rotation+=360;
+		return rotation%360;
+	}
+	private int getExifOrientation()
+	{
+		int screenRot = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+		int exifOrientation = 0;
+		switch(screenRot){
+		case Surface.ROTATION_0:
+			System.out.println("rot=0");
+			exifOrientation=6;
+			break;
+		case Surface.ROTATION_90:
+			System.out.println("rot=90");
+			exifOrientation=3;			
+			break;
+		case Surface.ROTATION_180:
+			System.out.println("rot=180");
+			exifOrientation=1;			
+			break;
+		case Surface.ROTATION_270:
+			System.out.println("rot=270");
+			exifOrientation=0;			
+			break;
+		}
+		return exifOrientation;
+	}
 	
 }

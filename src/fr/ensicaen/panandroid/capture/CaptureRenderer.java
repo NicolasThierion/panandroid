@@ -60,7 +60,7 @@ import fr.ensicaen.panandroid.tools.EulerAngles;
  */
 public class CaptureRenderer extends InsideRenderer implements SnapshotEventListener, OnFrameAvailableListener
 {
-	
+
 	/* *******
 	 * DEBUG PARAMS
 	 * ******/
@@ -83,43 +83,43 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
     private static final float DEFAULT_FOV_DEG = 110;
     
     /** Size & distance of the snapshots **/
-	private static final float SNAPSHOTS_SIZE = 0.15f;
+	private static final float SNAPSHOTS_SIZE = 0.20f;
 	private static final float SNAPSHOTS_DISTANCE = 0.50f;
-	private static final float DEFAULT_SNAPSHOT_ZOOM = 140.0f;		//percent
+	private static final float DEFAULT_SNAPSHOT_ZOOM = 140.0f;
 	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 0;	//[0 for automatic sample rate]
 
 	/** Size & distance of the camera preview **/
 	private static final float CAMERA_SIZE = 0.10f;
 	private static final float CAMERA_DISTANCE = 0.45f;
-	
+
 	/** Size & distance of the viewFinder**/
 	private static final float VIEWFINDER_SIZE = 0.010f;
 	private static final float VIEWFINDER_DISTANCE = 0.25f;
 	private static final float VIEWFINDER_ATTENUATION_ALPHA = 1.0f; 	
-	
+
 	/** Size & distance of the markers **/
 	private static final float MARKERS_SIZE = 0.008f;
 	private static final float MARKERS_DISTANCE = 0.30f;
 	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 15.0f; 		//[ in percent]
-	
+
 	private static final float CAMERA_RATIO = 4.0f/3.0f;
-	
-	
+
+
 	/** default textures **/
 	private static final int MARKER_RESSOURCE_ID = R.drawable.capture_snapshot_marker;
 	private static final int CONTOUR_RESSOURCE_ID = R.drawable.capture_snapshot_contour;
 	private static final int VIEWFINDER_RESSOURCE_ID = R.drawable.capture_viewfinder;
-	
-	
+
+
 	/* ********
 	 * ATTRIBUTES
 	 * ********/
 	/** current context of the application **/
 	private Context mContext;
-	
+
 	/** surrounding skybox, given to parent Inside3dRenderer **/
 	private Cube mSkybox;
-	
+
 	/** 
 	 * ModelViewMatrix where the scene is drawn. 
 	 * Equals identity, as the scene don't move, and it is the parent surrounding skybox that rotates by its own modelMatrix 
@@ -128,53 +128,53 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 
 	/** Whether the captureRenderer should draw a skyBox **/
 	private boolean mUseSkybox = true;
-	
+
 	/**... and some markers **/
 	private boolean mUseMarkers = USE_MARKERS;
 	private boolean mUseContours = USE_CONTOUR;
 	private final Bitmap mMarkerBitmap;
 	private final Bitmap mContourBitmap;
 
-	
-	
+
+
 	/** sizes of camera, markers and snapshots **/
 	private float mCameraSize = CAMERA_SIZE;
 	private float mSnapshotsSize = SNAPSHOTS_SIZE;
 	private float mSnapshotZoom = DEFAULT_SNAPSHOT_ZOOM;
 	private float mMarkersSize = MARKERS_SIZE;
 	private float mViewFinderSize = VIEWFINDER_SIZE;
-	
+
 	/** toggle to true when memory is running low **/
     public boolean mHasToFreeMemory = false;
 
-	
+
 
 	/* ***
 	 * camera
 	 * ***/
 	/** Camera manager in charge of the capture **/
 	private final CameraManager mCameraManager;
-	
+
 	/** surface texture where is the camera preview is redirected **/
 	private SurfaceTexture mCameraSurfaceTex;
-	
+
 	/** ... and associated openGL texture ID **/
 	private int mCameraTextureId;
-	
+
 	/** 3d plane holding this texture **/
 	private TexturedPlane mCameraSurface;
 	private boolean mCameraFrameAvaible = false;
-	
+
 	private float mCameraRoll;
-	
-	
+
+
 	/* ***
 	 * snapshots
 	 * ***/
 	/** list of snapshot already taken **/
 	private List<Snapshot3D> mSnapshots;
 	private ReentrantLock mSnapshotsLock;
-	
+
 	/** snapshot quality **/
 	private int mSampleRate = DEFAULT_SNAPSHOTS_SAMPLING_RATE;
 
@@ -190,11 +190,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 
 	/** plane holding viewFinder at the center of the view **/
 	private TexturedPlane mViewFinder;
-	
+
 	/** marker attenuation factor **/
 	private float mMarkersAttenuationFactor = DEFAULT_MARKERS_ATTENUATION_FACTOR;
 
-	
+
 	/* ********
 	 * CONSTRUCTOR
 	 * ********/
@@ -211,26 +211,26 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mSkybox = skybox;		
 		super.setSurroundingMesh(mSkybox);
 		super.setFovDeg(DEFAULT_FOV_DEG);
-		
+
 		//init attributes
 		mCameraManager = cameraManager;
 		mCameraManager.addSnapshotEventListener(this);
 		mContext = context;
-		
+
 		mMarkerBitmap = BitmapDecoder.safeDecodeBitmap(mContext.getResources(), MARKER_RESSOURCE_ID);
 		mContourBitmap = BitmapDecoder.safeDecodeBitmap(mContext.getResources(), CONTOUR_RESSOURCE_ID);
-		
-		
+
+
 		//if auto samplig enabled
 		if(mSampleRate == 0)
 		{
 			mSampleRate=(int) mCameraManager.getCameraResolution();
 			mSampleRate = ceilPowOf2(mSampleRate)/2;
 		}
-		
+
 		mViewMatrix = new float[16];
 	    Matrix.setIdentityM(mViewMatrix, 0);
-	
+
 		//create dots and snapshot lists
 		mSnapshots = new ArrayList<Snapshot3D>();
 		mDots = new LinkedList<Snapshot3D>();
@@ -260,11 +260,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
         mCameraSurface.setVisible(visible);
     }
-	
+
 	public void setSkyboxEnabled(boolean enabled)
 	{
 		mUseSkybox = enabled;
-		
+
 		//if no skybox is set, create a dummy one
 		if(mSkybox==null)
 		{
@@ -272,42 +272,42 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			mSkybox.setSize(SNAPSHOTS_DISTANCE*2.0f);
 		}
 	}
-	
+
 	public void setMarkersEnabled(boolean enabled)
 	{
 		mUseMarkers = enabled;
 	}
-	
+
 	public void setContourEnabled(boolean enabled)
 	{
 		mUseContours = enabled;
 	}
-	
+
 	public void setCameraSize(float scale)
 	{
 		mCameraSize = scale;
 	}
-	
+
 	public void setSnapshotsSize(float scale)
 	{
 		mSnapshotsSize = scale;
 	}
-	
+
 	public void setMarkersSize(float scale)
 	{
 		mMarkersSize = scale;
 	}
-	
+
 	public void setViewFinderSize(float size)
 	{
 		mViewFinderSize = size;
 	}
-	
+
 	public void setSnapshotSamplingRate(int rate)
 	{
 		mSampleRate = rate;
 	}
-	
+
 
 	/**
 	 * set how fast markers disappears when going far from them.
@@ -317,8 +317,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	{
 		mMarkersAttenuationFactor = factor;
 	}
-	
-	
+
+
 	/**
 	 * Set the list of marks to display all around the 3d scene.
 	 * @param marks linkedlist of marks to display.
@@ -328,7 +328,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mTargetsLock.lock();
 		mDots = new LinkedList<Snapshot3D>();
 		boolean is43=(mContours == mContours43?true:false);
-		
+
 		mContours34 = new LinkedList<Snapshot3D>();
 		mContours43 = new LinkedList<Snapshot3D>();
 		for(EulerAngles a : marks)
@@ -340,19 +340,19 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mTargetsLock.unlock();
 
 	}
-	
+
 	public void setSnapshotZoom(float zoom)
 	{
 		mSnapshotZoom = zoom;
 	}
-	
-	
-	
+
+
+
     
     /* ********
 	 * RENDERER OVERRIDES
 	 * ********/
-	
+
 	@Override
 	public void onSurfaceCreated(GL10 gl, EGLConfig config)
 	{
@@ -384,14 +384,14 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		}
 
 	}
-	
+
 	@Override
 	public void onDrawFrame(GL10 gl)
 	{    		
 		//draws the skybox
 		if(mUseSkybox)
 			super.onDrawFrame(gl);
-		
+
 		//refresh camera texture
 		if(mCameraFrameAvaible)
 		{
@@ -403,10 +403,10 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		gl.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
 	    mCameraSurface.draw(gl, mViewMatrix);
 		gl.glDisable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-		
+
 		//draw the viewFinder
 		mViewFinder.draw(gl, mViewMatrix);
-		
+
 		//launch memory cleanup??
 		Runtime info = Runtime.getRuntime();
 		long freeMem = info.freeMemory()/1048576L;
@@ -414,14 +414,14 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
         	mHasToFreeMemory = true;
         else
         	mHasToFreeMemory= false;
-		
-		
+
+
 		//the snapshots that are in FOV
 		mSnapshotsLock.lock();
 		for (Snapshot3D snap : mSnapshots)
 		{
 			float distance = this.getSnapshotDisnance(snap);
-			
+
 			if(mHasToFreeMemory && distance>AUTO_UNLOADTEXTURE_ANGLE)
 			{
 				snap.unloadGLTexture(gl);
@@ -430,7 +430,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 			{
 				snap.loadGLTexture(gl);
 			}
-			
+
 			if(distance > 120.0f)
 				snap.setVisible(false);
 			else
@@ -438,14 +438,14 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 				snap.setVisible(true);
 				snap.draw(gl, super.getRotationMatrix());				
 			}
-				
+
 		}
 		mSnapshotsLock.unlock();
-		
-		
+
+
 		//... and then all markers with newly computed alpha
 		float d;
-		
+
 		//draw markers
 		if(mUseMarkers)
 		{
@@ -489,56 +489,56 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 					contour.setAlpha(1.0f - d);    
 					contour.draw(gl, super.getRotationMatrix());
 				}
-				
+
 			}
 			mTargetsLock.unlock();
 		}
-		
+
 	}
 
 	@Override
 	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
 	{
 		//a snapshot has just been taken :
-		
+
 		float pitch = snapshot.getPitch();
 		float yaw = snapshot.getYaw();
 		if(!removeMarker(pitch, yaw) || !removeContour(pitch, yaw))
 		{
 			Log.e(TAG, "cannot remove mark for snapshot (p="+pitch+", y="+yaw+")");
 		}
-			
+
 		//put a new textureSurface with the snapshot in it.
 		putSnapshot(pictureData, snapshot);
-		
+
 	}
 
 	/* **********
 	 * PRIVATE METHODS
 	 * *********/
-	
+
 	/**
 	 * Init CameraManager gl texture id, camera SurfaceTexture, bind to EXTERNAL_OES, and redirect camera preview to the surfaceTexture.
 	 * @throws IOException when camera cannot be open
 	 */
 	private void initCameraSurface() throws IOException
 	{
-	
+
 		//Gen openGL texture id
 		int texture[] = new int[1];
 		GLES10.glGenTextures(1, texture, 0);
 		mCameraTextureId = texture[0];
-		
+
 		if (mCameraTextureId == 0)
 		{
 		    throw new RuntimeException("Cannot create openGL texture (initCameraSurface())");
 		}
-		
+
 		//Camera preview is redirected to SurfaceTexture.
 		//SurfaceTexture works with TEXTURE_EXTERNAL_OES, so we bind this textureId so that camera
 		//will automatically fill it with its video.
 		GLES10.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mCameraTextureId);
-		
+
 		// Can't do mipmapping with camera source
 		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
 								GLES10.GL_TEXTURE_MIN_FILTER,
@@ -546,7 +546,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
 								GLES10.GL_TEXTURE_MAG_FILTER,
 								GLES10.GL_LINEAR);
-		
+
 		// Clamp to edge is the only option
 		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
 								GLES10.GL_TEXTURE_WRAP_S,
@@ -554,24 +554,24 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		GLES10.glTexParameterf(	GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
 								GLES10.GL_TEXTURE_WRAP_T,
 								GLES10.GL_CLAMP_TO_EDGE);
-				
+
 		//create a SurfaceTexture associated to this openGL texture...
 		mCameraSurfaceTex = new SurfaceTexture(mCameraTextureId);
 		mCameraSurfaceTex.setDefaultBufferSize(640, 480);
-		
+
 		//... and redirect camera preview to it 		
 		mCameraManager.setPreviewSurface(mCameraSurfaceTex);
-		
+
 		//Setup viewfinder	
 		mViewFinder = new TexturedPlane(mViewFinderSize);
 		mViewFinder.setTexture(BitmapDecoder.safeDecodeBitmap(mContext.getResources(), VIEWFINDER_RESSOURCE_ID));
 		mViewFinder.recycleTexture();
 		mViewFinder.translate(0, 0, VIEWFINDER_DISTANCE);
 		mViewFinder.setAlpha(VIEWFINDER_ATTENUATION_ALPHA);
-		
+
 
 	}
-	
+
 	private void reinitCameraSurface() throws IOException
 	{
 		//for an unknown reason, the camera preview is not in correct direction by default. Need to rotate it
@@ -598,17 +598,17 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 				break;
 		};
 		mTargetsLock.unlock();
-		
+
 		mCameraRoll%=360;
-		
+
 		//create a new TexturedPlane, that holds the camera texture.
 		mCameraSurface = new TexturedPlane(mCameraSize , CAMERA_RATIO );
 		mCameraSurface.setTexture(mCameraTextureId);
-		
+
 		//for unknown reason, the preview is not in correct orientation
 		mCameraSurface.rotate(0, 0, mCameraRoll);
 		mCameraSurface.translate(0, 0, CAMERA_DISTANCE);
-		
+
 	}
     
     /**
@@ -623,11 +623,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		Snapshot3D dot = new Snapshot3D(mMarkersSize, pitch, yaw);
 		dot.setTexture(mMarkerBitmap);
 		dot.translate(0.0f, 0.0f, MARKERS_DISTANCE);
-		
+
 		mDots.add(dot);
 		return dot;
     }
-	
+
     /**
      * put a contour in the contour list, at the given pitch and yaw.
      * @param pitch - pitch where to put the contour.
@@ -639,19 +639,19 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		Snapshot3D contour43 = new Snapshot3D(CAMERA_SIZE, CAMERA_RATIO, pitch, yaw);
 		Snapshot3D contour34 = new Snapshot3D(CAMERA_SIZE, CAMERA_RATIO, pitch, yaw);
 		contour34.rotate(0, 0, 90.0f);
-		
+
 		contour43.setTexture(mContourBitmap);
 		contour43.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/10.0f);
 		contour43.setVisible(false);
-		
+
 		contour34.setTexture(mContourBitmap);
 		contour34.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/10.0f);
 		contour34.setVisible(false);
-		
+
 		mContours43.add(contour43);
 		mContours34.add(contour34);
 	}
-	
+
 	/**
 	 * Build a Snapshot3D from the given snapshot, and put it in the 3D view at its pithc, yaw and roll.
 	 * @param pictureData - the picture byteArray to fill the snapshot3D with.
@@ -660,37 +660,27 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 */
 	private Snapshot3D putSnapshot(byte[] pictureData, Snapshot snapshot)
 	{
-		
+
 		//build a snapshot3d from the snapshot2d
-		float rotation = (int) (180 + snapshot.getRoll())%360;
-		float ratio = CAMERA_RATIO;
-		if((rotation>=45 && rotation<=135) || (rotation>=225 && rotation<=315) )
-			ratio = 1/ratio;
-			
-		
-		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, ratio, snapshot);
+		Snapshot3D snap = new Snapshot3D(mSnapshotsSize, CAMERA_RATIO, snapshot);
 		//fill the snapshot with the byteArray, faster than reading its data from SD.
 		snap.setSampleRate(mSampleRate);
 		snap.setTexture(BitmapDecoder.safeDecodeBitmap(pictureData, mSampleRate));
 		snap.setZoom(mSnapshotZoom);
 		snap.recycleTexture();
-		
+
 		//put the snapshot at its place.
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
-		
-		//and with the correct rotation
-		//final int rotation=(int) snap.getRoll();	
-		
-		snap.rotate(0, 0, rotation);
+		//snap.rotate(0, 0, mCameraRoll);
 		snap.setVisible(true);
 		mSnapshotsLock.lock();
 		mSnapshots.add(snap);
 		mSnapshotsLock.unlock();
-		
+
 
 		return snap;
     }
-	
+
 	/**
 	 * get distance between current orientation and gven snapshot
 	 * @param snapshot
@@ -698,11 +688,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	 */
 	private float getSnapshotDisnance(EulerAngles a)
 	{
-		
+
 		Snapshot s = new Snapshot(super.getPitch(), super.getYaw());
 		return s.getDistance(a); 
 	}
-	
+
 	/**
 	 * Remove the dot near the given position.
 	 * @param pitch
@@ -725,7 +715,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mTargetsLock.unlock();
 		return false;	
 	}
-	
+
 	/**
 	 * Remove the dot near the given position.
 	 * @param pitch
@@ -756,12 +746,12 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private int ceilPowOf2(int val)
 	{
 		int i = 1;
-		
+
 		while(i<val)
 		{
 			i=i<<1;
 		}
-		
+
 		return i;
 	}
 
@@ -774,7 +764,3 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		mCameraFrameAvaible  = true;	
 	}
 }
-
-
-
-
