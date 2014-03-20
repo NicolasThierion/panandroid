@@ -65,115 +65,640 @@ using namespace std;
 using namespace cv;
 using namespace cv::detail;
 
-/* *********
- * DEFAULT PARAMETERS
- * ********/
-#define DEBUG
 #define TAG "OpenCV stitcher"
 
-/** bunch of all images to stitch **/
-vector<string> img_names;
+/*************
+ * PARAMETERS
+ ************/
 
-/** **/
-bool preview = false;
+/** Is the wave correct. **/
+bool doWaveCorrect = true;
 
-/** if stitcher have to try to use GPU **/
-bool try_gpu = true;
+/** Is compose scale. **/
+bool isComposeScale = false;
 
-/** **/
-double work_megapix = 0.6;
+/** Try to use GPU. **/
+bool tryGPU = false;
 
-/** **/
-double seam_megapix = 0.1;
+/** Resolution for compositing step. **/
+double composeMegapix = -1;
 
-/** **/
-double compose_megapix = -1;
+/** Resolution for seam estimation step in Mpx. **/
+double seamMegapix = 0.1;
 
-/** **/
-float conf_thresh = 1.f;
+/** Seam work aspect. **/
+double seamWorkAspect = 1;
 
-/** **/
-string features_type = "orb";
+/** Resolution for image registration step in Mpx. **/
+double workMegapix = 0.6;
 
-/** **/
-string ba_cost_func = "ray";
+/** Work scale. **/
+static double workScale = 1;
 
-/** **/
-string ba_refine_mask = "xxxxx";
+/** Blending strength from [0,100] range. **/
+float blendStrength = 5;
 
-/** **/
-bool do_wave_correct = true;
+/** Threshold for two images are from the same panorama confidence. **/
+float confidenceThreshold = 1.f;
 
-/** **/
-WaveCorrectKind wave_correct = detail::WAVE_CORRECT_HORIZ;
+/** Confidence for feature matching step. **/
+float matchConfidence = 0.3f;
 
-/** **/
-bool save_graph = false;
+/** Blending method. **/
+int blendType = Blender::MULTI_BAND;
 
-/** **/
-std::string save_graph_to;
+/** Exposure compensation method. **/
+int exposureCompensationType = ExposureCompensator::GAIN_BLOCKS;
 
-/** **/
-string warp_type = "spherical";
+/** Warped image scale. **/
+static float warpedImageScale;
 
-/** **/
-int expos_comp_type = ExposureCompensator::GAIN_BLOCKS;
+/** Bundle adjustment cost function. **/
+string bundleAdjustment = "ray";
 
-/** Matcher threshold??**///TODO
-float match_conf = 0.3f;
+/** Set refinement mask for bundle adjustment. It looks like 'x_xxx'
+    where 'x' means refine respective parameter and '_' means don't
+    refine one, and has the following format:
+    <fx><skew><ppx><aspect><ppy>. The default mask is 'xxxxx'. If bundle
+    adjustment doesn't support estimation of selected parameter then
+    the respective flag is ignored. **/
+string bundleAdjustmentRefineMask = "xxxxx";
 
-/** **/
-string seam_find_type = "gc_color";
+/** Type of features. **/
+string featuresType = "orb";
 
-/** **/
-int blend_type = Blender::MULTI_BAND;
+/** Seam estimation method. **/
+string seamFindType = "gc_color";
 
-/** **/
-float blend_strength = 5;
+/** Warp surface type. **/
+string warpType = "spherical";
 
-/** **/
-string result_name = "result.jpg";
+/** Vector of images features. **/
+static vector<ImageFeatures> features;
 
-/** **/
-static char** imagesPath;
+/** Full images size. **/
+static vector<Size> fullImagesSize;
 
+/** Images path. **/
+static vector<string> imagesPath;
 
+/** Vector of cameras parameters. **/
+static vector<CameraParams> cameras;
 
-/* *********
+/** Vector of images. **/
+static vector<Mat> images;
+
+/** Vector of images warped. **/
+static vector<Mat> imagesWarped;
+
+/** Vector of images warped F. **/
+vector<Mat> imagesWarpedF;
+
+/** Vector of masks. **/
+vector<Mat> masks;
+
+/** Vector of masks warped. **/
+static vector<Mat> masksWarped;
+
+/** Vector of pairwise matches. **/
+static vector<MatchesInfo> pairwiseMatches;
+
+/** Vector of corners. **/
+vector<Point> corners;
+
+/** Vector of sizes. **/
+vector<Size> sizes;
+
+/** Exposure compensator. **/
+static Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(exposureCompensationType);
+
+/** Warper. **/
+static Ptr<RotationWarper> warper;
+
+/** Warper creator. **/
+Ptr<WarperCreator> warperCreator;
+
+/** Perform wave effect correction. **/
+WaveCorrectKind waveCorrection = detail::WAVE_CORRECT_HORIZ;
+
+/*************
  * PROTOTYPES
- * *********/
+ ************/
 static int parseCmdArgs(int argc, char** argv);
 
-/* *********
+/*******************
  * PUBLIC FUNCTIONS
- * ********/
-/**
- * storeImagesPath(JNIEnv* env, jobject obj, jobjectArray files)
- * Store the images path from array 'files' into stitcher's memory.
- **/
+ ******************/
 extern "C"
 {
-	JNIEXPORT jint JNICALL
-	Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_storeImagesPath
-	(JNIEnv* env, jobject obj, jobjectArray files)
-	{
-		jstring tmp;
-		const char* path;
-		int numImages = env->GetArrayLength(files);
+        //================ REGISTRATION STEPS ============================
+        /**
+         * Store images path from array 'files' into stitcher's memory.
+         */
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_storeImagesPath
+        (JNIEnv* env, jobject obj, jobjectArray files)
+        {
+                jstring tmp;
+                const char* path;
+                int numberImages = env->GetArrayLength(files);
 
-		imagesPath = new char*[numImages];
+                int64 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path...");
 
-		for (int i = 0; i < numImages; ++i)
-		{
-			tmp = (jstring) env->GetObjectArrayElement(files, i);
-			path = env->GetStringUTFChars(tmp, 0);
-			imagesPath[i] = new char[strlen(path) + 1];
-			strcpy(imagesPath[i], path);
-			env->ReleaseStringUTFChars(tmp, path);
-		}
+                // Fetch and convert images path from jstring to string.
+                for (int i = 0; i < numberImages; ++i) {
+                        tmp = (jstring) env->GetObjectArrayElement(files, i);
+                        path = env->GetStringUTFChars(tmp, 0);
+                        imagesPath.push_back(path);
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Store path #%d : %s", i + 1, path);
+                        env->ReleaseStringUTFChars(tmp, path);
+                }
 
-		return 0;
-	}
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+
+                return 0;
+        }
+
+        /**
+         * Find feature in images.
+         */
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_findFeatures
+        (JNIEnv* env, jobject obj)
+        {
+                bool isSeamScale = false;
+                bool isWorkScale = false;
+                double seamScale = 1;
+                int numberImages = static_cast<int>(imagesPath.size());
+                Mat fullImage, image;
+                Ptr<FeaturesFinder> finder;
+
+                // Check if we have enough images.
+                if (numberImages < 2) {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Need more images.");
+                        return -1;
+                }
+
+                int64 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding features...");
+
+                // Build one of finding engines.
+                if (featuresType == "surf") {
+                        finder = new SurfFeaturesFinder();
+                } else if (featuresType == "orb") {
+                        finder = new OrbFeaturesFinder();
+                } else {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown 2D features type: %s", featuresType.c_str());
+                        return -1;
+                }
+
+                // Resize vectors used for store features of images and images itself.
+                features.resize(numberImages);
+                fullImagesSize.resize(numberImages);
+                images.resize(numberImages);
+
+                // Find features on all images.
+                for (int i = 0; i < numberImages; ++i) {
+                        // Read image.
+                        fullImage = imread(imagesPath[i]);
+                        fullImagesSize[i] = fullImage.size();
+
+                        if (fullImage.empty()) {
+                                __android_log_print(ANDROID_LOG_ERROR, TAG, "Can't open image %s", imagesPath[i].c_str());
+                                return -1;
+                        }
+
+                        // Resize (medium resolution).
+                        if (workMegapix < 0) {
+                                image = fullImage;
+                                workScale = 1;
+                                isWorkScale = true;
+                        } else {
+                                if (!isWorkScale) {
+                                        workScale = min(1.0, sqrt(workMegapix * 1e6 / fullImage.size().area()));
+                                        isWorkScale = true;
+                                }
+
+                                resize(fullImage, image, Size(), workScale, workScale);
+                        }
+
+                        if (!isSeamScale) {
+                                seamScale = min(1.0, sqrt(seamMegapix * 1e6 / fullImage.size().area()));
+                                seamWorkAspect = seamScale / workScale;
+                                isSeamScale = true;
+                        }
+
+                        // Find features in the current working image.
+                        (*finder)(image, features[i]);
+                        features[i].img_idx = i;
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Features in image #%d: %d", i + 1, features[i].keypoints.size());
+
+                        // Store image subscaled by seamScale.
+                        resize(fullImage, image, Size(), seamScale, seamScale);
+                        images[i] = image.clone();
+                }
+
+                // Clean up workspace.
+                finder->collectGarbage();
+                fullImage.release();
+                image.release();
+
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding features time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+
+                return 0;
+        }
+
+        // Match features.
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_matchFeatures
+        (JNIEnv* env, jobject obj)
+        {
+                int numberImages;
+                vector<string> imagesPathSubset;
+                vector<Mat> imagesSubset;
+                vector<Size> fullImagesSizeSubset;
+                BestOf2NearestMatcher matcher(tryGPU, matchConfidence); // TODO : Adjust parameters using benchmark.
+
+                int64 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching...");
+
+                matcher(features, pairwiseMatches); // TODO : Call another matcher method.
+                matcher.collectGarbage();
+
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+
+                t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Selecting images and matches subset...");
+
+                vector<int> indices = leaveBiggestComponent(features, pairwiseMatches, confidenceThreshold);
+
+                for (size_t i = 0; i < indices.size(); ++i) {
+                        imagesPathSubset.push_back(imagesPath[indices[i]]);
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Select image #%d : %s", i + 1, imagesPath[indices[i]].c_str());
+                        imagesSubset.push_back(images[indices[i]]);
+                        fullImagesSizeSubset.push_back(fullImagesSize[indices[i]]);
+                }
+
+                images = imagesSubset;
+                imagesPath = imagesPathSubset;
+                fullImagesSize = fullImagesSizeSubset;
+
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Selecting images and matches subset time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+
+                // Check if we still have enough images.
+                numberImages = static_cast<int>(imagesPath.size());
+
+                if (numberImages < 2) {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Need more images.");
+                        return -1;
+                }
+
+                return 0;
+        }
+
+        /* Adjust parameters. */
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_adjustParameters
+        (JNIEnv* env, jobject obj)
+        {
+                vector<double> focals;
+                vector<Mat> rmats;
+                HomographyBasedEstimator estimator;
+                Mat_<uchar> refineMask = Mat::zeros(3, 3, CV_8U);
+                Ptr<detail::BundleAdjusterBase> adjuster;
+
+                int64 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Adjusting parameters...");
+
+                // Estimate camera parameters rough initial guess.
+                estimator(features, pairwiseMatches, cameras);
+
+                for (size_t i = 0; i < cameras.size(); ++i) {
+                        Mat R;
+                        cameras[i].R.convertTo(R, CV_32F);
+                        cameras[i].R = R;
+                        //LOGLN("Initial intrinsics #" << indices[i]+1 << ":\n" << cameras[i].K());
+                }
+
+                if (bundleAdjustment == "reproj")
+                        adjuster = new detail::BundleAdjusterReproj();
+                else if (bundleAdjustment == "ray")
+                        adjuster = new detail::BundleAdjusterRay();
+                else {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown bundle adjustment cost function: %s", bundleAdjustment.c_str());
+                        return -1;
+                }
+
+                adjuster->setConfThresh(confidenceThreshold);
+
+                if (bundleAdjustmentRefineMask[0] == 'x')
+                        refineMask(0,0) = 1;
+                if (bundleAdjustmentRefineMask[1] == 'x')
+                        refineMask(0,1) = 1;
+                if (bundleAdjustmentRefineMask[2] == 'x')
+                        refineMask(0,2) = 1;
+                if (bundleAdjustmentRefineMask[3] == 'x')
+                        refineMask(1,1) = 1;
+                if (bundleAdjustmentRefineMask[4] == 'x')
+                        refineMask(1,2) = 1;
+
+                adjuster->setRefinementMask(refineMask);
+                (*adjuster)(features, pairwiseMatches, cameras);
+
+                // Find median focal length.
+                for (size_t i = 0; i < cameras.size(); ++i) {
+                        //LOGLN("Camera #" << indices[i]+1 << ":\n" << cameras[i].K());
+                        focals.push_back(cameras[i].focal);
+                }
+
+                sort(focals.begin(), focals.end());
+
+                if (focals.size() % 2 == 1)
+                        warpedImageScale = static_cast<float>(focals[focals.size() / 2]);
+                else
+                        warpedImageScale = static_cast<float>(focals[focals.size() / 2 - 1] + focals[focals.size() / 2]) * 0.5f;
+
+                // Wave correction.
+                if (doWaveCorrect) {
+                        for (size_t i = 0; i < cameras.size(); ++i)
+                                rmats.push_back(cameras[i].R);
+
+                        waveCorrect(rmats, waveCorrection);
+
+                        for (size_t i = 0; i < cameras.size(); ++i)
+                                cameras[i].R = rmats[i];
+                }
+
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Adjusting parameters time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+
+                return 0;
+        }
+
+        //================ COMPOSITING STEPS ============================
+        /* Warp images. */
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_warpImages
+        (JNIEnv* env, jobject obj)
+        {
+                int numberImages = static_cast<int>(imagesPath.size());
+
+                // Resize static vector.
+                corners.resize(numberImages);
+                imagesWarped.resize(numberImages);
+                imagesWarpedF.resize(numberImages);
+                masks.resize(numberImages);
+                masksWarped.resize(numberImages);
+                sizes.resize(numberImages);
+
+                int64 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Warping images...");
+
+                // Prepare images masks.
+                for (int i = 0; i < numberImages; ++i) {
+                        masks[i].create(images[i].size(), CV_8U);
+                        masks[i].setTo(Scalar::all(255));
+                }
+
+                // Warp images and their masks.
+                if (warpType == "plane")
+                        warperCreator = new cv::PlaneWarper();
+                else if (warpType == "cylindrical")
+                        warperCreator = new cv::CylindricalWarper();
+                else if (warpType == "spherical")
+                        warperCreator = new cv::SphericalWarper();
+                else if (warpType == "fisheye")
+                        warperCreator = new cv::FisheyeWarper();
+                else if (warpType == "stereographic")
+                        warperCreator = new cv::StereographicWarper();
+                else if (warpType == "compressedPlaneA2B1")
+                        warperCreator = new cv::CompressedRectilinearWarper(2, 1);
+                else if (warpType == "compressedPlaneA1.5B1")
+                        warperCreator = new cv::CompressedRectilinearWarper(1.5, 1);
+                else if (warpType == "compressedPlanePortraitA2B1")
+                        warperCreator = new cv::CompressedRectilinearPortraitWarper(2, 1);
+                else if (warpType == "compressedPlanePortraitA1.5B1")
+                        warperCreator = new cv::CompressedRectilinearPortraitWarper(1.5, 1);
+                else if (warpType == "paniniA2B1")
+                        warperCreator = new cv::PaniniWarper(2, 1);
+                else if (warpType == "paniniA1.5B1")
+                        warperCreator = new cv::PaniniWarper(1.5, 1);
+                else if (warpType == "paniniPortraitA2B1")
+                        warperCreator = new cv::PaniniPortraitWarper(2, 1);
+                else if (warpType == "paniniPortraitA1.5B1")
+                        warperCreator = new cv::PaniniPortraitWarper(1.5, 1);
+                else if (warpType == "mercator")
+                        warperCreator = new cv::MercatorWarper();
+                else if (warpType == "transverseMercator")
+                        warperCreator = new cv::TransverseMercatorWarper();
+
+                if (warperCreator.empty()) {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown warper: %s", warpType.c_str());
+                        return -1;
+                }
+
+                warper = warperCreator->create(static_cast<float>(warpedImageScale * seamWorkAspect));
+
+                for (int i = 0; i < numberImages; ++i) {
+                        Mat_<float> K;
+                        cameras[i].K().convertTo(K, CV_32F);
+                        float swa = (float) seamWorkAspect;
+                        K(0,0) *= swa;
+                        K(0,2) *= swa;
+                        K(1,1) *= swa;
+                        K(1,2) *= swa;
+
+                        corners[i] = warper->warp(images[i], K, cameras[i].R, INTER_LINEAR, BORDER_REFLECT, imagesWarped[i]);
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Warp image #%d : %s", i + 1, imagesPath[i].c_str());
+                        sizes[i] = imagesWarped[i].size();
+                        warper->warp(masks[i], K, cameras[i].R, INTER_NEAREST, BORDER_CONSTANT, masksWarped[i]);
+                }
+
+                for (int i = 0; i < numberImages; ++i)
+                        imagesWarped[i].convertTo(imagesWarpedF[i], CV_32F);
+
+                 __android_log_print(ANDROID_LOG_INFO, TAG, "Warping images time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+
+                 return 0;
+        }
+
+        /* Compensate exposure errors and find seam masks. */
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_findSeamMasks
+        (JNIEnv* env, jobject obj)
+        {
+                Ptr<SeamFinder> seamFinder;
+
+                int64 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Compensating exposure errors...");
+
+                compensator->feed(corners, imagesWarped, masksWarped);
+
+                 __android_log_print(ANDROID_LOG_INFO, TAG, "Compensating exposure errors time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+
+                 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding seam masks...");
+
+                if (seamFindType == "no")
+                        seamFinder = new detail::NoSeamFinder();
+                else if (seamFindType == "voronoi")
+                        seamFinder = new detail::VoronoiSeamFinder();
+                else if (seamFindType == "gc_color")
+                        seamFinder = new detail::GraphCutSeamFinder(GraphCutSeamFinderBase::COST_COLOR);
+                else if (seamFindType == "gc_colorgrad")
+                        seamFinder = new detail::GraphCutSeamFinder(GraphCutSeamFinderBase::COST_COLOR_GRAD);
+                else if (seamFindType == "dp_color")
+                        seamFinder = new detail::DpSeamFinder(DpSeamFinder::COLOR);
+                else if (seamFindType == "dp_colorgrad")
+                        seamFinder = new detail::DpSeamFinder(DpSeamFinder::COLOR_GRAD);
+
+                if (seamFinder.empty()) {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown seam finder: %s", warpType.c_str());
+                        return -1;
+                }
+
+                seamFinder->find(imagesWarpedF, corners, masksWarped);
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding seam masks time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+
+                // Release unused memory.
+                images.clear();
+                imagesWarped.clear();
+                imagesWarpedF.clear();
+                masks.clear();
+
+                return 0;
+        }
+
+        /* Compose final panorama. */
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_composePanorama
+        (JNIEnv* env, jobject obj)
+        {
+                float blendWidth;
+                double composeScale = 1;
+                double composeWorkAspect = 1;
+                int numberImages = static_cast<int>(imagesPath.size());
+                Mat fullImage;
+                Mat image;
+                Mat imageWarped;
+                Mat imageWarpedS;
+                Mat dilatedMask;
+                Mat seamMask;
+                Mat mask;
+                Mat maskWarped;
+                Mat K;
+                Ptr<Blender> blender;
+                Rect roi;
+                Size imageSize;
+                Size destinationsz;
+                Size sz;
+
+                int64 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing final panorama...");
+
+                for (int img_idx = 0; img_idx < numberImages; ++img_idx) {
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Compose image #%d : %s", img_idx + 1, imagesPath[img_idx].c_str());
+
+                        // Read image and resize it if necessary.
+                        fullImage = imread(imagesPath[img_idx]);
+
+                        if (!isComposeScale) {
+                                if (composeMegapix > 0)
+                                        composeScale = min(1.0, sqrt(composeMegapix * 1e6 / fullImage.size().area()));
+
+                                isComposeScale = true;
+
+                                // Compute relative scales.
+                                composeWorkAspect = composeScale / workScale;
+
+                                // Update warped image scale.
+                                warpedImageScale *= static_cast<float>(composeWorkAspect);
+                                warper = warperCreator->create(warpedImageScale);
+
+                                // Update corners and sizes.
+                                for (int i = 0; i < numberImages; ++i) {
+                                        // Update intrinsics.
+                                        cameras[i].focal *= composeWorkAspect;
+                                        cameras[i].ppx *= composeWorkAspect;
+                                        cameras[i].ppy *= composeWorkAspect;
+
+                                        // Update corner and size.
+                                        sz = fullImagesSize[i];
+
+                                        if (std::abs(composeScale - 1) > 1e-1) {
+                                                sz.width = cvRound(fullImagesSize[i].width * composeScale);
+                                                sz.height = cvRound(fullImagesSize[i].height * composeScale);
+                                        }
+
+                                        cameras[i].K().convertTo(K, CV_32F);
+                                        roi = warper->warpRoi(sz, K, cameras[i].R);
+                                        corners[i] = roi.tl();
+                                        sizes[i] = roi.size();
+                                }
+                        }
+
+                        if (abs(composeScale - 1) > 1e-1)
+                                resize(fullImage, image, Size(), composeScale, composeScale);
+                        else
+                                image = fullImage;
+
+                        fullImage.release();
+                        imageSize = image.size();
+
+                        cameras[img_idx].K().convertTo(K, CV_32F);
+
+                        // Warp the current image.
+                        warper->warp(image, K, cameras[img_idx].R, INTER_LINEAR, BORDER_REFLECT, imageWarped);
+
+                        // Warp the current image mask.
+                        mask.create(imageSize, CV_8U);
+                        mask.setTo(Scalar::all(255));
+                        warper->warp(mask, K, cameras[img_idx].R, INTER_NEAREST, BORDER_CONSTANT, maskWarped);
+
+                        // Compensate exposure.
+                        compensator->apply(img_idx, corners[img_idx], imageWarped, maskWarped);
+
+                        imageWarped.convertTo(imageWarpedS, CV_16S);
+                        imageWarped.release();
+                        image.release();
+                        mask.release();
+
+                        dilate(masksWarped[img_idx], dilatedMask, Mat());
+                        resize(dilatedMask, seamMask, maskWarped.size());
+                        maskWarped = seamMask & maskWarped;
+
+                        if (blender.empty()) {
+                                blender = Blender::createDefault(blendType, tryGPU);
+                                destinationsz = resultRoi(corners, sizes).size();
+                                blendWidth = sqrt(static_cast<float>(destinationsz.area())) * blendStrength / 100.f;
+
+                                if (blendWidth < 1.f)
+                                        blender = Blender::createDefault(Blender::NO, tryGPU);
+                                else if (blendType == Blender::MULTI_BAND) {
+                                        MultiBandBlender* mb = dynamic_cast<MultiBandBlender*>(static_cast<Blender*>(blender));
+                                        mb->setNumBands(static_cast<int>(ceil(log(blendWidth)/log(2.)) - 1.));
+                                        __android_log_print(ANDROID_LOG_INFO, TAG, "Multi-band blender, number of bands: %d", mb->numBands());
+                                } else if (blendType == Blender::FEATHER) {
+                                        FeatherBlender* fb = dynamic_cast<FeatherBlender*>(static_cast<Blender*>(blender));
+                                        fb->setSharpness(1.f / blendWidth);
+                                        __android_log_print(ANDROID_LOG_INFO, TAG, "Feather blender, sharpness: %f", fb->sharpness());
+                                }
+
+                                blender->prepare(corners, sizes);
+                        }
+                        
+                        // Blend the current image.
+                        blender->feed(imageWarpedS, maskWarped, corners[img_idx]);
+                }
+
+                Mat result, resultMask;
+                blender->blend(result, resultMask);
+
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+                imwrite("/storage/emulated/0/Panandroid/result.jpg", result);
+
+                return 0;
+        }
 }
 
 
@@ -182,295 +707,10 @@ extern "C"
  * Launch all-in-one openCV stitcher, with given arguments.
  *
  */
+/*
 extern "C"
 {
-	JNIEXPORT jint JNICALL
-	Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_openCVStitcher(
-			JNIEnv* env, jobject obj, jobjectArray arguments)
-	{
-		int argc = env->GetArrayLength(arguments);
-		char** argv = new char*[argc];
-
-		//fetch & convert arguments to UTF-8 argv array.
-		for (int i = 0; i < argc; i++)
-		{
-			jstring tmp = (jstring) env->GetObjectArrayElement(arguments, i);
-			const char* argument = env->GetStringUTFChars(tmp, 0);
-			argv[i] = new char[strlen(argument) + 1];
-			strcpy(argv[i], argument);
-			env->ReleaseStringUTFChars(tmp, argument);
-		}
-
-		//print args on log.
-		for (int i = 0; i < argc; i++)
-		{
-			__android_log_print(ANDROID_LOG_DEBUG, TAG, "%s", argv[i]);
-		}
-
-		//init benchmark timer.
-		#ifdef DEBUG
-			int64 app_start_time = getTickCount();
-		#endif
-
-		cv::setBreakOnError(true);
-
-		//parse args & exit on error.
-		int retval = parseCmdArgs(argc, argv);
-		if (retval)
-		{
-			return retval;
-		}
-
-		// Check if have enough images
-		int num_images = static_cast<int>(img_names.size());
-		if (num_images < 2)
-		{
-			__android_log_print(ANDROID_LOG_ERROR, TAG, "Need more images");
-			return -1;
-		}
-
-
-		//===============================================
-		//finding features
-		double work_scale = 1, seam_scale = 1, compose_scale = 1;
-		bool is_work_scale_set = false, is_seam_scale_set = false, is_compose_scale_set = false;
-		__android_log_print(ANDROID_LOG_INFO, TAG, "Finding features...");
-
-		#ifdef DEBUG
-			int64 t = getTickCount();
-		#endif
-
-		// build one of several finders, based on different finding engines.
-		Ptr<FeaturesFinder> finder;
-		if (features_type == "surf")
-		{
-			//seems we will never get there because on android?
-			#if defined(HAVE_OPENCV_NONFREE) && defined(HAVE_OPENCV_GPU) && !defined(ANDROID)
-				if (try_gpu && gpu::getCudaEnabledDeviceCount() > 0)
-				{
-					finder = new SurfFeaturesFinderGpu();
-				}
-				else
-				//{
-				//TODO :
-				//seems strange code there. How can it compile?
-
-			#endif
-
-			finder = new SurfFeaturesFinder();
-		}
-		else if (features_type == "orb")
-		{
-			finder = new OrbFeaturesFinder();
-		}
-		else
-		{
-			__android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown 2D features type: %s", features_type.c_str());
-			return -1;
-		}
-
-	Mat full_img, img;
-	vector<ImageFeatures> features(num_images);
-	vector<Mat> images(num_images);
-	vector<Size> full_img_sizes(num_images);
-	double seam_work_aspect = 1;
-
-	//proccess "find features on all images"
-	for (int i = 0; i < num_images; ++i)
-	{
-		//read image
-		full_img = imread(img_names[i]);
-		full_img_sizes[i] = full_img.size();
-		if (full_img.empty())
-		{
-			__android_log_print(ANDROID_LOG_ERROR, TAG, "Can't open image %s",  img_names[i].c_str());
-			return -1;
-		}
-
-		//Create a working image, subscaled by work_scale or work megapix
-		if (work_megapix < 0)
-		{
-			img = full_img;
-			work_scale = 1;
-			is_work_scale_set = true;
-		}
-		else
-		{
-			if (!is_work_scale_set)
-			{
-				work_scale = min(1.0, sqrt(work_megapix * 1e6 / full_img.size().area()));
-				is_work_scale_set = true;
-			}
-
-			resize(full_img, img, Size(), work_scale, work_scale);
-		}
-
-		if (!is_seam_scale_set)
-		{
-			seam_scale = min(1.0, sqrt(seam_megapix * 1e6 / full_img.size().area()));
-			seam_work_aspect = seam_scale / work_scale;
-			is_seam_scale_set = true;
-		}
-
-		//find features in the current subscaled image
-		(*finder)(img, features[i]);
-		features[i].img_idx = i;
-		__android_log_print(ANDROID_LOG_INFO, TAG, "Features in image #%d: %d", i + 1, features[i].keypoints.size());
-
-		//and finaly store the image subscaled by seam_subscale.
-		resize(full_img, img, Size(), seam_scale, seam_scale);
-		images[i] = img.clone();
-	}
-
-	//clean up workspace
-	finder->collectGarbage();
-	full_img.release();
-	img.release();
-
-	__android_log_print(ANDROID_LOG_INFO, TAG, "Finding features, time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-	__android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching...");
-
-	//findFeatures done!!
-	//===============================================
-	//start matching.
-	#ifdef DEBUG
-		t = getTickCount();
-	#endif
-
-
-	vector<MatchesInfo> pairwise_matches;
-
-	//construct a feature matcher
-	BestOf2NearestMatcher matcher(try_gpu, match_conf);//TODO : adjust parameters and benchmark
-	matcher(features, pairwise_matches); //TODO : call another matcher method.
-	matcher.collectGarbage();
-
-
-	__android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching, time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-	//matching done
-
-
-	#ifdef DEBUG
-		t = getTickCount();
-	#endif
-
-	// Check if we should save matches graph
-	if (save_graph) {
-		__android_log_print(ANDROID_LOG_INFO, TAG, "Saving matches graph...");
-		ofstream f(save_graph_to.c_str());
-		f << matchesGraphAsString(img_names, pairwise_matches, conf_thresh);
-	}
-
-	// Leave only images we are sure are from the same panorama
-	vector<int> indices = leaveBiggestComponent(features, pairwise_matches, conf_thresh);
-	vector<Mat> img_subset;
-	vector<string> img_names_subset;
-	vector<Size> full_img_sizes_subset;
-
-	for (size_t i = 0; i < indices.size(); ++i) {
-		img_names_subset.push_back(img_names[indices[i]]);
-		img_subset.push_back(images[indices[i]]);
-		full_img_sizes_subset.push_back(full_img_sizes[indices[i]]);
-	}
-
-	images = img_subset;
-	img_names = img_names_subset;
-	full_img_sizes = full_img_sizes_subset;
-
-	// Check if we still have enough images
-	num_images = static_cast<int>(img_names.size());
-
-	if (num_images < 2) {
-		__android_log_print(ANDROID_LOG_ERROR, TAG, "Need more images");
-		return -1;
-	}
-	//matching done !!
-	//===============================================
-	//starting linear transformation
-
-	//TODO
-	//should skip this step and manually create rotation matrix R with the known pitch/yaw.roll??
-	HomographyBasedEstimator estimator;
-	vector<CameraParams> cameras;
-	estimator(features, pairwise_matches, cameras);
-
-	for (size_t i = 0; i < cameras.size(); ++i) {
-		Mat R;
-		cameras[i].R.convertTo(R, CV_32F);
-		cameras[i].R = R;
-		//__android_log_print(ANDROID_LOG_INFO, TAG, "Initial intrinsics #%d : %s", indices[i] + 1, cameras[i].K());
-	}
-
-	Ptr<detail::BundleAdjusterBase> adjuster;
-
-	if (ba_cost_func == "reproj") {
-		adjuster = new detail::BundleAdjusterReproj();
-	} else if (ba_cost_func == "ray") {
-		adjuster = new detail::BundleAdjusterRay();
-	} else {
-		__android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown bundle adjustment cost function: %s", ba_cost_func.c_str());
-		return -1;
-	}
-
-	adjuster->setConfThresh(conf_thresh);
-	Mat_<uchar> refine_mask = Mat::zeros(3, 3, CV_8U);
-
-	if (ba_refine_mask[0] == 'x') {
-		refine_mask(0,0) = 1;
-	}
-
-	if (ba_refine_mask[1] == 'x') {
-		refine_mask(0,1) = 1;
-	}
-
-	if (ba_refine_mask[2] == 'x') {
-		refine_mask(0,2) = 1;
-	}
-
-	if (ba_refine_mask[3] == 'x') {
-		refine_mask(1,1) = 1;
-	}
-
-	if (ba_refine_mask[4] == 'x') {
-		refine_mask(1,2) = 1;
-	}
-
-	adjuster->setRefinementMask(refine_mask);
-	(*adjuster)(features, pairwise_matches, cameras);
-
-	// Find median focal length
-	vector<double> focals;
-
-	for (size_t i = 0; i < cameras.size(); ++i) {
-		// LOGLN("Camera #" << indices[i]+1 << ":\n" << cameras[i].K());
-		focals.push_back(cameras[i].focal);
-	}
-
-	sort(focals.begin(), focals.end());
-	float warped_image_scale;
-
-	if (focals.size() % 2 == 1) {
-		warped_image_scale = static_cast<float>(focals[focals.size() / 2]);
-	} else {
-		warped_image_scale = static_cast<float>(focals[focals.size() / 2 - 1] + focals[focals.size() / 2]) * 0.5f;
-	}
-
-	if (do_wave_correct) {
-		vector<Mat> rmats;
-
-		for (size_t i = 0; i < cameras.size(); ++i) {
-				rmats.push_back(cameras[i].R);
-		}
-
-		waveCorrect(rmats, wave_correct);
-
-		for (size_t i = 0; i < cameras.size(); ++i) {
-				cameras[i].R = rmats[i];
-		}
-	}
-
-	__android_log_print(ANDROID_LOG_INFO, TAG, "Some stuff on images, time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-	__android_log_print(ANDROID_LOG_INFO, TAG, "Warping images (auxiliary)...");
+		__android_log_print(ANDROID_LOG_INFO, TAG, "Warping images (auxiliary)...");
 
 	#ifdef DEBUG
 		t = getTickCount();
@@ -1251,6 +1491,7 @@ extern "C"
 /* ********
  * PRIVATE FUNCTIONS
  * *******/
+/*
 static int parseCmdArgs(int argc, char** argv)
 {
 	for (int i = 0; i < argc; ++i)
@@ -1386,4 +1627,5 @@ static int parseCmdArgs(int argc, char** argv)
 
 	return 0;
 }
+*/
 

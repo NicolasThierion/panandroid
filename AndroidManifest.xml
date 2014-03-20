@@ -32,10 +32,7 @@ or revised without written permission of the authors.
 		    android:name="fr.ensicaen.panandroid.capture.CaptureActivity"
             android:label="@string/app_name"
             android:launchMode="singleInstance"
-            android:configChanges="orientation|screenSize" />
-        <activity
-            android:name="fr.ensicaen.panandroid.MenuActivity"
-            android:label="@string/app_name">
+            android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

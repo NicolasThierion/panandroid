@@ -34,7 +34,7 @@ public class PanandroidApplication extends Application
 	 * PARAMETERS
 	 * ******/
     private final static String TAG = PanandroidApplication.class.getSimpleName();
-    
+
 	/* *******
 	 * ATTRIBUTES
 	 * ******/
@@ -49,6 +49,7 @@ public class PanandroidApplication extends Application
             if (mCamManager != null)
             {
                 Log.e(TAG, "Uncaught exception! Closing down camera safely firsthand");
+                Log.e(TAG, ex.getMessage());
                 mCamManager.close();
             }
             mDefaultExHandler.uncaughtException(thread, ex);

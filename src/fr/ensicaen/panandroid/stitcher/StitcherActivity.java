@@ -37,11 +37,12 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.test.suitebuilder.TestSuiteBuilder.FailedToCreateTests;
 import android.util.Log;
 import fr.ensicaen.panandroid.capture.CaptureActivity;
 
 /**
- * StitcherActivity class provides the stitcher of the application.
+ * StitcherActivity class provides the stitcher activity of the application.
  * @author Jean Marguerite <jean.marguerite@ecole.ensicaen.fr>
  * @version 0.0.1 - Sat Feb 01 2014
  */
@@ -131,10 +132,9 @@ public class StitcherActivity extends Activity {
         protected void onPreExecute() {
             mProgress = new ProgressDialog(StitcherActivity.this);
             mProgress.setMessage("Stitching en cours");
-            mProgress.setIndeterminate(false);
             mProgress.setMax(100);
             mProgress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-            mProgress.setCancelable(true);
+            mProgress.setCancelable(false);
             mProgress.show();
         }
 
@@ -164,17 +164,56 @@ public class StitcherActivity extends Activity {
         @Override
         protected Integer doInBackground(Void... params) {
             if (storeImagesPath(getImagesPath().toArray()) == SUCCESS) {
-                mProgress.setProgress(10);
+                mProgress.setProgress(12);
+            } else {
+                return -1;
+            }
+
+            if (findFeatures() == SUCCESS) {
+                mProgress.setProgress(25);
+            } else {
+                return -1;
+            }
+
+            if (matchFeatures() == SUCCESS) {
+                mProgress.setProgress(37);
+            } else {
+                return -1;
+            }
+
+            if (matchFeatures() == SUCCESS) {
+                mProgress.setProgress(50);
+            } else {
+                return -1;
+            }
+
+            if (adjustParameters() == SUCCESS) {
+                mProgress.setProgress(62);
+            } else {
+                return -1;
+            }
+
+            if (warpImages() == SUCCESS) {
+                mProgress.setProgress(74);
+            } else {
+                return -1;
+            }
+
+            if (findSeamMasks() == SUCCESS) {
+                mProgress.setProgress(87);
+            } else {
+                return -1;
+            }
+
+            if (composePanorama() == SUCCESS) {
+                mProgress.setProgress(100);
+            } else {
+                return -1;
             }
 
             try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
-            mProgress.setProgress(50);
+                Thread.sleep(1500);
+            } catch (InterruptedException e) {}
 
             return SUCCESS;
             /*
@@ -220,15 +259,45 @@ public class StitcherActivity extends Activity {
     }
 
     /**
-     * Declaration of the native function.
-     * @return Result of the stitching.
-     */
-    public native int openCVStitcher(Object[] arguments);
-
-    /**
      * Store images path for OpenCV.
      * @param files Path to all images in the current folder.
      * @return Result of images storage.
      */
     public native int storeImagesPath(Object[] files);
+
+    /**
+     * Find features in all bunch of images.
+     * @return Result of finding features.
+     */
+    public native int findFeatures();
+
+    /**
+     * Match features.
+     * @return Result of match features.
+     */
+    public native int matchFeatures();
+
+    /**
+     * Adjust different kinds of parameters.
+     * @return Result of adjust parameters.
+     */
+    public native int adjustParameters();
+
+    /**
+     * Warp images.
+     * @return Result of warp images.
+     */
+    public native int warpImages();
+
+    /**
+     * Find seam masks.
+     * @return Result of find seam masks.
+     */
+    public native int findSeamMasks();
+
+    /**
+     * Compose final panorama.
+     * @return Result of compose panorama.
+     */
+    public native int composePanorama();
 }
