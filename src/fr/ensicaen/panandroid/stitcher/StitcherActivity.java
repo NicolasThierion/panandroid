@@ -49,6 +49,7 @@ import fr.ensicaen.panandroid.capture.CaptureActivity;
 public class StitcherActivity extends Activity {
     private static final String TAG = StitcherActivity.class.getSimpleName();
     private File mFolder;
+    private StitcherWrapper mWrapper = new StitcherWrapper();
 
     /**
      * Called when StitcherActivity is starting.
@@ -163,43 +164,43 @@ public class StitcherActivity extends Activity {
          */
         @Override
         protected Integer doInBackground(Void... params) {
-            if (storeImagesPath(getImagesPath().toArray()) == SUCCESS) {
-                mProgress.setProgress(12);
+            if (mWrapper.storeImagesPath(getImagesPath().toArray()) == SUCCESS) {
+                mProgress.setProgress(14);
             } else {
                 return -1;
             }
 
-            if (findFeatures() == SUCCESS) {
-                mProgress.setProgress(25);
+            if (mWrapper.findFeatures() == SUCCESS) {
+                mProgress.setProgress(28);
             } else {
                 return -1;
             }
 
-            if (matchFeatures() == SUCCESS) {
-                mProgress.setProgress(37);
+            if (mWrapper.matchFeatures() == SUCCESS) {
+                mProgress.setProgress(42);
             } else {
                 return -1;
             }
 
-            if (adjustParameters() == SUCCESS) {
-                mProgress.setProgress(62);
+            if (mWrapper.adjustParameters() == SUCCESS) {
+                mProgress.setProgress(56);
             } else {
                 return -1;
             }
 
-            if (warpImages() == SUCCESS) {
-                mProgress.setProgress(74);
+            if (mWrapper.warpImages() == SUCCESS) {
+                mProgress.setProgress(70);
             } else {
                 return -1;
             }
 
-            if (findSeamMasks() == SUCCESS) {
-                mProgress.setProgress(87);
+            if (mWrapper.findSeamMasks() == SUCCESS) {
+                mProgress.setProgress(84);
             } else {
                 return -1;
             }
 
-            if (composePanorama() == SUCCESS) {
+            if (mWrapper.composePanorama() == SUCCESS) {
                 mProgress.setProgress(100);
             } else {
                 return -1;
@@ -244,54 +245,4 @@ public class StitcherActivity extends Activity {
             */
         }
     }
-
-    /**
-     * Load JNI library.
-     */
-    static {
-        System.loadLibrary("ocvstitcher");
-    }
-
-    /**
-     * Store images path for OpenCV.
-     * @param files Path to all images in the current folder.
-     * @return Result of images storage.
-     */
-    public native int storeImagesPath(Object[] files);
-
-    /**
-     * Find features in all bunch of images.
-     * @return Result of finding features.
-     */
-    public native int findFeatures();
-
-    /**
-     * Match features.
-     * @return Result of match features.
-     */
-    public native int matchFeatures();
-
-    /**
-     * Adjust different kinds of parameters.
-     * @return Result of adjust parameters.
-     */
-    public native int adjustParameters();
-
-    /**
-     * Warp images.
-     * @return Result of warp images.
-     */
-    public native int warpImages();
-
-    /**
-     * Find seam masks.
-     * @return Result of find seam masks.
-     */
-    public native int findSeamMasks();
-
-    /**
-     * Compose final panorama.
-     * @return Result of compose panorama.
-     */
-    public native int composePanorama();
 }

@@ -196,7 +196,7 @@ extern "C"
          * Store images path from array 'files' into stitcher's memory.
          */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_storeImagesPath
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_storeImagesPath
         (JNIEnv* env, jobject obj, jobjectArray files)
         {
                 jstring tmp;
@@ -224,7 +224,7 @@ extern "C"
          * Find feature in images.
          */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_findFeatures
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findFeatures
         (JNIEnv* env, jobject obj)
         {
                 bool isSeamScale = false;
@@ -311,7 +311,7 @@ extern "C"
 
         // Match features.
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_matchFeatures
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_matchFeatures
         (JNIEnv* env, jobject obj)
         {
                 int numberImages;
@@ -359,7 +359,7 @@ extern "C"
 
         /* Adjust parameters. */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_adjustParameters
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_adjustParameters
         (JNIEnv* env, jobject obj)
         {
                 vector<double> focals;
@@ -438,7 +438,7 @@ extern "C"
         //================ COMPOSITING STEPS ============================
         /* Warp images. */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_warpImages
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_warpImages
         (JNIEnv* env, jobject obj)
         {
                 int numberImages = static_cast<int>(imagesPath.size());
@@ -524,7 +524,7 @@ extern "C"
 
         /* Compensate exposure errors and find seam masks. */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_findSeamMasks
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findSeamMasks
         (JNIEnv* env, jobject obj)
         {
                 Ptr<SeamFinder> seamFinder;
@@ -571,7 +571,7 @@ extern "C"
 
         /* Compose final panorama. */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_composePanorama
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_composePanorama
         (JNIEnv* env, jobject obj)
         {
                 float blendWidth;
@@ -686,7 +686,7 @@ extern "C"
 
                                 blender->prepare(corners, sizes);
                         }
-                        
+
                         // Blend the current image.
                         blender->feed(imageWarpedS, maskWarped, corners[img_idx]);
                 }
