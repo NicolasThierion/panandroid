@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
 
-<resources xmlns:tools="http://schemas.android.com/tools"
-        tools:locale="fr">
     <string name="action_settings">Settings</string>
     <string name="snap">Snap</string>
     <string name="stitch">Stitch</string>
     <string name="capture_button">Capture button</string>
     <string name="gallery_button">Gallery button</string>
-    
     <string name="app_name">Panandroid</string>
     <string name="launch_app">Panandroid</string>
     <string name="shutter_button">Shutter button</string>
@@ -29,7 +27,6 @@
     <string name="please_wait">Please wait\u2026</string>
     <string name="retouch">RETOUCH</string>
     <string name="open_in_gallery">GALLERY</string>
-
     <string name="mode_photo">Photo</string>
     <string name="mode_video">Video</string>
     <string name="mode_picsphere">PicSphere</string>
@@ -40,16 +37,13 @@
     <string name="widget_burstmode_count_shots">Burst %d shots</string>
     <string name="widget_burstmode_off">Disable burst mode</string>
     <string name="widget_burstmode_infinite">Infinite burst</string>
-
     <string name="widget_hdr_aebracket">Auto bracketing</string>
-
     <string name="widget_settings_choose_widgets">Choose widgets in the sidebar</string>
     <string name="widget_settings_choose_widgets_button">Choose widgets</string>
     <string name="widget_settings_picture_size">Image size</string>
     <string name="widget_settings_exposure_ring">Show exposure ring</string>
     <string name="widget_settings_autoenhance">Auto-enhancement</string>
     <string name="widget_settings_ruleofthirds">Rule of Thirds</string>
-
     <string name="widget_autoexposure">Light measure</string>
     <string name="widget_burstmode">Burst mode</string>
     <string name="widget_effect">Effects</string>
@@ -71,7 +65,6 @@
     <!-- Panorama mode -->
     <!-- Filename prefix for panorama output -->
     <string name="pano_file_name_format" translatable="false">"'PANO'_yyyyMMdd_HHmmss"</string>
-
     <string name="pano_panorama_rendering_failed">Failed to render panorama.\nTry to take a shorter one.</string>
     <string name="pano_panorama_rendering">Rendering panorama\u2026</string>
 
@@ -121,4 +114,7 @@
     <string name="exit_confrm">Do you really want to exit?</string>
     <string name="exit_yes">exit</string>
     <string name="exit_no">don\'t exit</string>
+    <string name="title_activity_snapshot_manager_test">SnapshotManagerTestActivity</string>
+    <string name="hello_world">Hello world!</string>
+
 </resources>

@@ -10,40 +10,47 @@ or revised without written permission of the authors.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fr.ensicaen.panandroid"
+    android:installLocation="preferExternal"
     android:versionCode="1"
-    android:versionName="1.0" 
-    android:installLocation="preferExternal">
+    android:versionName="1.0" >
 
     <uses-sdk
         android:minSdkVersion="15"
         android:targetSdkVersion="17" />
 
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <instrumentation
+        android:name="android.test.InstrumentationTestRunner"
+        android:targetPackage="fr.ensicaen.panandroid" />
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    
-    
+
     <application
+        android:name="fr.ensicaen.panandroid.PanandroidApplication"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme"
-		android:name="fr.ensicaen.panandroid.PanandroidApplication">
-		<activity
-		    android:name="fr.ensicaen.panandroid.capture.CaptureActivity"
+        android:theme="@style/AppTheme" >
+                    <!-- android:name="fr.ensicaen.panandroid.capture.CaptureActivity" -->
+        
+        <activity
+ 			android:name="fr.ensicaen.panandroid.capture.CaptureActivity"             
+            android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
-            android:launchMode="singleInstance"
-            android:configChanges="orientation|screenSize">
-			<intent-filter>
-			    <action android:name="android.intent.action.MAIN" />
-			    <category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
+            android:launchMode="singleInstance" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity
             android:name="fr.ensicaen.panandroid.MenuActivity"
-            android:label="@string/app_name">
-            <!-- 
+            android:label="@string/app_name" >
+
+            <!--
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -53,5 +60,13 @@ or revised without written permission of the authors.
         <activity
             android:name="fr.ensicaen.panandroid.stitcher.StitcherActivity"
             android:label="@string/app_name" />
+
+        <uses-library android:name="android.test.runner" />
+
+        <activity
+            android:name="fr.ensicaen.panandroid.SnapshotManagerTestActivity"
+            android:label="@string/title_activity_snapshot_manager_test" >
+        </activity>
     </application>
+
 </manifest>

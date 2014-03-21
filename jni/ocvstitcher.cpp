@@ -133,6 +133,9 @@ string seamFindType = "gc_color";
 /** Warp surface type. **/
 string warpType = "spherical";
 
+/** Where store the result image. **/
+static string resultPath;
+
 /** Vector of images features. **/
 static vector<ImageFeatures> features;
 
@@ -196,7 +199,7 @@ extern "C"
          * Store images path from array 'files' into stitcher's memory.
          */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_storeImagesPath
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_storeImagesPath
         (JNIEnv* env, jobject obj, jobjectArray files)
         {
                 jstring tmp;
@@ -207,13 +210,19 @@ extern "C"
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path...");
 
                 // Fetch and convert images path from jstring to string.
-                for (int i = 0; i < numberImages; ++i) {
+                for (int i = 0; i < numberImages - 1; ++i) {
                         tmp = (jstring) env->GetObjectArrayElement(files, i);
                         path = env->GetStringUTFChars(tmp, 0);
                         imagesPath.push_back(path);
                         __android_log_print(ANDROID_LOG_INFO, TAG, "Store path #%d : %s", i + 1, path);
                         env->ReleaseStringUTFChars(tmp, path);
                 }
+
+                // Path to store panorama is the last element.
+                tmp = (jstring) env->GetObjectArrayElement(files, numberImages - 1);
+                path = env->GetStringUTFChars(tmp, 0);
+                resultPath = path;
+                env->ReleaseStringUTFChars(tmp, path);
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
@@ -224,7 +233,7 @@ extern "C"
          * Find feature in images.
          */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_findFeatures
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findFeatures
         (JNIEnv* env, jobject obj)
         {
                 bool isSeamScale = false;
@@ -311,7 +320,7 @@ extern "C"
 
         // Match features.
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_matchFeatures
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_matchFeatures
         (JNIEnv* env, jobject obj)
         {
                 int numberImages;
@@ -359,7 +368,7 @@ extern "C"
 
         /* Adjust parameters. */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_adjustParameters
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_adjustParameters
         (JNIEnv* env, jobject obj)
         {
                 vector<double> focals;
@@ -438,7 +447,7 @@ extern "C"
         //================ COMPOSITING STEPS ============================
         /* Warp images. */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_warpImages
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_warpImages
         (JNIEnv* env, jobject obj)
         {
                 int numberImages = static_cast<int>(imagesPath.size());
@@ -524,7 +533,7 @@ extern "C"
 
         /* Compensate exposure errors and find seam masks. */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_findSeamMasks
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findSeamMasks
         (JNIEnv* env, jobject obj)
         {
                 Ptr<SeamFinder> seamFinder;
@@ -571,7 +580,7 @@ extern "C"
 
         /* Compose final panorama. */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherActivity_composePanorama
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_composePanorama
         (JNIEnv* env, jobject obj)
         {
                 float blendWidth;
@@ -686,7 +695,7 @@ extern "C"
 
                                 blender->prepare(corners, sizes);
                         }
-                        
+
                         // Blend the current image.
                         blender->feed(imageWarpedS, maskWarped, corners[img_idx]);
                 }
@@ -695,7 +704,7 @@ extern "C"
                 blender->blend(result, resultMask);
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-                imwrite("/storage/emulated/0/Panandroid/result.jpg", result);
+                imwrite(resultPath, result);
 
                 return 0;
         }
