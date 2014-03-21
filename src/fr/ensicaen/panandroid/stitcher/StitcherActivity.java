@@ -181,12 +181,6 @@ public class StitcherActivity extends Activity {
                 return -1;
             }
 
-            if (matchFeatures() == SUCCESS) {
-                mProgress.setProgress(50);
-            } else {
-                return -1;
-            }
-
             if (adjustParameters() == SUCCESS) {
                 mProgress.setProgress(62);
             } else {
