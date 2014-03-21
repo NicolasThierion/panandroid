@@ -616,12 +616,12 @@ public class CameraManager /* implements SnapshotObserver */
 		//set picture orientation
 		mCameraParameters = mCamera.getParameters();
 		mCameraParameters.setJpegQuality(mJpegCompression);
-
 		
 		//take a picture in separated thread
 		try
 		{
 			mCamera.setParameters(mCameraParameters);
+			
 			mTempExifOrientation = getExifOrientation();
 
 			new Thread(new Runnable(){
@@ -845,14 +845,12 @@ public class CameraManager /* implements SnapshotObserver */
 						
 						
 						//put exifs
+
 						ExifInterface exif = new ExifInterface(jpegFile);
 		        		String exifOrientation = ""+mTempExifOrientation;
 		        		exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation);
-		        		System.out.println("Saving exif orientation : "+mTempExifOrientation);
-		        		System.out.println(jpegFile);
 		        		exif.saveAttributes();
 		        		exif = new ExifInterface(jpegFile);
-		        		System.out.println("reading exif orientation : "+exif.getAttribute(ExifInterface.TAG_ORIENTATION));
 
 				    } 
 					catch (FileNotFoundException e) 
@@ -994,19 +992,15 @@ public class CameraManager /* implements SnapshotObserver */
 		int rotation=90;
 		switch(screenRot){
 		case Surface.ROTATION_0:
-			System.out.println("rot=0");
 			rotation+=0;
 			break;
 		case Surface.ROTATION_90:
-			System.out.println("rot=90");
 			rotation-=90;			
 			break;
 		case Surface.ROTATION_180:
-			System.out.println("rot=180");
 			rotation-=180;			
 			break;
 		case Surface.ROTATION_270:
-			System.out.println("rot=270");
 			rotation-=270;			
 			break;
 		}
@@ -1019,20 +1013,16 @@ public class CameraManager /* implements SnapshotObserver */
 		int exifOrientation = 0;
 		switch(screenRot){
 		case Surface.ROTATION_0:
-			System.out.println("rot=0");
 			exifOrientation=6;
 			break;
 		case Surface.ROTATION_90:
-			System.out.println("rot=90");
-			exifOrientation=3;			
-			break;
-		case Surface.ROTATION_180:
-			System.out.println("rot=180");
 			exifOrientation=1;			
 			break;
-		case Surface.ROTATION_270:
-			System.out.println("rot=270");
+		case Surface.ROTATION_180:
 			exifOrientation=0;			
+			break;
+		case Surface.ROTATION_270:
+			exifOrientation=3;			
 			break;
 		}
 		return exifOrientation;

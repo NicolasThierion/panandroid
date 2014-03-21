@@ -18,9 +18,14 @@
  */
 package fr.ensicaen.panandroid.snapshot;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,7 +48,7 @@ public class SnapshotManager implements SnapshotEventListener
 	private static final String DEFAULT_JSON_FILENAME = "PanoData.json";
 
 
-	private static final float NEIGHBOR_DISTANCE = 30.0f;
+	private static final float NEIGHBOR_DISTANCE = 44.0f;
 	
 	
 	/* ******
@@ -51,6 +56,7 @@ public class SnapshotManager implements SnapshotEventListener
 	 * *****/
 	private List<Snapshot> mSnapshots;
 	private JSONArray mJsonArray;
+	private String mPanoName;
 	
 	
 	/* ******
@@ -79,10 +85,11 @@ public class SnapshotManager implements SnapshotEventListener
 		JSONObject jso = new JSONObject();
 		try 
 		{
-			jso.put("snapshotId", snapshot.getId());
-			jso.put("urlName", snapshot.getFileName());
-			jso.put("pitch", snapshot.getPitch());	
+			jso.put("roll", snapshot.getRoll());
 			jso.put("yaw", snapshot.getYaw());
+			jso.put("pitch", snapshot.getPitch());	
+			jso.put("urlName", snapshot.getFileName());
+			jso.put("snapshotId", mSnapshots.size());
 			mJsonArray.put(jso);
 		}
 		catch (JSONException e)
@@ -104,6 +111,7 @@ public class SnapshotManager implements SnapshotEventListener
 		
 		
 		try {
+			mPanoName = filename;
 			snapshots.put("panoName", filename);	
 			snapshots.put("panoData", mJsonArray);
 			File dir = new File(directory);
@@ -128,11 +136,8 @@ public class SnapshotManager implements SnapshotEventListener
 		} catch (JSONException e1) {
 			e1.printStackTrace();
 			return null;
-		}
-		
+		}	
 		return absoluteFilename; 
-	
-	
 	}
 	
 	/**
@@ -164,49 +169,107 @@ public class SnapshotManager implements SnapshotEventListener
 		return absoluteFilename;
 	}
 
+	/**
+	 * Group snapshots by list of neighbors
+	 * @return
+	 */
 	public LinkedList<LinkedList<Snapshot>> getNeighbors()
 	{
 		LinkedList<LinkedList<Snapshot>> neighborsList = new LinkedList<LinkedList<Snapshot>>();
-		LinkedList<Snapshot> snapshots = new LinkedList<Snapshot>(mSnapshots);
-		
-		
-		for( int i = 0; i < snapshots.size(); i++ )
+	
+		for( int i = 0; i < mSnapshots.size(); i++ )
 		{
 			LinkedList<Snapshot> currentList = new LinkedList<Snapshot>();
-			neighborsList.add(currentList);
+			neighborsList.add(currentList);		
 			
-			
-			Snapshot currentSnapshot = snapshots.get(i);
+			Snapshot currentSnapshot = mSnapshots.get(i);
 			currentList.add(currentSnapshot);	
-			for (int j = i+1; j < snapshots.size(); j++)
+			for (int j = i+1; j < mSnapshots.size(); j++)
 			{
-
-				Snapshot currentNeighbor = snapshots.get(j);
-				
+				Snapshot currentNeighbor = mSnapshots.get(j);
 				if(currentSnapshot.getDistance(currentNeighbor) < NEIGHBOR_DISTANCE )
 				{
 					currentList.add(currentNeighbor);
-					snapshots.remove(currentNeighbor);
-					
 				}
 			}
-		}
-		
-		
-		
-		return null;
-		
+		}	
+		return neighborsList;
 	}
+	
+	/**
+	 * Group snapshots by list of neighbors, given by their ID.
+	 * The id is the order the snapshot has been added to the manager.
+	 * @return
+	 */
+	public LinkedList<LinkedList<Integer>> getNeighborsId()
+	{
+		LinkedList<LinkedList<Integer>> neighborsList = new LinkedList<LinkedList<Integer>>();
+		
+		for( int i = 0; i < mSnapshots.size(); i++ )
+		{
+			LinkedList<Integer> currentList = new LinkedList<Integer>();
+			neighborsList.add(currentList);		
+			
+			Snapshot currentSnapshot = mSnapshots.get(i);
+			currentList.add(i);	
+			for (int j = i+1; j < mSnapshots.size(); j++)
+			{
+				Snapshot currentNeighbor = mSnapshots.get(j);
+				if(currentSnapshot.getDistance(currentNeighbor) < NEIGHBOR_DISTANCE )
+				{
+					currentList.add(j);
+				}
+			}
+		}	
+		return neighborsList;
+	}
+	
+	/**
+	 * 
+	 * @param filename
+	 */
+	public void loadJson(String filename)
+	{
+		
+		//read json file
+	    try {
+			FileInputStream inputStream = new FileInputStream (filename);
+			byte[] buffer = new byte[inputStream.available()];
+			inputStream.read(buffer, 0, buffer.length );
+			String jsonStr = new String(buffer);
+			inputStream.close();
+			//create JSon object
+			JSONObject jsonSnapshots = new JSONObject(jsonStr);
+			
+			//parse JSON and build list
+			mSnapshots = new LinkedList<Snapshot>();
+			mPanoName = jsonSnapshots.getString("panoName");
+			JSONArray panoDataArray = jsonSnapshots.getJSONArray("panoData");
+			
+			for(int i = 0; i < panoDataArray.length(); i++)
+			{
+				JSONObject currentjso = panoDataArray.getJSONObject(i);
+				
+				//String snapshotId = currentjso.getString("snapshotId");
+				float pitch = Float.parseFloat(currentjso.getString("pitch"));
+				float yaw = Float.parseFloat(currentjso.getString("yaw"));
+				float roll = Float.parseFloat(currentjso.getString("roll"));
+						
+				Snapshot currentSnapshot = new Snapshot(pitch, yaw, roll);
+				mSnapshots.add(currentSnapshot);			
+			}
+			
+			
+
+	    }
+	    catch (Exception e) 
+	    {
+	    	e.printStackTrace();
+	    }
+	}
+	    
+	   
+	
+
 }
-
-
-	
-	
-	
-
-
-
-	
-	
-	
 

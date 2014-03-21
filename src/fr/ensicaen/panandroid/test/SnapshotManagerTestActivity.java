@@ -1,16 +1,20 @@
 package fr.ensicaen.panandroid.test;
 
+import java.io.File;
+import java.util.LinkedList;
+
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
 
 
-public class JSONTestActivity extends Activity
+public class SnapshotManagerTestActivity extends Activity
 {
 
 	private SnapshotManager mSnapshotManager;
@@ -29,22 +33,25 @@ public class JSONTestActivity extends Activity
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 	
-		
-		
 		mSnapshotManager = new SnapshotManager();
 		
-		for( int i = 0; i < 20; i++)
-		{
-			Snapshot s = new Snapshot(i,i);
-			s.setFileName(i+".jpeg");
-
-			mSnapshotManager.addSnapshot(s);
-		}
-		mView = new View(this);
-		this.setContentView(this.mView);	
+		//load JSON file
+		mSnapshotManager.loadJson(
+				Environment.getExternalStorageDirectory() + File.separator + "Panandroid/temp/PanoData.json");
 		
-		//TODO
-		//mSnapshotManager.createJSONFile();
+		
+		LinkedList<LinkedList<Integer>> neighbors = mSnapshotManager.getNeighborsId();
+		int i=0;
+		for(LinkedList<Integer> currentNeighbors : neighbors)
+		{
+			System.out.println("Voisinage "+i +" :");
+			++i;
+			for(Integer currentSnapshot : currentNeighbors)
+			{
+				System.out.println(currentSnapshot);
+			}
+		}
+		
 	}
 	
 	  

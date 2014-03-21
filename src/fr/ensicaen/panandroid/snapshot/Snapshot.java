@@ -82,7 +82,8 @@ public class Snapshot implements EulerAngles
 		if(mRoll>180.0001f)
 			mRoll-=360.0f;
 		
-		mId = GLOBAL_ID++;	
+		mId = GLOBAL_ID;
+		GLOBAL_ID++;
 	}
 
 
