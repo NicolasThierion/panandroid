@@ -133,6 +133,9 @@ string seamFindType = "gc_color";
 /** Warp surface type. **/
 string warpType = "spherical";
 
+/** Where store the result image. **/
+static string resultPath;
+
 /** Vector of images features. **/
 static vector<ImageFeatures> features;
 
@@ -207,13 +210,19 @@ extern "C"
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path...");
 
                 // Fetch and convert images path from jstring to string.
-                for (int i = 0; i < numberImages; ++i) {
+                for (int i = 0; i < numberImages - 1; ++i) {
                         tmp = (jstring) env->GetObjectArrayElement(files, i);
                         path = env->GetStringUTFChars(tmp, 0);
                         imagesPath.push_back(path);
                         __android_log_print(ANDROID_LOG_INFO, TAG, "Store path #%d : %s", i + 1, path);
                         env->ReleaseStringUTFChars(tmp, path);
                 }
+
+                // Path to store panorama is the last element.
+                tmp = (jstring) env->GetObjectArrayElement(files, numberImages - 1);
+                path = env->GetStringUTFChars(tmp, 0);
+                resultPath = path;
+                env->ReleaseStringUTFChars(tmp, path);
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
@@ -695,7 +704,7 @@ extern "C"
                 blender->blend(result, resultMask);
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-                imwrite("/storage/emulated/0/Panandroid/result.jpg", result);
+                imwrite(resultPath, result);
 
                 return 0;
         }

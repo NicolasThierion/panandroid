@@ -115,6 +115,9 @@ public class StitcherActivity extends Activity {
             }
         }
 
+        imagesPath.add(mFolder.getAbsolutePath() + File.separator
+                + "panorama.jpg");
+
         return imagesPath;
     }
 
