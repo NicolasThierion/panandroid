@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 
+
 public class CaptureButton extends ImageView {
     public CaptureButton(Context context, AttributeSet attrs,
             int defStyle) {

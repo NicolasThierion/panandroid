@@ -48,6 +48,7 @@ import fr.ensicaen.panandroid.snapshot.SnapshotEventListener;
 import fr.ensicaen.panandroid.tools.BitmapDecoder;
 import fr.ensicaen.panandroid.tools.EulerAngles;
 
+
 /**
  * CaptureRenderer is basically an Inside3dRenderer, with a cube as preffered surrounding mesh.
  * The surrounding mesh is drawn as a "skybox".

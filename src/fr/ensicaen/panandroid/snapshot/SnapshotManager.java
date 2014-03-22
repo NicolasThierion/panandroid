@@ -34,19 +34,19 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-
-
+import android.util.Log;
 
 /** 
  * creates a list of snapshots
  */
 public class SnapshotManager implements SnapshotEventListener
 {
+	private static final String TAG= SnapshotManager.class.getSimpleName();
 	/* ******
 	 * PARAMETERS
 	 * *****/
-	private static final String DEFAULT_JSON_FILENAME = "PanoData.json";
-
+	public static final String DEFAULT_JSON_FILENAME = "PanoData.json";
+	
 
 	private static final float NEIGHBOR_DISTANCE = 44.0f;
 	
@@ -54,7 +54,7 @@ public class SnapshotManager implements SnapshotEventListener
 	/* ******
 	 * ATTRIBUTES
 	 * *****/
-	private List<Snapshot> mSnapshots;
+	private LinkedList<Snapshot> mSnapshots;
 	private JSONArray mJsonArray;
 	private String mPanoName;
 	
@@ -67,7 +67,7 @@ public class SnapshotManager implements SnapshotEventListener
 	 */
 	public SnapshotManager()
 	{
-		mSnapshots = new ArrayList<Snapshot>();
+		mSnapshots = new LinkedList<Snapshot>();
 		mJsonArray = new JSONArray();
 	}
 	
@@ -225,10 +225,11 @@ public class SnapshotManager implements SnapshotEventListener
 	}
 	
 	/**
-	 * 
-	 * @param filename
+	 * load a project from the given JSON config file.
+	 * Loads snapshots list, pano name, etc...
+	 * @param filename - project filename
 	 */
-	public void loadJson(String filename)
+	public boolean loadJson(String filename)
 	{
 		
 		//read json file
@@ -245,7 +246,8 @@ public class SnapshotManager implements SnapshotEventListener
 			mSnapshots = new LinkedList<Snapshot>();
 			mPanoName = jsonSnapshots.getString("panoName");
 			JSONArray panoDataArray = jsonSnapshots.getJSONArray("panoData");
-			
+
+			Log.i(TAG, "Loading "+panoDataArray.length()+" snapshots from JSON");
 			for(int i = 0; i < panoDataArray.length(); i++)
 			{
 				JSONObject currentjso = panoDataArray.getJSONObject(i);
@@ -254,18 +256,27 @@ public class SnapshotManager implements SnapshotEventListener
 				float pitch = Float.parseFloat(currentjso.getString("pitch"));
 				float yaw = Float.parseFloat(currentjso.getString("yaw"));
 				float roll = Float.parseFloat(currentjso.getString("roll"));
-						
+
+				String snapshotUrl = currentjso.getString("urlName");
+
 				Snapshot currentSnapshot = new Snapshot(pitch, yaw, roll);
+				currentSnapshot.setFileName(snapshotUrl);
 				mSnapshots.add(currentSnapshot);			
 			}
 			
-			
+			return true;
 
 	    }
 	    catch (Exception e) 
 	    {
 	    	e.printStackTrace();
+	    	return false;
 	    }
+	}
+
+	public LinkedList<Snapshot> getSnapshotsList() 
+	{
+		return mSnapshots;
 	}
 	    
 	   

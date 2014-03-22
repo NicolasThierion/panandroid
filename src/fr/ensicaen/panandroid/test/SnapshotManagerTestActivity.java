@@ -13,7 +13,6 @@ import android.view.Window;
 import android.view.WindowManager;
 
 
-
 public class SnapshotManagerTestActivity extends Activity
 {
 

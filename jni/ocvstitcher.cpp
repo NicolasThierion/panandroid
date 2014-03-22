@@ -70,7 +70,6 @@ using namespace cv::detail;
 /*************
  * PARAMETERS
  ************/
-
 /** Is the wave correct. **/
 bool doWaveCorrect = true;
 
@@ -133,61 +132,74 @@ string seamFindType = "gc_color";
 /** Warp surface type. **/
 string warpType = "spherical";
 
+
+/*************
+ * ATTRIBUTES
+ ************/
 /** Where store the result image. **/
-static string resultPath;
+static string _resultPath;
 
-/** Vector of images features. **/
-static vector<ImageFeatures> features;
+/** Vector of _images features. **/
+static vector<ImageFeatures> _features;
 
-/** Full images size. **/
-static vector<Size> fullImagesSize;
+/** Full _images size. **/
+static vector<Size> _fullImagesSize;
+
+/** Number of images **/
+static int _nbImages;
 
 /** Images path. **/
-static vector<string> imagesPath;
+static vector<string> _imagesPath;
 
-/** Vector of cameras parameters. **/
-static vector<CameraParams> cameras;
+/** Images rotation **/
+static vector<float* > _imagesRotations;
+
+
+/** Vector of _cameras parameters. **/
+static vector<CameraParams> _cameras;
 
 /** Vector of images. **/
-static vector<Mat> images;
+static vector<Mat> _images;
 
-/** Vector of images warped. **/
-static vector<Mat> imagesWarped;
+/** Vector of _images warped. **/
+static vector<Mat> _imagesWarped;
 
 /** Vector of images warped F. **/
-vector<Mat> imagesWarpedF;
+vector<Mat> _imagesWarpedF;
 
-/** Vector of masks. **/
-vector<Mat> masks;
+/** Vector of _masks. **/
+vector<Mat> _masks;
 
 /** Vector of masks warped. **/
-static vector<Mat> masksWarped;
+static vector<Mat> _masksWarped;
 
 /** Vector of pairwise matches. **/
-static vector<MatchesInfo> pairwiseMatches;
+static vector<MatchesInfo> _pairwiseMatches;
 
 /** Vector of corners. **/
-vector<Point> corners;
+vector<Point> _corners;
 
 /** Vector of sizes. **/
-vector<Size> sizes;
+vector<Size> _sizes;
 
 /** Exposure compensator. **/
-static Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(exposureCompensationType);
+static Ptr<ExposureCompensator> _compensator = ExposureCompensator::createDefault(exposureCompensationType);
 
 /** Warper. **/
-static Ptr<RotationWarper> warper;
+static Ptr<RotationWarper> _warper;
 
 /** Warper creator. **/
-Ptr<WarperCreator> warperCreator;
+Ptr<WarperCreator> _warperCreator;
 
 /** Perform wave effect correction. **/
-WaveCorrectKind waveCorrection = detail::WAVE_CORRECT_HORIZ;
+WaveCorrectKind _waveCorrection = detail::WAVE_CORRECT_HORIZ;
 
 /*************
  * PROTOTYPES
  ************/
 static int parseCmdArgs(int argc, char** argv);
+static void performImagesRotation();
+
 
 /*******************
  * PUBLIC FUNCTIONS
@@ -200,37 +212,54 @@ extern "C"
          */
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_storeImagesPath
-        (JNIEnv* env, jobject obj, jobjectArray files)
+        (JNIEnv* env, jobject obj, jobjectArray files, jobjectArray orientations)
         {
-                jstring tmp;
+                jstring tmpFileName;
+                jfloat pitch, yaw, roll;
+                float* orientation;
                 const char* path;
-                int numberImages = env->GetArrayLength(files);
+                _nbImages = env->GetArrayLength(files);
 
+                jfloatArray orientationsArray;
                 int64 t = getTickCount();
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path...");
 
-                // Fetch and convert images path from jstring to string.
-                for (int i = 0; i < numberImages - 1; ++i) {
-                        tmp = (jstring) env->GetObjectArrayElement(files, i);
-                        path = env->GetStringUTFChars(tmp, 0);
-                        imagesPath.push_back(path);
-                        __android_log_print(ANDROID_LOG_INFO, TAG, "Store path #%d : %s", i + 1, path);
-                        env->ReleaseStringUTFChars(tmp, path);
+                // Fetch and convert _images path from jstring to string.
+                for (int i = 0; i < _nbImages - 1; ++i)
+                {
+                	tmpFileName = (jstring) env->GetObjectArrayElement(files, i);
+					orientation = new float[3];
+
+					orientationsArray = (jfloatArray)env->GetObjectArrayElement(orientations, i);
+				    jfloat *orientationElement=env->GetFloatArrayElements(orientationsArray, 0);
+				    for(int j=0; j<3; ++j)
+				    {
+				    	orientation[j] = orientationElement[j];
+					}
+					path = env->GetStringUTFChars(tmpFileName, 0);
+					_imagesPath.push_back(path);
+					_imagesRotations.push_back(orientation);
+					__android_log_print(ANDROID_LOG_INFO, TAG, "Store path #%d : %s", i + 1, path);
+					env->ReleaseStringUTFChars(tmpFileName, path);
                 }
 
+
+
                 // Path to store panorama is the last element.
-                tmp = (jstring) env->GetObjectArrayElement(files, numberImages - 1);
-                path = env->GetStringUTFChars(tmp, 0);
-                resultPath = path;
-                env->ReleaseStringUTFChars(tmp, path);
+                tmpFileName = (jstring) env->GetObjectArrayElement(files, _nbImages - 1);
+                path = env->GetStringUTFChars(tmpFileName, 0);
+                _resultPath = path;
+                env->ReleaseStringUTFChars(tmpFileName, path);
 
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Storing _images path time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
+
+                performImagesRotation();
                 return 0;
         }
 
         /**
-         * Find feature in images.
+         * Find feature in _images.
          */
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findFeatures
@@ -239,13 +268,13 @@ extern "C"
                 bool isSeamScale = false;
                 bool isWorkScale = false;
                 double seamScale = 1;
-                int numberImages = static_cast<int>(imagesPath.size());
                 Mat fullImage, image;
                 Ptr<FeaturesFinder> finder;
 
-                // Check if we have enough images.
-                if (numberImages < 2) {
-                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Need more images.");
+                // Check if we have enough _images.
+                _nbImages = static_cast<int>(_imagesPath.size());
+                if (_nbImages < 2) {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Need more _images.");
                         return -1;
                 }
 
@@ -258,23 +287,23 @@ extern "C"
                 } else if (featuresType == "orb") {
                         finder = new OrbFeaturesFinder();
                 } else {
-                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown 2D features type: %s", featuresType.c_str());
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown 2D _features type: %s", featuresType.c_str());
                         return -1;
                 }
 
-                // Resize vectors used for store features of images and images itself.
-                features.resize(numberImages);
-                fullImagesSize.resize(numberImages);
-                images.resize(numberImages);
+                // Resize vectors used for store _features of _images and _images itself.
+                _features.resize(_nbImages);
+                _fullImagesSize.resize(_nbImages);
+                _images.resize(_nbImages);
 
-                // Find features on all images.
-                for (int i = 0; i < numberImages; ++i) {
+                // Find _features on all _images.
+                for (int i = 0; i < _nbImages; ++i) {
                         // Read image.
-                        fullImage = imread(imagesPath[i]);
-                        fullImagesSize[i] = fullImage.size();
+                        fullImage = imread(_imagesPath[i]);
+                        _fullImagesSize[i] = fullImage.size();
 
                         if (fullImage.empty()) {
-                                __android_log_print(ANDROID_LOG_ERROR, TAG, "Can't open image %s", imagesPath[i].c_str());
+                                __android_log_print(ANDROID_LOG_ERROR, TAG, "Can't open image %s", _imagesPath[i].c_str());
                                 return -1;
                         }
 
@@ -298,14 +327,14 @@ extern "C"
                                 isSeamScale = true;
                         }
 
-                        // Find features in the current working image.
-                        (*finder)(image, features[i]);
-                        features[i].img_idx = i;
-                        __android_log_print(ANDROID_LOG_INFO, TAG, "Features in image #%d: %d", i + 1, features[i].keypoints.size());
+                        // Find _features in the current working image.
+                        (*finder)(image, _features[i]);
+                        _features[i].img_idx = i;
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Features in image #%d: %d", i + 1, _features[i].keypoints.size());
 
                         // Store image subscaled by seamScale.
                         resize(fullImage, image, Size(), seamScale, seamScale);
-                        images[i] = image.clone();
+                        _images[i] = image.clone();
                 }
 
                 // Clean up workspace.
@@ -313,12 +342,12 @@ extern "C"
                 fullImage.release();
                 image.release();
 
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding features time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding _features time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
                 return 0;
         }
 
-        // Match features.
+        // Match _features.
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_matchFeatures
         (JNIEnv* env, jobject obj)
@@ -332,34 +361,34 @@ extern "C"
                 int64 t = getTickCount();
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching...");
 
-                matcher(features, pairwiseMatches); // TODO : Call another matcher method.
+                matcher(_features, _pairwiseMatches); // TODO : Call another matcher method.
                 matcher.collectGarbage();
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
                 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Selecting images and matches subset...");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Selecting _images and matches subset...");
 
-                vector<int> indices = leaveBiggestComponent(features, pairwiseMatches, confidenceThreshold);
+                vector<int> indices = leaveBiggestComponent(_features, _pairwiseMatches, confidenceThreshold);
 
                 for (size_t i = 0; i < indices.size(); ++i) {
-                        imagesPathSubset.push_back(imagesPath[indices[i]]);
-                        __android_log_print(ANDROID_LOG_INFO, TAG, "Select image #%d : %s", i + 1, imagesPath[indices[i]].c_str());
-                        imagesSubset.push_back(images[indices[i]]);
-                        fullImagesSizeSubset.push_back(fullImagesSize[indices[i]]);
+                        imagesPathSubset.push_back(_imagesPath[indices[i]]);
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Select image #%d : %s", i + 1, _imagesPath[indices[i]].c_str());
+                        imagesSubset.push_back(_images[indices[i]]);
+                        fullImagesSizeSubset.push_back(_fullImagesSize[indices[i]]);
                 }
 
-                images = imagesSubset;
-                imagesPath = imagesPathSubset;
-                fullImagesSize = fullImagesSizeSubset;
+                _images = imagesSubset;
+                _nbImages = _images.size();
+                _imagesPath = imagesPathSubset;
+                _fullImagesSize = fullImagesSizeSubset;
 
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Selecting images and matches subset time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Selecting _images and matches subset time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
-                // Check if we still have enough images.
-                numberImages = static_cast<int>(imagesPath.size());
+                // Check if we still have enough _images.
 
-                if (numberImages < 2) {
-                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Need more images.");
+                if (_nbImages < 2) {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Need more _images.");
                         return -1;
                 }
 
@@ -381,13 +410,13 @@ extern "C"
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Adjusting parameters...");
 
                 // Estimate camera parameters rough initial guess.
-                estimator(features, pairwiseMatches, cameras);
+                estimator(_features, _pairwiseMatches, _cameras);
 
-                for (size_t i = 0; i < cameras.size(); ++i) {
+                for (size_t i = 0; i < _cameras.size(); ++i) {
                         Mat R;
-                        cameras[i].R.convertTo(R, CV_32F);
-                        cameras[i].R = R;
-                        //LOGLN("Initial intrinsics #" << indices[i]+1 << ":\n" << cameras[i].K());
+                        _cameras[i].R.convertTo(R, CV_32F);
+                        _cameras[i].R = R;
+                        //LOGLN("Initial intrinsics #" << indices[i]+1 << ":\n" << _cameras[i].K());
                 }
 
                 if (bundleAdjustment == "reproj")
@@ -413,12 +442,12 @@ extern "C"
                         refineMask(1,2) = 1;
 
                 adjuster->setRefinementMask(refineMask);
-                (*adjuster)(features, pairwiseMatches, cameras);
+                (*adjuster)(_features, _pairwiseMatches, _cameras);
 
                 // Find median focal length.
-                for (size_t i = 0; i < cameras.size(); ++i) {
-                        //LOGLN("Camera #" << indices[i]+1 << ":\n" << cameras[i].K());
-                        focals.push_back(cameras[i].focal);
+                for (size_t i = 0; i < _cameras.size(); ++i) {
+                        //LOGLN("Camera #" << indices[i]+1 << ":\n" << _cameras[i].K());
+                        focals.push_back(_cameras[i].focal);
                 }
 
                 sort(focals.begin(), focals.end());
@@ -430,13 +459,13 @@ extern "C"
 
                 // Wave correction.
                 if (doWaveCorrect) {
-                        for (size_t i = 0; i < cameras.size(); ++i)
-                                rmats.push_back(cameras[i].R);
+                        for (size_t i = 0; i < _cameras.size(); ++i)
+                                rmats.push_back(_cameras[i].R);
 
-                        waveCorrect(rmats, waveCorrection);
+                        waveCorrect(rmats, _waveCorrection);
 
-                        for (size_t i = 0; i < cameras.size(); ++i)
-                                cameras[i].R = rmats[i];
+                        for (size_t i = 0; i < _cameras.size(); ++i)
+                                _cameras[i].R = rmats[i];
                 }
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Adjusting parameters time: %f sec", ((getTickCount() - t) / getTickFrequency()));
@@ -445,93 +474,93 @@ extern "C"
         }
 
         //================ COMPOSITING STEPS ============================
-        /* Warp images. */
+        /* Warp _images. */
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_warpImages
         (JNIEnv* env, jobject obj)
         {
-                int numberImages = static_cast<int>(imagesPath.size());
+                int numberImages = static_cast<int>(_imagesPath.size());
 
                 // Resize static vector.
-                corners.resize(numberImages);
-                imagesWarped.resize(numberImages);
-                imagesWarpedF.resize(numberImages);
-                masks.resize(numberImages);
-                masksWarped.resize(numberImages);
-                sizes.resize(numberImages);
+                _corners.resize(numberImages);
+                _imagesWarped.resize(numberImages);
+                _imagesWarpedF.resize(numberImages);
+                _masks.resize(numberImages);
+                _masksWarped.resize(numberImages);
+                _sizes.resize(numberImages);
 
                 int64 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Warping images...");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Warping _images...");
 
-                // Prepare images masks.
+                // Prepare _images _masks.
                 for (int i = 0; i < numberImages; ++i) {
-                        masks[i].create(images[i].size(), CV_8U);
-                        masks[i].setTo(Scalar::all(255));
+                        _masks[i].create(_images[i].size(), CV_8U);
+                        _masks[i].setTo(Scalar::all(255));
                 }
 
-                // Warp images and their masks.
+                // Warp _images and their _masks.
                 if (warpType == "plane")
-                        warperCreator = new cv::PlaneWarper();
+                        _warperCreator = new cv::PlaneWarper();
                 else if (warpType == "cylindrical")
-                        warperCreator = new cv::CylindricalWarper();
+                        _warperCreator = new cv::CylindricalWarper();
                 else if (warpType == "spherical")
-                        warperCreator = new cv::SphericalWarper();
+                        _warperCreator = new cv::SphericalWarper();
                 else if (warpType == "fisheye")
-                        warperCreator = new cv::FisheyeWarper();
+                        _warperCreator = new cv::FisheyeWarper();
                 else if (warpType == "stereographic")
-                        warperCreator = new cv::StereographicWarper();
+                        _warperCreator = new cv::StereographicWarper();
                 else if (warpType == "compressedPlaneA2B1")
-                        warperCreator = new cv::CompressedRectilinearWarper(2, 1);
+                        _warperCreator = new cv::CompressedRectilinearWarper(2, 1);
                 else if (warpType == "compressedPlaneA1.5B1")
-                        warperCreator = new cv::CompressedRectilinearWarper(1.5, 1);
+                        _warperCreator = new cv::CompressedRectilinearWarper(1.5, 1);
                 else if (warpType == "compressedPlanePortraitA2B1")
-                        warperCreator = new cv::CompressedRectilinearPortraitWarper(2, 1);
+                        _warperCreator = new cv::CompressedRectilinearPortraitWarper(2, 1);
                 else if (warpType == "compressedPlanePortraitA1.5B1")
-                        warperCreator = new cv::CompressedRectilinearPortraitWarper(1.5, 1);
+                        _warperCreator = new cv::CompressedRectilinearPortraitWarper(1.5, 1);
                 else if (warpType == "paniniA2B1")
-                        warperCreator = new cv::PaniniWarper(2, 1);
+                        _warperCreator = new cv::PaniniWarper(2, 1);
                 else if (warpType == "paniniA1.5B1")
-                        warperCreator = new cv::PaniniWarper(1.5, 1);
+                        _warperCreator = new cv::PaniniWarper(1.5, 1);
                 else if (warpType == "paniniPortraitA2B1")
-                        warperCreator = new cv::PaniniPortraitWarper(2, 1);
+                        _warperCreator = new cv::PaniniPortraitWarper(2, 1);
                 else if (warpType == "paniniPortraitA1.5B1")
-                        warperCreator = new cv::PaniniPortraitWarper(1.5, 1);
+                        _warperCreator = new cv::PaniniPortraitWarper(1.5, 1);
                 else if (warpType == "mercator")
-                        warperCreator = new cv::MercatorWarper();
+                        _warperCreator = new cv::MercatorWarper();
                 else if (warpType == "transverseMercator")
-                        warperCreator = new cv::TransverseMercatorWarper();
+                        _warperCreator = new cv::TransverseMercatorWarper();
 
-                if (warperCreator.empty()) {
-                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown warper: %s", warpType.c_str());
+                if (_warperCreator.empty()) {
+                        __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown _warper: %s", warpType.c_str());
                         return -1;
                 }
 
-                warper = warperCreator->create(static_cast<float>(warpedImageScale * seamWorkAspect));
+                _warper = _warperCreator->create(static_cast<float>(warpedImageScale * seamWorkAspect));
 
                 for (int i = 0; i < numberImages; ++i) {
                         Mat_<float> K;
-                        cameras[i].K().convertTo(K, CV_32F);
+                        _cameras[i].K().convertTo(K, CV_32F);
                         float swa = (float) seamWorkAspect;
                         K(0,0) *= swa;
                         K(0,2) *= swa;
                         K(1,1) *= swa;
                         K(1,2) *= swa;
 
-                        corners[i] = warper->warp(images[i], K, cameras[i].R, INTER_LINEAR, BORDER_REFLECT, imagesWarped[i]);
-                        __android_log_print(ANDROID_LOG_INFO, TAG, "Warp image #%d : %s", i + 1, imagesPath[i].c_str());
-                        sizes[i] = imagesWarped[i].size();
-                        warper->warp(masks[i], K, cameras[i].R, INTER_NEAREST, BORDER_CONSTANT, masksWarped[i]);
+                        _corners[i] = _warper->warp(_images[i], K, _cameras[i].R, INTER_LINEAR, BORDER_REFLECT, _imagesWarped[i]);
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Warp image #%d : %s", i + 1, _imagesPath[i].c_str());
+                        _sizes[i] = _imagesWarped[i].size();
+                        _warper->warp(_masks[i], K, _cameras[i].R, INTER_NEAREST, BORDER_CONSTANT, _masksWarped[i]);
                 }
 
                 for (int i = 0; i < numberImages; ++i)
-                        imagesWarped[i].convertTo(imagesWarpedF[i], CV_32F);
+                        _imagesWarped[i].convertTo(_imagesWarpedF[i], CV_32F);
 
-                 __android_log_print(ANDROID_LOG_INFO, TAG, "Warping images time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+                 __android_log_print(ANDROID_LOG_INFO, TAG, "Warping _images time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
                  return 0;
         }
 
-        /* Compensate exposure errors and find seam masks. */
+        /* Compensate exposure errors and find seam _masks. */
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findSeamMasks
         (JNIEnv* env, jobject obj)
@@ -541,12 +570,12 @@ extern "C"
                 int64 t = getTickCount();
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Compensating exposure errors...");
 
-                compensator->feed(corners, imagesWarped, masksWarped);
+                _compensator->feed(_corners, _imagesWarped, _masksWarped);
 
                  __android_log_print(ANDROID_LOG_INFO, TAG, "Compensating exposure errors time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
                  t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding seam masks...");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding seam _masks...");
 
                 if (seamFindType == "no")
                         seamFinder = new detail::NoSeamFinder();
@@ -566,14 +595,14 @@ extern "C"
                         return -1;
                 }
 
-                seamFinder->find(imagesWarpedF, corners, masksWarped);
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding seam masks time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+                seamFinder->find(_imagesWarpedF, _corners, _masksWarped);
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding seam _masks time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
                 // Release unused memory.
-                images.clear();
-                imagesWarped.clear();
-                imagesWarpedF.clear();
-                masks.clear();
+                _images.clear();
+                _imagesWarped.clear();
+                _imagesWarpedF.clear();
+                _masks.clear();
 
                 return 0;
         }
@@ -586,7 +615,7 @@ extern "C"
                 float blendWidth;
                 double composeScale = 1;
                 double composeWorkAspect = 1;
-                int numberImages = static_cast<int>(imagesPath.size());
+                int numberImages = static_cast<int>(_imagesPath.size());
                 Mat fullImage;
                 Mat image;
                 Mat imageWarped;
@@ -606,10 +635,10 @@ extern "C"
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing final panorama...");
 
                 for (int img_idx = 0; img_idx < numberImages; ++img_idx) {
-                        __android_log_print(ANDROID_LOG_INFO, TAG, "Compose image #%d : %s", img_idx + 1, imagesPath[img_idx].c_str());
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Compose image #%d : %s", img_idx + 1, _imagesPath[img_idx].c_str());
 
                         // Read image and resize it if necessary.
-                        fullImage = imread(imagesPath[img_idx]);
+                        fullImage = imread(_imagesPath[img_idx]);
 
                         if (!isComposeScale) {
                                 if (composeMegapix > 0)
@@ -622,27 +651,27 @@ extern "C"
 
                                 // Update warped image scale.
                                 warpedImageScale *= static_cast<float>(composeWorkAspect);
-                                warper = warperCreator->create(warpedImageScale);
+                                _warper = _warperCreator->create(warpedImageScale);
 
-                                // Update corners and sizes.
+                                // Update _corners and _sizes.
                                 for (int i = 0; i < numberImages; ++i) {
                                         // Update intrinsics.
-                                        cameras[i].focal *= composeWorkAspect;
-                                        cameras[i].ppx *= composeWorkAspect;
-                                        cameras[i].ppy *= composeWorkAspect;
+                                        _cameras[i].focal *= composeWorkAspect;
+                                        _cameras[i].ppx *= composeWorkAspect;
+                                        _cameras[i].ppy *= composeWorkAspect;
 
                                         // Update corner and size.
-                                        sz = fullImagesSize[i];
+                                        sz = _fullImagesSize[i];
 
                                         if (std::abs(composeScale - 1) > 1e-1) {
-                                                sz.width = cvRound(fullImagesSize[i].width * composeScale);
-                                                sz.height = cvRound(fullImagesSize[i].height * composeScale);
+                                                sz.width = cvRound(_fullImagesSize[i].width * composeScale);
+                                                sz.height = cvRound(_fullImagesSize[i].height * composeScale);
                                         }
 
-                                        cameras[i].K().convertTo(K, CV_32F);
-                                        roi = warper->warpRoi(sz, K, cameras[i].R);
-                                        corners[i] = roi.tl();
-                                        sizes[i] = roi.size();
+                                        _cameras[i].K().convertTo(K, CV_32F);
+                                        roi = _warper->warpRoi(sz, K, _cameras[i].R);
+                                        _corners[i] = roi.tl();
+                                        _sizes[i] = roi.size();
                                 }
                         }
 
@@ -654,31 +683,31 @@ extern "C"
                         fullImage.release();
                         imageSize = image.size();
 
-                        cameras[img_idx].K().convertTo(K, CV_32F);
+                        _cameras[img_idx].K().convertTo(K, CV_32F);
 
                         // Warp the current image.
-                        warper->warp(image, K, cameras[img_idx].R, INTER_LINEAR, BORDER_REFLECT, imageWarped);
+                        _warper->warp(image, K, _cameras[img_idx].R, INTER_LINEAR, BORDER_REFLECT, imageWarped);
 
                         // Warp the current image mask.
                         mask.create(imageSize, CV_8U);
                         mask.setTo(Scalar::all(255));
-                        warper->warp(mask, K, cameras[img_idx].R, INTER_NEAREST, BORDER_CONSTANT, maskWarped);
+                        _warper->warp(mask, K, _cameras[img_idx].R, INTER_NEAREST, BORDER_CONSTANT, maskWarped);
 
                         // Compensate exposure.
-                        compensator->apply(img_idx, corners[img_idx], imageWarped, maskWarped);
+                        _compensator->apply(img_idx, _corners[img_idx], imageWarped, maskWarped);
 
                         imageWarped.convertTo(imageWarpedS, CV_16S);
                         imageWarped.release();
                         image.release();
                         mask.release();
 
-                        dilate(masksWarped[img_idx], dilatedMask, Mat());
+                        dilate(_masksWarped[img_idx], dilatedMask, Mat());
                         resize(dilatedMask, seamMask, maskWarped.size());
                         maskWarped = seamMask & maskWarped;
 
                         if (blender.empty()) {
                                 blender = Blender::createDefault(blendType, tryGPU);
-                                destinationsz = resultRoi(corners, sizes).size();
+                                destinationsz = resultRoi(_corners, _sizes).size();
                                 blendWidth = sqrt(static_cast<float>(destinationsz.area())) * blendStrength / 100.f;
 
                                 if (blendWidth < 1.f)
@@ -693,18 +722,18 @@ extern "C"
                                         __android_log_print(ANDROID_LOG_INFO, TAG, "Feather blender, sharpness: %f", fb->sharpness());
                                 }
 
-                                blender->prepare(corners, sizes);
+                                blender->prepare(_corners, _sizes);
                         }
 
                         // Blend the current image.
-                        blender->feed(imageWarpedS, maskWarped, corners[img_idx]);
+                        blender->feed(imageWarpedS, maskWarped, _corners[img_idx]);
                 }
 
                 Mat result, resultMask;
                 blender->blend(result, resultMask);
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-                imwrite(resultPath, result);
+                imwrite(_resultPath, result);
 
                 return 0;
         }
@@ -1500,6 +1529,21 @@ extern "C"
 /* ********
  * PRIVATE FUNCTIONS
  * *******/
+
+static void performImagesRotation()
+{
+	vector<float*>::iterator it, itEnd = _imagesRotations.end();
+	float pitch, yaw, roll;
+	int i=0;
+	for(it = _imagesRotations.begin(); it != itEnd; ++it)
+	{
+		roll = (*it)[2];
+		Mat image;
+		image = imread(_imagesNames[i], CV_LOAD_IMAGE_COLOR);
+	}
+
+}
+
 /*
 static int parseCmdArgs(int argc, char** argv)
 {

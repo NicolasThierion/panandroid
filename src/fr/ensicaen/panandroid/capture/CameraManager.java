@@ -50,7 +50,6 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.WindowManager;
 
-
 /**
  * Helper to instantiate Camera, initialize parameter and redirect camera preview to a GL-Compatible texture.
  * Capable of tagging pictures (formally Snapshots objects) with their pitch and yaw).

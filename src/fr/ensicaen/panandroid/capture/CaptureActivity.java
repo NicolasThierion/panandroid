@@ -41,7 +41,6 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
-
 /**
  *
  * Activity through what the user can capture snapshots in order to make his panorama.
@@ -232,7 +231,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		mCaptureView.onPause();
 		mCameraManager.onPause();
 		//save project to json
-		String res = mSnapshotManager.toJSON(mWorkingDir);
+		String res = mSnapshotManager.toJSON(mWorkingDir, SnapshotManager.DEFAULT_JSON_FILENAME);
 		Log.i(TAG,  "saving project to "+res);
 
 		//call parent
@@ -261,7 +260,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			{
 			    Intent intent = new Intent(CaptureActivity.this,
 			            StitcherActivity.class);
-			    intent.putExtra(FOLDER, mWorkingDir);
+			    intent.putExtra("projectFile",mWorkingDir+File.separator+SnapshotManager.DEFAULT_JSON_FILENAME);
 			    startActivity(intent);
 			}
 		});

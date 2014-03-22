@@ -9,7 +9,6 @@ import android.view.Window;
 import android.view.WindowManager;
 
 
-
 public class JSONTestActivity extends Activity
 {
 

@@ -18,7 +18,6 @@
  */
 package fr.ensicaen.panandroid.snapshot;
 
-
 /**
  * When the camera build a snapshot object from a picture it has just taken, it throw the event onSnapshotTaken.
  * @author Nicolas

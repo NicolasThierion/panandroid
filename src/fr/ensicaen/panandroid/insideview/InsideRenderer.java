@@ -31,7 +31,6 @@ import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.GLU;
 import android.opengl.Matrix;
 
-
 /**
  * OpenGL renderer that display a shape from inside, at the center of the view.
  * @author Nicolas THIERION.

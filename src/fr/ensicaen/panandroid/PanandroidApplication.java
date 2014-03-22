@@ -19,6 +19,7 @@
 
 package fr.ensicaen.panandroid;
 
+
 import fr.ensicaen.panandroid.capture.CameraManager;
 import android.app.Application;
 import android.util.Log;

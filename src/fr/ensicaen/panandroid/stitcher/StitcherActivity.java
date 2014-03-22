@@ -25,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -40,6 +41,8 @@ import android.os.Bundle;
 import android.test.suitebuilder.TestSuiteBuilder.FailedToCreateTests;
 import android.util.Log;
 import fr.ensicaen.panandroid.capture.CaptureActivity;
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 
 /**
  * StitcherActivity class provides the stitcher activity of the application.
@@ -48,7 +51,8 @@ import fr.ensicaen.panandroid.capture.CaptureActivity;
  */
 public class StitcherActivity extends Activity {
     private static final String TAG = StitcherActivity.class.getSimpleName();
-    private File mFolder;
+    //private File mFolder;
+    private SnapshotManager mSnapshotManager;
     private StitcherWrapper mWrapper = new StitcherWrapper();
 
     /**
@@ -60,8 +64,9 @@ public class StitcherActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
-        mFolder = new File(intent.getStringExtra(
-                CaptureActivity.FOLDER));
+        
+        mSnapshotManager = new SnapshotManager();
+        mSnapshotManager.loadJson(intent.getStringExtra("projectFile"));
 
         new StitcherTask().execute();
     }
@@ -70,7 +75,7 @@ public class StitcherActivity extends Activity {
      * Reads content of PanoData.json file.
      * @return String with content of PanoData.json
      */
-    public String readPanoData() {
+   /* public String readPanoData() {
         BufferedReader br = null;
         String content = null;
 
@@ -98,13 +103,13 @@ public class StitcherActivity extends Activity {
         }
 
         return content;
-    }
+    }*/
 
     /**
      * Gets images from current folder.
      * @return List of images path.
      */
-    public List<String> getImagesPath() {
+   /* public List<String> getImagesPath() {
         List<String> imagesPath = new ArrayList<String>();
         String[] filesPath = mFolder.list();
 
@@ -120,7 +125,7 @@ public class StitcherActivity extends Activity {
 
         return imagesPath;
     }
-
+*/
     /**
      * StitcherTask class provides treatments on the set of images.
      */
@@ -167,7 +172,22 @@ public class StitcherActivity extends Activity {
          */
         @Override
         protected Integer doInBackground(Void... params) {
-            if (mWrapper.storeImagesPath(getImagesPath().toArray()) == SUCCESS) {
+        	
+        	LinkedList<Snapshot> snapshots = mSnapshotManager.getSnapshotsList();
+        	String filenames[]= new String[snapshots.size()];
+        	float orientations[][] = new float[snapshots.size()][3];
+        	
+        	int i=0;
+        	for(Snapshot s : snapshots)
+        	{
+        		filenames[i] = s.getFileName();
+        		orientations[i][0] = s.getPitch();
+        		orientations[i][1] = s.getYaw();
+        		orientations[i][2] = s.getRoll();
+        		i++;
+        	}
+        	
+            if (mWrapper.storeImagesPath(filenames, orientations) == SUCCESS) {
                 mProgress.setProgress(14);
             } else {
                 return -1;

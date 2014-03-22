@@ -49,6 +49,7 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
 
+
 /**
  * Inside3dView that use custom CaptureSphereRenderer instead of simple SphereRenderer. The renderer is automatically set.
  * This Inside3dView disable inertia scroll, and touch events, it puts a SurfaceTexture holding camera preview,

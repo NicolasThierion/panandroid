@@ -36,7 +36,7 @@ public class StitcherWrapper {
      * @param files Path to all images in the current folder.
      * @return Result of images storage.
      */
-    public native int storeImagesPath(Object[] files);
+    public native int storeImagesPath(Object[] files, float[][] orientations);
 
     /**
      * Find features in all bunch of images.
@@ -73,4 +73,6 @@ public class StitcherWrapper {
      * @return Result of compose panorama.
      */
     public native int composePanorama();
+
+	
 }
