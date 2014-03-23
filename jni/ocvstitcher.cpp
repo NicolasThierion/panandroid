@@ -44,7 +44,10 @@
 
 
 //TODO : cleanup function.
+//TODO : add memory usage to debug logs.
+//@bug : out of memory when compositing with more than 5 images.
 
+#define DEBUG
 
 #include <jni.h>
 
@@ -291,10 +294,12 @@ extern "C"
 				_nbImages = env->GetArrayLength(files);
                 jfloatArray orientationsArray;
 
-
+#ifdef DEBUG
                 int64 t = getTickCount();
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
                 __android_log_print(ANDROID_LOG_INFO, TAG, "init stitcher");
-
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+#endif
                 // Fetch and convert images path from jstring to string.
                 for (int i = 0; i < _nbImages; ++i)
                 {
@@ -310,7 +315,9 @@ extern "C"
 					path = env->GetStringUTFChars(tmpFileName, 0);
 					_imagesPath.push_back(path);
 					_imagesRotations.push_back(orientation);
+#ifdef DEBUG
 					__android_log_print(ANDROID_LOG_INFO, TAG, "Store path #%d : %s", i + 1, path);
+#endif
 					env->ReleaseStringUTFChars(tmpFileName, path);
 
 
@@ -320,8 +327,9 @@ extern "C"
                 path = env->GetStringUTFChars(compositionFile, 0);
                 _resultPath = path;
                 env->ReleaseStringUTFChars(tmpFileName, path);
+#ifdef DEBUG
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Stitcher initialized  (%f sec)", ((getTickCount() - t) / getTickFrequency()));
-
+#endif
                 return 0;
         }
 
@@ -340,8 +348,12 @@ extern "C"
                 Mat fullImage, image;
                 Ptr<FeaturesFinder> finder;
 
+#ifdef DEBUG
                 int64 t = getTickCount();
-				__android_log_print(ANDROID_LOG_INFO, TAG, "Finding features...");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "find features");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+#endif
 
                 // Check if we have enough images.
                 _nbImages = static_cast<int>(_imagesPath.size());
@@ -410,8 +422,9 @@ extern "C"
                         // Find _features in the current working image.
                         (*finder)(image, _features[i]);
                         _features[i].img_idx = i;
+#ifdef DEBUG
                         __android_log_print(ANDROID_LOG_INFO, TAG, "Features in image #%d: %d", i + 1, _features[i].keypoints.size());
-
+#endif
                         // Store image subscaled by seamScale.
                         resize(fullImage, image, Size(), seamScale, seamScale);
                         _images[i] = image.clone();
@@ -424,9 +437,9 @@ extern "C"
                 // Clean up workspace.
                 finder->collectGarbage();
 
-
+#ifdef DEBUG
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Finding _features time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-
+#endif
                 return 0;
         }
 
@@ -441,10 +454,13 @@ extern "C"
                 vector<Size> fullImagesSizeSubset;
                 BestOf2NearestMatcher matcher(tryGPU, matchConfidence); // TODO : Adjust parameters using benchmark.
 
+#ifdef DEBUG
                 int64 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching...");
-
-                matcher(_features, _pairwiseMatches); // TODO : Call another matcher method.
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "pairwise matching");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+#endif
+                matcher(_features, _pairwiseMatches); // TODO : try another matcher method.
                 matcher.collectGarbage();
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching time: %f sec", ((getTickCount() - t) / getTickFrequency()));
@@ -465,9 +481,9 @@ extern "C"
                 _nbImages = _images.size();
                 _imagesPath = imagesPathSubset;
                 _fullImagesSize = fullImagesSizeSubset;
-
+#ifdef DEBUG
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Selecting _images and matches subset time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-
+#endif
                 // Check if we still have enough _images.
 
                 if (_nbImages < 2) {
@@ -489,8 +505,12 @@ extern "C"
                 Mat_<uchar> refineMask = Mat::zeros(3, 3, CV_8U);
                 Ptr<detail::BundleAdjusterBase> adjuster;
 
+#ifdef DEBUG
                 int64 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Adjusting parameters...");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "adjusting parameters");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+#endif
 
                 // Estimate camera parameters rough initial guess.
                 estimator(_features, _pairwiseMatches, _cameras);
@@ -550,9 +570,9 @@ extern "C"
                         for (size_t i = 0; i < _cameras.size(); ++i)
                                 _cameras[i].R = rmats[i];
                 }
-
+#ifdef DEBUG
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Adjusting parameters time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-
+#endif
                 return 0;
         }
 
@@ -572,9 +592,12 @@ extern "C"
                 _masksWarped.resize(numberImages);
                 _sizes.resize(numberImages);
 
+#ifdef DEBUG
                 int64 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Warping _images...");
-
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "wraping images");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+#endif
                 // Prepare _images _masks.
                 for (int i = 0; i < numberImages; ++i) {
                         _masks[i].create(_images[i].size(), CV_8U);
@@ -637,9 +660,9 @@ extern "C"
 
                 for (int i = 0; i < numberImages; ++i)
                         _imagesWarped[i].convertTo(_imagesWarpedF[i], CV_32F);
-
+#ifdef DEBUG
                  __android_log_print(ANDROID_LOG_INFO, TAG, "Warping _images time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-
+#endif
                  return 0;
         }
 
@@ -650,9 +673,12 @@ extern "C"
         {
                 Ptr<SeamFinder> seamFinder;
 
+#ifdef DEBUG
                 int64 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Compensating exposure errors...");
-
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "find seam mask");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+#endif
                 _compensator->feed(_corners, _imagesWarped, _masksWarped);
 
                  __android_log_print(ANDROID_LOG_INFO, TAG, "Compensating exposure errors time: %f sec", ((getTickCount() - t) / getTickFrequency()));
@@ -679,13 +705,15 @@ extern "C"
                 }
 
                 seamFinder->find(_imagesWarpedF, _corners, _masksWarped);
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding seam _masks time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
                 // Release unused memory.
                 _images.clear();
                 _imagesWarped.clear();
                 _imagesWarpedF.clear();
                 _masks.clear();
+#ifdef DEBUG
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding seam _masks time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+#endif
 
                 return 0;
         }
@@ -714,8 +742,12 @@ extern "C"
                 Size destinationsz;
                 Size sz;
 
+#ifdef DEBUG
                 int64 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing final panorama...");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "composition panorama");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
+#endif
 
                 for (int img_idx = 0; img_idx < numberImages; ++img_idx) {
                         __android_log_print(ANDROID_LOG_INFO, TAG, "Compose image #%d : %s", img_idx + 1, _imagesPath[img_idx].c_str());
@@ -814,11 +846,11 @@ extern "C"
 
                 Mat result, resultMask;
                 blender->blend(result, resultMask);
-
+#ifdef DEBUG
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing time: %f sec", ((getTickCount() - t) / getTickFrequency()));
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Writing image file :%s", _resultPath.c_str());
                 imwrite(_resultPath, result);
-
+#endif
                 return 0;
         }
 }
