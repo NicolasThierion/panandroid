@@ -25,6 +25,9 @@ public class StitcherTestActivity extends Activity
 	StitcherWrapper mStitcher;
 	SnapshotManager mManager;
 	
+    private static final String PANORAMA_FILENAME = "result.jpg";
+
+	
 	@Override
 	public void onCreate(final Bundle savedInstanceState) 
 	{
@@ -61,7 +64,7 @@ public class StitcherTestActivity extends Activity
     		i++;
     	}
     	//init stitcher wrapper
-		mStitcher = new StitcherWrapper(mManager.getWorkingDir(), snapshotsUrl, orientations);
+		mStitcher = new StitcherWrapper(mManager.getWorkingDir()+File.separator + PANORAMA_FILENAME, snapshotsUrl, orientations);
 		Assert.assertTrue(mStitcher.getStatus()==0);
 		
 		//group snapshots by neighbors

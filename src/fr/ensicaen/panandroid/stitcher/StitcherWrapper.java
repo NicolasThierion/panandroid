@@ -49,10 +49,10 @@ public class StitcherWrapper
      * @param snapshotsUrl
      * @param orientations
      */
-    public StitcherWrapper(String workingDir, String[] snapshotsUrl,
+    public StitcherWrapper(String panoFilename, String[] snapshotsUrl,
 			float[][] orientations) 
     {
-    	mStatus = storeImagesPath(workingDir, snapshotsUrl, orientations);
+    	mStatus = storeImagesPath(panoFilename, snapshotsUrl, orientations);
 	}
 
     /* **********
@@ -128,7 +128,7 @@ public class StitcherWrapper
      * @param files Path to all images in the current folder.
      * @return Result of images storage.
      */
-	 private native int storeImagesPath(String workingDir, Object[] files, float[][] orientations);
+	 private native int storeImagesPath(String panoFilename, Object[] files, float[][] orientations);
 
 
 	 

@@ -77,7 +77,7 @@ bool doWaveCorrect = true;
 bool isComposeScale = false;
 
 /** Try to use GPU. **/
-bool tryGPU = false;
+bool tryGPU = true;
 
 /** Resolution for compositing step. **/
 double composeMegapix = -1;
@@ -139,10 +139,10 @@ string warpType = "spherical";
 /** Where store the result image. **/
 static string _resultPath;
 
-/** Vector of _images features. **/
+/** Vector of images features. **/
 static vector<ImageFeatures> _features;
 
-/** Full _images size. **/
+/** Full images size. **/
 static vector<Size> _fullImagesSize;
 
 /** Number of images **/
@@ -155,13 +155,13 @@ static vector<string> _imagesPath;
 static vector<float* > _imagesRotations;
 
 
-/** Vector of _cameras parameters. **/
+/** Vector of cameras parameters. **/
 static vector<CameraParams> _cameras;
 
 /** Vector of images. **/
 static vector<Mat> _images;
 
-/** Vector of _images warped. **/
+/** Vector of images warped. **/
 static vector<Mat> _imagesWarped;
 
 /** Vector of images warped F. **/
@@ -198,12 +198,72 @@ WaveCorrectKind _waveCorrection = detail::WAVE_CORRECT_HORIZ;
  * PROTOTYPES
  ************/
 static int parseCmdArgs(int argc, char** argv);
-static void performImagesRotation();
+static int performImagesRotation();
 
 
 /*******************
  * PUBLIC FUNCTIONS
  ******************/
+
+extern "C"
+{
+        /**
+         * rotates an image with the given angle
+         */
+        JNIEXPORT jint JNICALL
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_rotateImage
+        (JNIEnv* env, jobject obj, jstring imagePath, jint angle)
+        {
+
+			Mat image;
+			const char* path = env->GetStringUTFChars(imagePath, 0);
+			image = imread(path, CV_LOAD_IMAGE_COLOR);
+			if(! image.data )                              // Check for invalid input
+			{
+				__android_log_print(ANDROID_LOG_ERROR, TAG, "Could not open or find the image %s", path);
+				return -1;
+			}
+			switch(angle)
+			{
+			case 0:
+			case 360 :
+			case -360 :
+				break;
+			case 90:
+			case -270 :
+				cv::transpose(image, image);
+				cv::flip(image, image, 1);
+				break;
+			case 180 :
+			case -180 :
+				cv::transpose(image, image);
+				cv::flip(image, image, 1);
+				cv::transpose(image, image);
+				break;
+			case 270 :
+			case -90 :
+				cv::flip(image, image, 1);
+				cv::transpose(image, image);
+				break;
+			default:
+				__android_log_print(ANDROID_LOG_ERROR, TAG, "unsupported rotation angle : %d", angle);
+
+
+			}
+
+			imwrite(path, image);
+
+            env->ReleaseStringUTFChars(imagePath, path);
+
+			image.release();
+			return 0;
+		}
+
+
+}
+
+
+
 extern "C"
 {
         //================ REGISTRATION STEPS ============================
@@ -212,19 +272,20 @@ extern "C"
          */
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_storeImagesPath
-        (JNIEnv* env, jobject obj, jobjectArray files, jobjectArray orientations)
+        (JNIEnv* env, jobject obj, jstring compositionFile, jobjectArray files, jobjectArray orientations)
         {
-                jstring tmpFileName;
-                jfloat pitch, yaw, roll;
-                float* orientation;
-                const char* path;
-                _nbImages = env->GetArrayLength(files);
+
+        		jstring tmpFileName;
+				jfloat pitch, yaw, roll;
+				float* orientation;
+				const char* path;
+				_nbImages = env->GetArrayLength(files);
 
                 jfloatArray orientationsArray;
                 int64 t = getTickCount();
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path...");
 
-                // Fetch and convert _images path from jstring to string.
+                // Fetch and convert images path from jstring to string.
                 for (int i = 0; i < _nbImages - 1; ++i)
                 {
                 	tmpFileName = (jstring) env->GetObjectArrayElement(files, i);
@@ -246,15 +307,13 @@ extern "C"
 
 
                 // Path to store panorama is the last element.
-                tmpFileName = (jstring) env->GetObjectArrayElement(files, _nbImages - 1);
-                path = env->GetStringUTFChars(tmpFileName, 0);
+                path = env->GetStringUTFChars(compositionFile, 0);
                 _resultPath = path;
                 env->ReleaseStringUTFChars(tmpFileName, path);
-
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Storing _images path time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
 
-                performImagesRotation();
+                //performImagesRotation();
                 return 0;
         }
 
@@ -1530,16 +1589,58 @@ extern "C"
  * PRIVATE FUNCTIONS
  * *******/
 
-static void performImagesRotation()
+
+static int performImagesRotation()
 {
+	//TODO : make this function not to rotate randomly.
+	//TODO : put roll=0
 	vector<float*>::iterator it, itEnd = _imagesRotations.end();
-	float pitch, yaw, roll;
-	int i=0;
+	int roll;
+	int i=0, angle=0;
 	for(it = _imagesRotations.begin(); it != itEnd; ++it)
 	{
-		roll = (*it)[2];
+		roll = (int)(*it)[2];
+
+		//ensures roll is between -180 and 180
+		roll+=360;
+		roll%=360;
+		roll-=180;
+		if(roll>-45 && roll<45)
+		{
+			angle=0;
+		}
+		else if(roll>45 && roll<135)
+		{
+			angle=90;
+		}
+		else if(roll>135 && roll<255)
+		{
+			angle=180;
+		}
+
+		else
+		{
+			angle=270;
+		}
+
+
+
+
 		Mat image;
-		image = imread(_imagesNames[i], CV_LOAD_IMAGE_COLOR);
+		image = imread(_imagesPath[i], CV_LOAD_IMAGE_COLOR);
+		if(! image.data )                              // Check for invalid input
+		{
+			__android_log_print(ANDROID_LOG_INFO, TAG, "Could not open or find the image %s", _imagesPath[i].c_str());
+			return -1;
+		}
+		int len = std::max(image.cols, image.rows);
+		Point2f pt(len/2., len/2.);
+		Mat r = cv::getRotationMatrix2D(pt, angle, 1.0);
+
+		warpAffine(image, image, r, cv::Size(len, len));
+		cv::imwrite(_imagesPath[i], image);
+
+		image.release();
 	}
 
 }

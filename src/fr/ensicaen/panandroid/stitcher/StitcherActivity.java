@@ -51,6 +51,8 @@ import fr.ensicaen.panandroid.snapshot.SnapshotManager;
  */
 public class StitcherActivity extends Activity {
     private static final String TAG = StitcherActivity.class.getSimpleName();
+    private static final String PANORAMA_FILENAME = "result.jpg";
+    
     //private File mFolder;
     private SnapshotManager mSnapshotManager;
     private StitcherWrapper mWrapper ;
@@ -187,7 +189,7 @@ public class StitcherActivity extends Activity {
         		i++;
         	}
         	
-        	mWrapper = new StitcherWrapper(mSnapshotManager.getWorkingDir(), filenames, orientations);
+        	mWrapper = new StitcherWrapper(mSnapshotManager.getWorkingDir()+File.separator+PANORAMA_FILENAME, filenames, orientations);
             if (mWrapper.getStatus() == SUCCESS) {
                 mProgress.setProgress(mWrapper.getProgress());
             } else {
