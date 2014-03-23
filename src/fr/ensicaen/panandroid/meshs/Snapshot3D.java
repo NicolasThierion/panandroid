@@ -21,6 +21,8 @@ package fr.ensicaen.panandroid.meshs;
 
 import javax.microedition.khronos.opengles.GL10;
 
+import android.graphics.Bitmap;
+import android.util.Log;
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 import fr.ensicaen.panandroid.tools.EulerAngles;
 
@@ -31,12 +33,17 @@ import fr.ensicaen.panandroid.tools.EulerAngles;
  */
 public class Snapshot3D extends TexturedPlane implements EulerAngles
 {
+	private static final String TAG = Snapshot3D.class.getSimpleName();
 	/* ********
 	 * ATTRIBUTES
 	 * *******/
 	private Snapshot mSnapshot;
 	
 	private boolean mVisible = true;
+
+	
+	private int mPostRotation = 0;
+	private boolean mUsePersistentTexture = false;
 	
 	
 	/* ********
@@ -70,6 +77,7 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 		super.rotate(-snapshot.getPitch(), -snapshot.getYaw(), 180.0f-snapshot.getRoll());
 		mSnapshot = snapshot;
 		super.setTexture(mSnapshot.getFileName());
+
 		
 	}
 
@@ -125,7 +133,60 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 			super.loadGLTexture(mGl);
 		}*/
 	}
+	
+	@Override
+	public void setTexture(Bitmap bmp)
+	{
+		super.setTexture(bmp);
+		mPostRotation *=-1;
+		super.rotate(0, 0, mPostRotation);
+		mUsePersistentTexture = false;
+	}
+	
+	
+	@Override
+	public void unloadGLTexture(GL10 gl)
+	{
+		super.unloadGLTexture(gl);
+		if(mUsePersistentTexture)
+			return;
+		
+		mPostRotation = mSnapshot.getOrientation();
+		mUsePersistentTexture = true;
+	
 
+	}
+	
+	@Override
+	public void loadGLTexture(GL10 gl)
+	{
+		super.loadGLTexture(gl);
+		
+		if(!mUsePersistentTexture)
+			return;
+		//has to load texture from jpeg => perform pre rotation
+		switch(mPostRotation)
+		{
+			case 0:
+				break;
+			
+			case 90:
+			case -270 :
+			case 270 :
+			case -90 :
+				super.setRatio(1/super.getRatio()); 
+				break;
+		
+		}
+		super.rotate(0, 0, mPostRotation);
+		mPostRotation=0;
+
+	}
+
+
+	public float getOrientation() {
+		return mSnapshot.getOrientation();
+	}
 	
 	
 }

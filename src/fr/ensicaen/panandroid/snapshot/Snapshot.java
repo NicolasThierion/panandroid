@@ -33,11 +33,21 @@ public class Snapshot implements EulerAngles
 {
 	private static int GLOBAL_ID = 0;
 	
-	
-	private float mPitch;
+	/* *******
+	 *  ATTRIBUTES
+	 * *******/
+
+	/** pitch, yaw & roll of the snapshot **/
+	private float mPitch;	//[deg]
 	private float mYaw;
 	private float mRoll;
+	
+	/** Orientation of the snapshot, according to device's orientation. {0, 90, 180, 270} **/
+	private int mOrientation;		//[deg]
+	
+	private float mRelativeRoll;
 
+	
 	private String mFileName = null;
 	
 
@@ -70,8 +80,7 @@ public class Snapshot implements EulerAngles
 	{
 		mYaw = yaw%360.0f;
 		mPitch = pitch%180.0f;
-		mRoll = roll%360.0f;
-
+		mRoll = roll;
 		//normalize angles
 		if(mYaw>180.0001f)
 			mYaw-=360.0f;
@@ -79,15 +88,43 @@ public class Snapshot implements EulerAngles
 		if(mPitch>90.0001f)
 			mPitch-=180.0f;
 		
-		if(mRoll>180.0001f)
-			mRoll-=360.0f;
+		
+		mRoll = roll;
+		if(mRoll!=0)
+		{
+			if(mRoll>180.0001f)
+				mRoll-=360.0f;
+			
+			mRelativeRoll = roll;
+
+			
+			if(mRoll<45 && mRoll > -45 )
+				mOrientation=0;
+			else if(mRoll >= 45 && mRoll <135)
+				mOrientation=90;
+			else if(mRoll>=135 || mRoll<-135)
+				mOrientation=180;
+			else
+				mOrientation=270;
+			
+			mOrientation +=180;
+			mOrientation%=360;
+			mRelativeRoll-=mOrientation;
+			mRelativeRoll%=90;
+			if(mRelativeRoll>45)
+				mRelativeRoll-=90;
+		}
+		
 		
 		mId = GLOBAL_ID;
 		GLOBAL_ID++;
+
 	}
 
 
-
+	/* *******
+	 * GETTERS
+	 * ******/
 
 	@Override
 	public float getYaw()
@@ -97,7 +134,8 @@ public class Snapshot implements EulerAngles
 	
 
 	@Override
-	public float getPitch() {
+	public float getPitch() 
+	{
 		return mPitch;
 	}
 	
@@ -106,9 +144,20 @@ public class Snapshot implements EulerAngles
 	{
 		return mRoll;
 	}
+	
+	public float getRelativeRoll()
+	{
+		return mRelativeRoll;
+	}
 
-	public int getId() {
+	public int getId()
+	{
 		return mId;
+	}
+	
+	public int getOrientation()
+	{
+		return mOrientation;
 	}
 	
 

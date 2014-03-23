@@ -18,12 +18,19 @@
  */
 
 package fr.ensicaen.panandroid.stitcher;
+import org.opencv.core.Mat;
+
+import android.graphics.Matrix;
 
 /**
+ * StitcherWrapper is a stitcher engine based on openCV
  * StitcherWrapper class provides a wrapper between Java and JNI class.
  * @version 0.0.1 - Fri Mar 21 2014
+ * @author Nicolas THIERION.
+ * @author Jean MARGUERITE.
  */
-public class StitcherWrapper {
+public class StitcherWrapper 
+{
 	
 	private int mStatus = -1;
     /**
@@ -32,20 +39,26 @@ public class StitcherWrapper {
     static {
         System.loadLibrary("ocvstitcher");
     }
-
+    
+    /* *********
+     * CONSTRUCTOR
+     * *********/    
+    /**
+     * Construct a new stitcher object
+     * @param workingDir
+     * @param snapshotsUrl
+     * @param orientations
+     */
     public StitcherWrapper(String workingDir, String[] snapshotsUrl,
 			float[][] orientations) 
     {
     	mStatus = storeImagesPath(workingDir, snapshotsUrl, orientations);
 	}
 
-	/**
-     * Store images path for OpenCV.
-     * @param files Path to all images in the current folder.
-     * @return Result of images storage.
-     */
-    private native int storeImagesPath(String workingDir, Object[] files, float[][] orientations);
-
+    /* **********
+	 * PUBLIC METHODS
+	 * *********/
+	
     /**
      * Find features in all bunch of images.
      * @return Result of finding features.
@@ -82,16 +95,43 @@ public class StitcherWrapper {
      */
     public native int composePanorama();
 
+    /**
+     * Return the status of the last executed stitching operation. zero if all is ok.
+     * @return the status of the operation
+     */
     public int getStatus()
     {
-    	//TODO
+		// TODO Auto-generated method stub
     	return mStatus;
     }
     
-	public int getProgress() {
+    /**
+     * Get average progress (in percent) of all the stitching operations;
+     * @return
+     */
+	public int getProgress() 
+	{
 		// TODO Auto-generated method stub
 		return 0;
 	}
+	/* **********
+	 * STATIC METHODS
+	 * *********/
+	 public static native int rotateImage(String imagePath, int angle);
+
+	
+	/* **********
+	 * PRIVATE NATIVE PROTOTYPES DECLARATION
+	 * **********/
+	 /**
+     * Store images path for OpenCV.
+     * @param files Path to all images in the current folder.
+     * @return Result of images storage.
+     */
+	 private native int storeImagesPath(String workingDir, Object[] files, float[][] orientations);
+
+
+	 
 
 	
 }

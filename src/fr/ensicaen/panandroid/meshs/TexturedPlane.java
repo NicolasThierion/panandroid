@@ -65,7 +65,7 @@ public class TexturedPlane extends Mesh
 						};
 	
 	/** ...and associated texture coordinates **/ 
-	private static final float mTexCoordData[] =
+	private float mTexCoordData[] =
         {
                 0.0f, 1.0f,
                 0.0f, 0.0f,
@@ -89,7 +89,7 @@ public class TexturedPlane extends Mesh
 	private Axis mAxis = Axis.VERTICAL; 
 	
 	/** model matrix of the mesh. Define rotation/transformation of the mesh applied in the view matrix **/
-	public float[]mModelMatrix;
+	private float[]mModelMatrix;
 	
 	/** if the mesh should be drawn **/
 	private boolean mIsVisible = true;
@@ -101,7 +101,7 @@ public class TexturedPlane extends Mesh
 	private int mImameTextureId;
 	
 	/** Optional bitmap texture of the plane **/
-	private Bitmap mBitmapTexture;
+	protected Bitmap mBitmapTexture;
 	
 	/** sample rate used to load the texture through setTexture(String resId) **/
 	private int mSampleRate = 1;
@@ -121,9 +121,13 @@ public class TexturedPlane extends Mesh
 	/** if there is a new Bitmap texture to load **/
 	private boolean mTextureToLoad = false;
 	private boolean mHasToRecycle = false;
-	private String mPersistentTexturePath = null;
+	protected String mPersistentTexturePath = null;
 
 	private float mZoom = 1.0f;
+
+	private float mRatio;
+
+	private float mSize;
 	
 	
 
@@ -163,9 +167,29 @@ public class TexturedPlane extends Mesh
 	 */
 	public TexturedPlane(float sizeX, float ratio)
 	{
-		mVertices = Arrays.copyOf(VERTEX_ARRAY_PATTERN, VERTEX_ARRAY_PATTERN.length);
-		
 		//creates vertice data array from given size and ratio
+		mSize = sizeX;
+		setRatio(ratio);
+		
+		//initialize texcoords data
+		initTexCoord();
+	
+		mModelMatrix = new float[16];
+		Matrix.setIdentityM(mModelMatrix, 0);
+		
+		setTexture(mDummyBitmapTexture);
+
+	}
+	
+	
+	/* *********
+	 * ACCESSORS
+	 * ********/
+	 
+	public void setRatio(float ratio) {
+		mVertices = Arrays.copyOf(VERTEX_ARRAY_PATTERN, VERTEX_ARRAY_PATTERN.length);
+
+		mRatio = ratio;
 		float ratioX=1, ratioY=1;
 		if(ratio>1)
 			ratioX = ratio;
@@ -174,8 +198,8 @@ public class TexturedPlane extends Mesh
 		
 		for(int i=0; i< mVertices.length; i+=3)
 		{
-			mVertices[i]*=sizeX*ratioX;
-			mVertices[i+1]*=sizeX*ratioY;
+			mVertices[i]*=mSize*ratioX;
+			mVertices[i+1]*=mSize*ratioY;
 		}
 		
 		// Initialize plane vertices into a vertex buffer 
@@ -184,20 +208,12 @@ public class TexturedPlane extends Mesh
 		mVertexBuffer = byteBuffer.asFloatBuffer();
 		mVertexBuffer.put(mVertices);
 		mVertexBuffer.position(0);
-		
-		//initialize texcoords data
-		initTexCoord();
-	
-		this.setTexture(mDummyBitmapTexture);
-		mModelMatrix = new float[16];
-		Matrix.setIdentityM(mModelMatrix, 0);
 	}
-	
-	
-	/* *********
-	 * ACCESSORS
-	 * ********/
-	 
+	public float getRatio()
+	{
+		return mRatio;
+	}
+
 	/**
 	 * Set the visibility property of the mesh.
 	 * @param visible
@@ -401,13 +417,20 @@ public class TexturedPlane extends Mesh
 			return;
 
 		
-		// if mBitmapTexture, will try to load persistent texture.
+		// if no mBitmapTexture, will try to load persistent texture.
 		if(mBitmapTexture == null || mBitmapTexture == mDummyBitmapTexture )
 		{
 			if(this.mPersistentTexturePath != null)
 			{
 				//load texture from file on storage
-				this.loadBitmapTexture(mPersistentTexturePath, mSampleRate);
+				try
+				{
+					loadBitmapTexture(mPersistentTexturePath, mSampleRate);
+				}
+				catch(Exception e)
+				{
+					this.setTexture(mDummyBitmapTexture);
+				}
 			}
 			else
 			{
@@ -455,20 +478,25 @@ public class TexturedPlane extends Mesh
 	public void unloadGLTexture(GL10 gl)
 	{
 		new Thread(new Runnable(){
-
+			
 			@Override
 			public void run() 
 			{
-				int texture[] = new int[1];
-				texture[0] = mImameTextureId;
-				GLES10.glDeleteTextures(1, texture, 0);
-				
-				//if texture jpg has been given, will try to load it next time
-				if(mPersistentTexturePath!=null)
-					mTextureToLoad = true;
-				
-			}
-			
+				try{
+					int texture[] = new int[1];
+					texture[0] = mImameTextureId;
+					GLES10.glDeleteTextures(1, texture, 0);
+					
+					//if texture jpg has been given, will try to load it next time
+					if(mPersistentTexturePath!=null)
+						mTextureToLoad = true;
+					
+				}
+				catch(Exception e)
+				{
+					e.printStackTrace();
+				}
+			}		
 		}).start();
 		
 	
@@ -477,8 +505,7 @@ public class TexturedPlane extends Mesh
 	/* *******
 	 * PRIVATE FUNCTIONS
 	 * ******/
-	
-	private void initTexCoord()
+	protected void initTexCoord()
 	{
 		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(mTexCoordData.length * Float.SIZE);
 		byteBuffer.order(ByteOrder.nativeOrder());
@@ -504,10 +531,12 @@ public class TexturedPlane extends Mesh
 	 */
 	private void loadBitmapTexture(final String imgPath, final int sampleRate)
 	{
-		new Thread(new Runnable(){
+		new Thread(new Runnable()
+		{
 
 			public void run()
 			{
+				try{
 				int iSample = 32, iSampled;
 				Bitmap oldTex;
 				if(!USE_MIPMAP_LOADING)
@@ -519,10 +548,12 @@ public class TexturedPlane extends Mesh
 					
 					oldTex = mBitmapTexture;
 					mBitmapTexture = BitmapDecoder.safeDecodeBitmap(imgPath, iSample);
+					if(mBitmapTexture==null)
+						mBitmapTexture = mDummyBitmapTexture;
 					iSampled = BitmapDecoder.getSampleRate();
 					mTextureToLoad = true; 
 					
-					if(oldTex!=mDummyBitmapTexture)
+					if(oldTex!=mDummyBitmapTexture && oldTex!=null)
 						oldTex.recycle();
 					
 					if(iSample != iSampled)
@@ -536,6 +567,8 @@ public class TexturedPlane extends Mesh
 							e.printStackTrace();
 						}
 						mBitmapTexture = BitmapDecoder.safeDecodeBitmap(imgPath, iSample);
+						if(mBitmapTexture==null)
+							mBitmapTexture = mDummyBitmapTexture;
 						if(iSample != iSampled)
 						{
 							TexturedPlane.this.recycleTexture();
@@ -557,12 +590,72 @@ public class TexturedPlane extends Mesh
 				}
 				
 				TexturedPlane.this.recycleTexture();
+				}catch(Exception e)
+				{
+					e.printStackTrace();
+				}
 
 			}
 		}).start();
 		
 	}
+//TODO : implement or remove
+/*
+	/**
+	// have to call initTexCoord() to take effect
+		protected void flipYTexture()
+	{
+		float o[] = mTexCoordData;
+		float t[] = Arrays.copyOf(o,o.length);
+		
+		t[0] = o[2];
+		t[2] = o[0];	
+		t[1] = o[3];
+		t[3] = o[1];
+		
+		t[4] = o[6];
+		t[6] = o[4];
+		t[5] = o[7];
+		t[7] = o[5];
+		mTexCoordData = t;
 	
+	}
 	
+	protected void flipXTexture()
+	{
+		float o[] = mTexCoordData;
+		float t[] = Arrays.copyOf(o,o.length);
+		
+		t[0] = o[6];
+		t[6] = o[0];	
+		t[1] = o[7];
+		t[7] = o[1];
+		
+		t[4] = o[6];
+		t[6] = o[4];
+		t[5] = o[7];
+		t[7] = o[5];
+		mTexCoordData = t;		
+		
+	}
+
+	protected void transposeTexture()
+	{
+		float o[] = mTexCoordData;
+		float t[] = Arrays.copyOf(o,o.length);
+		
+		t[0] = o[0];
+		t[1] = o[1];	
+		t[2] = o[6];
+		t[3] = o[7];
+		
+		t[4] = o[4];
+		t[5] = o[5];
+		t[6] = o[2];
+		t[7] = o[3];
+		mTexCoordData = t;		
+	}
+	
+	*/
     
 }

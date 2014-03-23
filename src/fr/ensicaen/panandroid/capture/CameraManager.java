@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import junit.framework.Assert;
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 import fr.ensicaen.panandroid.snapshot.SnapshotEventListener;
+import fr.ensicaen.panandroid.stitcher.StitcherWrapper;
 import fr.ensicaen.panandroid.tools.EulerAngles;
 import fr.ensicaen.panandroid.tools.SensorFusionManager;
 import android.content.Context;
@@ -176,7 +177,9 @@ public class CameraManager /* implements SnapshotObserver */
 	private int mFileId = 0;
 	
 	private int mJpegCompression = JPEG_COMPRESSION;
-	private int mTempExifOrientation;
+	
+	//TODO : remove
+	//private int mTempExifOrientation;
 
 	
 	
@@ -621,7 +624,7 @@ public class CameraManager /* implements SnapshotObserver */
 		{
 			mCamera.setParameters(mCameraParameters);
 			
-			mTempExifOrientation = getExifOrientation();
+			//mTempExifOrientation = getExifOrientation();
 
 			new Thread(new Runnable(){
 	
@@ -804,37 +807,48 @@ public class CameraManager /* implements SnapshotObserver */
 			
 			if(mJpegCallbackEnabled)
 			{
-				//since cameraParams.setRotation don't work the same on all device, we can only rely on ourselves and implement 
-				//snapshot rotation there
-				/*
-				//convert byte array to bitmap
-				Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
-				data=null;
-				//Use this to rotate the image by providing the right angle
-				Matrix matrix = new Matrix();
-				matrix.postRotate(mTempSnapshotRotation);
 				
-				//create a rotated bitmap
-				bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), matrix, true);
 				
-				//Then back to the array:
-				ByteArrayOutputStream stream = new ByteArrayOutputStream();
-				bmp.compress(Bitmap.CompressFormat.JPEG, mJpegCompression, stream);
-				data = stream.toByteArray();
-				*/
 				try 
 				{
 					//save to sd card
-					String jpegFile = mTempFilename+".jpg";
+					final String jpegFile = mTempFilename+".jpg";
 					
 					try 
 					{
 		        		Log.i(TAG, "Saving file at "+jpegFile);
-		
+		        		Log.i(TAG, "setting file orientation at " +mTempSnapshot.getOrientation() + " degrees");
+		        		
 		        		
 		        		FileOutputStream fos = new FileOutputStream(jpegFile);
 						fos.write(data);
-						fos.close();	
+						fos.close();
+						
+						//perform image rotation in a separate thread
+						//since cameraParams.setRotation don't work the same on all device, we can only rely on ourselves and implement 
+						//snapshot rotation by rotating Jpeg file.
+						//exif won't work with openCV, the only solution is to rotate raw data.
+						//Matrix rotation with java makes the heap to overflow, we hate to pass through JNI to rotate image.
+						//Java matrix cannot be converted to OpenCV matrix, we need to transit through a file.
+						//Matrix rotaion freeze the UI, need to launch processing on separate thread.... BUT
+						//What a bad day!!
+						final int orientation = mTempSnapshot.getOrientation();						
+							new Thread(new Runnable()
+							{
+								public void run()
+								{
+									try{
+									int res = StitcherWrapper.rotateImage(jpegFile, orientation);
+									Assert.assertTrue(res==0);
+									}catch (Exception e)
+									{
+										e.printStackTrace();
+									}
+								}
+							}).start();
+						
+						
+						//StitcherWrapper.rotateImage(jpegFile, mTempSnapshot.getOrientation());
 				
 						mTempSnapshot.setFileName(jpegFile);
 						takenSnapshot = mTempSnapshot;
@@ -844,13 +858,16 @@ public class CameraManager /* implements SnapshotObserver */
 						
 						
 						//put exifs
-
+						//TODO : remove
+						/*
 						ExifInterface exif = new ExifInterface(jpegFile);
 		        		String exifOrientation = ""+mTempExifOrientation;
 		        		exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation);
 		        		exif.saveAttributes();
 		        		exif = new ExifInterface(jpegFile);
-
+						*/
+						
+						
 				    } 
 					catch (FileNotFoundException e) 
 					{
@@ -984,7 +1001,7 @@ public class CameraManager /* implements SnapshotObserver */
 		return mpx;
 	}
 
-
+/*
 	private int getCameraRotation()
 	{
 		int screenRot = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
@@ -1026,5 +1043,5 @@ public class CameraManager /* implements SnapshotObserver */
 		}
 		return exifOrientation;
 	}
-	
+*/	
 }

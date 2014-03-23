@@ -672,7 +672,6 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 
 		//put the snapshot at its place.
 		snap.translate(0.0f, 0.0f, SNAPSHOTS_DISTANCE);
-		//snap.rotate(0, 0, mCameraRoll);
 		snap.setVisible(true);
 		mSnapshotsLock.lock();
 		mSnapshots.add(snap);

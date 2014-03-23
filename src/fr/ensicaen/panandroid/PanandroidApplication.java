@@ -50,7 +50,7 @@ public class PanandroidApplication extends Application
             if (mCamManager != null)
             {
                 Log.e(TAG, "Uncaught exception! Closing down camera safely firsthand");
-                Log.e(TAG, ex.getMessage());
+                ex.printStackTrace();
                 mCamManager.close();
             }
             mDefaultExHandler.uncaughtException(thread, ex);
