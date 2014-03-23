@@ -792,6 +792,7 @@ extern "C"
                 blender->blend(result, resultMask);
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Compositing time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Writing image file :%s", _resultPath.c_str());
                 imwrite(_resultPath, result);
 
                 return 0;

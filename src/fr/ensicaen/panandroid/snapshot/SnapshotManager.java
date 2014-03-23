@@ -90,7 +90,9 @@ public class SnapshotManager implements SnapshotEventListener
 		{
 			mWorkingDir = snapshot.getFileName();
 			mWorkingDir = mWorkingDir.substring(0, mWorkingDir.lastIndexOf(File.separator));			
-			mProjectName = mWorkingDir.substring(0, mWorkingDir.lastIndexOf(File.separator));
+			mProjectName = mWorkingDir.substring(mWorkingDir.lastIndexOf(File.separator), mWorkingDir.length());
+			Log.i(TAG, "setting working dir : " +mWorkingDir);
+
 		}
 		mSnapshots.add(snapshot);
 		
@@ -123,8 +125,8 @@ public class SnapshotManager implements SnapshotEventListener
 		
 		
 		try {
-			mProjectName = filename;
 			snapshots.put("panoName", filename);	
+			snapshots.put("workingDir", mWorkingDir);	
 			snapshots.put("panoData", mJsonArray);
 			File dir = new File(directory);
 	
@@ -277,6 +279,7 @@ public class SnapshotManager implements SnapshotEventListener
 			//parse JSON and build list
 			mSnapshots = new LinkedList<Snapshot>();
 			mProjectName = jsonSnapshots.getString("panoName");
+			mWorkingDir = jsonSnapshots.getString("workingDir");
 			JSONArray panoDataArray = jsonSnapshots.getJSONArray("panoData");
 
 			Log.i(TAG, "Loading "+panoDataArray.length()+" snapshots from JSON");

@@ -189,6 +189,7 @@ public class StitcherActivity extends Activity {
         		i++;
         	}
         	
+        	
         	mWrapper = new StitcherWrapper(mSnapshotManager.getWorkingDir()+File.separator+PANORAMA_FILENAME, filenames, orientations);
             if (mWrapper.getStatus() == SUCCESS) {
                 mProgress.setProgress(mWrapper.getProgress());
