@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import junit.framework.Assert;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -86,13 +88,19 @@ public class SnapshotManager implements SnapshotEventListener
 	 */
 	public void addSnapshot(Snapshot snapshot)
 	{
+		
+		String filename = snapshot.getFileName();
+		String workingDir = filename.substring(0, filename.lastIndexOf(File.separator));
+		
 		if(mWorkingDir=="" && mSnapshots.size()==0)
 		{
-			mWorkingDir = snapshot.getFileName();
-			mWorkingDir = mWorkingDir.substring(0, mWorkingDir.lastIndexOf(File.separator));			
-			mProjectName = mWorkingDir.substring(mWorkingDir.lastIndexOf(File.separator), mWorkingDir.length());
+			mWorkingDir = workingDir;
+			mProjectName = mWorkingDir.substring(mWorkingDir.lastIndexOf(File.separator));
 			Log.i(TAG, "setting working dir : " +mWorkingDir);
-
+		}
+		else
+		{
+			Assert.assertTrue(workingDir.equals(mWorkingDir));
 		}
 		mSnapshots.add(snapshot);
 		
@@ -102,7 +110,7 @@ public class SnapshotManager implements SnapshotEventListener
 			jso.put("roll", snapshot.getRoll());
 			jso.put("yaw", snapshot.getYaw());
 			jso.put("pitch", snapshot.getPitch());	
-			jso.put("urlName", snapshot.getFileName());
+			jso.put("filename", filename.substring(mWorkingDir.length()+1, filename.length()));
 			jso.put("snapshotId", mSnapshots.size());
 			mJsonArray.put(jso);
 		}
@@ -126,7 +134,6 @@ public class SnapshotManager implements SnapshotEventListener
 		
 		try {
 			snapshots.put("panoName", filename);	
-			snapshots.put("workingDir", mWorkingDir);	
 			snapshots.put("panoData", mJsonArray);
 			File dir = new File(directory);
 	
@@ -278,8 +285,10 @@ public class SnapshotManager implements SnapshotEventListener
 			
 			//parse JSON and build list
 			mSnapshots = new LinkedList<Snapshot>();
-			mProjectName = jsonSnapshots.getString("panoName");
-			mWorkingDir = jsonSnapshots.getString("workingDir");
+			mProjectName = jsonSnapshots.getString("panoName");			
+			mWorkingDir = filename.substring(0, filename.lastIndexOf(File.separator));;
+			Log.i(TAG, "setting working dir : " +mWorkingDir);
+			
 			JSONArray panoDataArray = jsonSnapshots.getJSONArray("panoData");
 
 			Log.i(TAG, "Loading "+panoDataArray.length()+" snapshots from JSON");
@@ -292,8 +301,8 @@ public class SnapshotManager implements SnapshotEventListener
 				float yaw = Float.parseFloat(currentjso.getString("yaw"));
 				float roll = Float.parseFloat(currentjso.getString("roll"));
 
-				String snapshotUrl = currentjso.getString("urlName");
-
+				String snapshotUrl = currentjso.getString("filename");
+				snapshotUrl = mWorkingDir.concat(File.separator).concat(snapshotUrl); 
 				Snapshot currentSnapshot = new Snapshot(pitch, yaw, roll);
 				currentSnapshot.setFileName(snapshotUrl);
 				mSnapshots.add(currentSnapshot);			

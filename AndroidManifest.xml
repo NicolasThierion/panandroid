@@ -59,7 +59,9 @@ or revised without written permission of the authors.
         </activity>
         <activity
             android:name="fr.ensicaen.panandroid.stitcher.StitcherActivity"
-            android:label="@string/app_name" />
+            android:label="@string/app_name" 
+  			android:configChanges="orientation|screenSize"
+            />
 
         <uses-library android:name="android.test.runner" />
 

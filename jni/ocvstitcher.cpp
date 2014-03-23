@@ -41,6 +41,11 @@
 //
 //M*/
 
+
+
+//TODO : cleanup function.
+
+
 #include <jni.h>
 
 #include <android/log.h>
@@ -198,7 +203,6 @@ WaveCorrectKind _waveCorrection = detail::WAVE_CORRECT_HORIZ;
  * PROTOTYPES
  ************/
 static int parseCmdArgs(int argc, char** argv);
-static int performImagesRotation();
 
 
 /*******************
@@ -207,59 +211,60 @@ static int performImagesRotation();
 
 extern "C"
 {
-        /**
-         * rotates an image with the given angle
-         */
-        JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_rotateImage
-        (JNIEnv* env, jobject obj, jstring imagePath, jint angle)
-        {
-
-			Mat image;
-			const char* path = env->GetStringUTFChars(imagePath, 0);
-			image = imread(path, CV_LOAD_IMAGE_COLOR);
-			if(! image.data )                              // Check for invalid input
-			{
-				__android_log_print(ANDROID_LOG_ERROR, TAG, "Could not open or find the image %s", path);
-				return -1;
-			}
-			switch(angle)
-			{
-			case 0:
-			case 360 :
-			case -360 :
-				break;
-			case 90:
-			case -270 :
-				cv::transpose(image, image);
-				cv::flip(image, image, 1);
-				break;
-			case 180 :
-			case -180 :
-				cv::transpose(image, image);
-				cv::flip(image, image, 1);
-				cv::transpose(image, image);
-				break;
-			case 270 :
-			case -90 :
-				cv::flip(image, image, 1);
-				cv::transpose(image, image);
-				break;
-			default:
-				__android_log_print(ANDROID_LOG_ERROR, TAG, "unsupported rotation angle : %d", angle);
-
-
-			}
-
-			imwrite(path, image);
-
-            env->ReleaseStringUTFChars(imagePath, path);
-
-			image.release();
-			return 0;
+	/**
+	 * rotates an image by the given angle
+	 *
+	 * rotateImage (jstring imagePath, jint angle)
+	 */
+	JNIEXPORT jint JNICALL
+	Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_rotateImage
+	(JNIEnv* env, jobject obj, jstring imagePath, jint angle)
+	{
+		Mat image;
+		const char* path = env->GetStringUTFChars(imagePath, 0);
+		image = imread(path, CV_LOAD_IMAGE_COLOR);
+		if(! image.data )                              // Check for invalid input
+		{
+			__android_log_print(ANDROID_LOG_ERROR, TAG, "Could not open or find the image %s", path);
+			return -1;
 		}
 
+		//perform rotation
+		switch(angle)
+		{
+		case 0:
+		case 360 :
+		case -360 :
+			break;
+		case 90:
+		case -270 :
+			cv::transpose(image, image);
+			cv::flip(image, image, 1);
+			break;
+		case 180 :
+		case -180 :
+			cv::transpose(image, image);
+			cv::flip(image, image, 1);
+			cv::transpose(image, image);
+			break;
+		case 270 :
+		case -90 :
+			cv::flip(image, image, 1);
+			cv::transpose(image, image);
+			break;
+		default:
+			__android_log_print(ANDROID_LOG_ERROR, TAG, "unsupported rotation angle : %d", angle);
 
+
+		}
+
+		imwrite(path, image);
+
+		env->ReleaseStringUTFChars(imagePath, path);
+
+		image.release();
+		return 0;
+	}
 }
 
 
@@ -268,25 +273,30 @@ extern "C"
 {
         //================ REGISTRATION STEPS ============================
         /**
-         * Store images path from array 'files' into stitcher's memory.
+         * Init the stitcher. Fetch and store parameters, images and their respective rotation.
+         *
+         * newStitcher (jstring compositionFile, jobjectArray files, jobjectArray orientations)
+         * @param jstring Result file.
+         * @param files Base images.
+         * @param orientations Pitch, yaw and roll of images.
          */
         JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_storeImagesPath
+        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_newStitcher
         (JNIEnv* env, jobject obj, jstring compositionFile, jobjectArray files, jobjectArray orientations)
         {
 
         		jstring tmpFileName;
-				jfloat pitch, yaw, roll;
 				float* orientation;
 				const char* path;
 				_nbImages = env->GetArrayLength(files);
-
                 jfloatArray orientationsArray;
+
+
                 int64 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Storing images path...");
+                __android_log_print(ANDROID_LOG_INFO, TAG, "init stitcher");
 
                 // Fetch and convert images path from jstring to string.
-                for (int i = 0; i < _nbImages - 1; ++i)
+                for (int i = 0; i < _nbImages; ++i)
                 {
                 	tmpFileName = (jstring) env->GetObjectArrayElement(files, i);
 					orientation = new float[3];
@@ -302,23 +312,23 @@ extern "C"
 					_imagesRotations.push_back(orientation);
 					__android_log_print(ANDROID_LOG_INFO, TAG, "Store path #%d : %s", i + 1, path);
 					env->ReleaseStringUTFChars(tmpFileName, path);
+
+
                 }
-
-
 
                 // Path to store panorama is the last element.
                 path = env->GetStringUTFChars(compositionFile, 0);
                 _resultPath = path;
                 env->ReleaseStringUTFChars(tmpFileName, path);
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Storing _images path time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+                __android_log_print(ANDROID_LOG_INFO, TAG, "Stitcher initialized  (%f sec)", ((getTickCount() - t) / getTickFrequency()));
 
-
-                //performImagesRotation();
                 return 0;
         }
 
         /**
-         * Find feature in _images.
+         * Find feature in images from internal image array.
+         *
+         * findFeatures()
          */
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findFeatures
@@ -330,57 +340,68 @@ extern "C"
                 Mat fullImage, image;
                 Ptr<FeaturesFinder> finder;
 
-                // Check if we have enough _images.
+                int64 t = getTickCount();
+				__android_log_print(ANDROID_LOG_INFO, TAG, "Finding features...");
+
+                // Check if we have enough images.
                 _nbImages = static_cast<int>(_imagesPath.size());
-                if (_nbImages < 2) {
+                if (_nbImages < 2)
+                {
                         __android_log_print(ANDROID_LOG_ERROR, TAG, "Need more _images.");
                         return -1;
                 }
 
-                int64 t = getTickCount();
-                __android_log_print(ANDROID_LOG_INFO, TAG, "Finding features...");
-
                 // Build one of finding engines.
-                if (featuresType == "surf") {
+                if (featuresType == "surf")
+                {
                         finder = new SurfFeaturesFinder();
-                } else if (featuresType == "orb") {
+                }
+                else if (featuresType == "orb")
+                {
                         finder = new OrbFeaturesFinder();
-                } else {
+                }
+                else
+                {
                         __android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown 2D _features type: %s", featuresType.c_str());
                         return -1;
                 }
 
-                // Resize vectors used for store _features of _images and _images itself.
+                // Resize vectors used to store features of images and images itself.
                 _features.resize(_nbImages);
                 _fullImagesSize.resize(_nbImages);
                 _images.resize(_nbImages);
 
-                // Find _features on all _images.
-                for (int i = 0; i < _nbImages; ++i) {
+                // Find features on all images.
+                for (int i = 0; i < _nbImages; ++i)
+                {
                         // Read image.
                         fullImage = imread(_imagesPath[i]);
                         _fullImagesSize[i] = fullImage.size();
-
-                        if (fullImage.empty()) {
+                        if (fullImage.empty())
+                        {
                                 __android_log_print(ANDROID_LOG_ERROR, TAG, "Can't open image %s", _imagesPath[i].c_str());
                                 return -1;
                         }
 
                         // Resize (medium resolution).
-                        if (workMegapix < 0) {
+                        if (workMegapix < 0)
+                        {
                                 image = fullImage;
                                 workScale = 1;
                                 isWorkScale = true;
-                        } else {
-                                if (!isWorkScale) {
+                        }
+                        else
+                        {
+                                if (!isWorkScale)
+                                {
                                         workScale = min(1.0, sqrt(workMegapix * 1e6 / fullImage.size().area()));
                                         isWorkScale = true;
                                 }
-
                                 resize(fullImage, image, Size(), workScale, workScale);
                         }
 
-                        if (!isSeamScale) {
+                        if (!isSeamScale)
+                        {
                                 seamScale = min(1.0, sqrt(seamMegapix * 1e6 / fullImage.size().area()));
                                 seamWorkAspect = seamScale / workScale;
                                 isSeamScale = true;
@@ -394,12 +415,15 @@ extern "C"
                         // Store image subscaled by seamScale.
                         resize(fullImage, image, Size(), seamScale, seamScale);
                         _images[i] = image.clone();
+
+                        fullImage.release();
+						image.release();
+
                 }
 
                 // Clean up workspace.
                 finder->collectGarbage();
-                fullImage.release();
-                image.release();
+
 
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Finding _features time: %f sec", ((getTickCount() - t) / getTickFrequency()));
 
@@ -1590,61 +1614,6 @@ extern "C"
  * PRIVATE FUNCTIONS
  * *******/
 
-
-static int performImagesRotation()
-{
-	//TODO : make this function not to rotate randomly.
-	//TODO : put roll=0
-	vector<float*>::iterator it, itEnd = _imagesRotations.end();
-	int roll;
-	int i=0, angle=0;
-	for(it = _imagesRotations.begin(); it != itEnd; ++it)
-	{
-		roll = (int)(*it)[2];
-
-		//ensures roll is between -180 and 180
-		roll+=360;
-		roll%=360;
-		roll-=180;
-		if(roll>-45 && roll<45)
-		{
-			angle=0;
-		}
-		else if(roll>45 && roll<135)
-		{
-			angle=90;
-		}
-		else if(roll>135 && roll<255)
-		{
-			angle=180;
-		}
-
-		else
-		{
-			angle=270;
-		}
-
-
-
-
-		Mat image;
-		image = imread(_imagesPath[i], CV_LOAD_IMAGE_COLOR);
-		if(! image.data )                              // Check for invalid input
-		{
-			__android_log_print(ANDROID_LOG_INFO, TAG, "Could not open or find the image %s", _imagesPath[i].c_str());
-			return -1;
-		}
-		int len = std::max(image.cols, image.rows);
-		Point2f pt(len/2., len/2.);
-		Mat r = cv::getRotationMatrix2D(pt, angle, 1.0);
-
-		warpAffine(image, image, r, cv::Size(len, len));
-		cv::imwrite(_imagesPath[i], image);
-
-		image.release();
-	}
-
-}
 
 /*
 static int parseCmdArgs(int argc, char** argv)

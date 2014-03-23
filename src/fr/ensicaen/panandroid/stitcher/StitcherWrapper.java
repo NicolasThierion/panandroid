@@ -18,9 +18,6 @@
  */
 
 package fr.ensicaen.panandroid.stitcher;
-import org.opencv.core.Mat;
-
-import android.graphics.Matrix;
 
 /**
  * StitcherWrapper is a stitcher engine based on openCV
@@ -43,6 +40,7 @@ public class StitcherWrapper
     /* *********
      * CONSTRUCTOR
      * *********/    
+    //TODO : have to be a singleton.
     /**
      * Construct a new stitcher object
      * @param workingDir
@@ -52,7 +50,7 @@ public class StitcherWrapper
     public StitcherWrapper(String panoFilename, String[] snapshotsUrl,
 			float[][] orientations) 
     {
-    	mStatus = storeImagesPath(panoFilename, snapshotsUrl, orientations);
+    	mStatus = newStitcher(panoFilename, snapshotsUrl, orientations);
 	}
 
     /* **********
@@ -128,7 +126,7 @@ public class StitcherWrapper
      * @param files Path to all images in the current folder.
      * @return Result of images storage.
      */
-	 private native int storeImagesPath(String panoFilename, Object[] files, float[][] orientations);
+	 private native int newStitcher(String panoFilename, Object[] files, float[][] orientations);
 
 
 	 
