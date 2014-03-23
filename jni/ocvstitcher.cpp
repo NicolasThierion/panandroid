@@ -78,11 +78,11 @@ using namespace cv::detail;
 /*************
  * PARAMETERS
  ************/
-/** Is the wave correct. **/
+/** ????? **/
 bool doWaveCorrect = true;
 
-/** Is compose scale. **/
-bool isComposeScale = false;
+/** ????? **/
+bool isComposeScale = false;	//compositor crashes if true
 
 /** Try to use GPU. **/
 bool tryGPU = true;
@@ -120,8 +120,8 @@ int exposureCompensationType = ExposureCompensator::GAIN_BLOCKS;
 /** Warped image scale. **/
 static float warpedImageScale;
 
-/** Bundle adjustment cost function. **/
-string bundleAdjustment = "ray";
+/** Bundle adjustment cost function. reproj don't seems suitable for spherical pano**/
+string bundleAdjustment = "ray"; 	//["reproj", "ray" : "ray"]
 
 /** Set refinement mask for bundle adjustment. It looks like 'x_xxx'
     where 'x' means refine respective parameter and '_' means don't
@@ -743,52 +743,60 @@ extern "C"
                 Size sz;
 
 #ifdef DEBUG
+                int64 tt;
                 int64 t = getTickCount();
                 __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
                 __android_log_print(ANDROID_LOG_INFO, TAG, "composition panorama");
                 __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
 #endif
 
-                for (int img_idx = 0; img_idx < numberImages; ++img_idx) {
-                        __android_log_print(ANDROID_LOG_INFO, TAG, "Compose image #%d : %s", img_idx + 1, _imagesPath[img_idx].c_str());
 
+                if (!isComposeScale)
+				{
+						if (composeMegapix > 0)
+								composeScale = min(1.0, sqrt(composeMegapix * 1e6 / fullImage.size().area()));
+
+						isComposeScale = true;
+
+						// Compute relative scales.
+						composeWorkAspect = composeScale / workScale;
+
+						// Update warped image scale.
+						warpedImageScale *= static_cast<float>(composeWorkAspect);
+						_warper = _warperCreator->create(warpedImageScale);
+
+						// Update _corners and _sizes.
+						for (int i = 0; i < numberImages; ++i)
+						{
+								// Update intrinsics.
+								_cameras[i].focal *= composeWorkAspect;
+								_cameras[i].ppx *= composeWorkAspect;
+								_cameras[i].ppy *= composeWorkAspect;
+
+								// Update corner and size.
+								sz = _fullImagesSize[i];
+
+								if (std::abs(composeScale - 1) > 1e-1)
+								{
+										sz.width = cvRound(_fullImagesSize[i].width * composeScale);
+										sz.height = cvRound(_fullImagesSize[i].height * composeScale);
+								}
+
+								_cameras[i].K().convertTo(K, CV_32F);
+								roi = _warper->warpRoi(sz, K, _cameras[i].R);
+								_corners[i] = roi.tl();
+								_sizes[i] = roi.size();
+						}
+				}
+
+                for (int img_idx = 0; img_idx < numberImages; ++img_idx)
+                {
+#ifdef DEBUG
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "Compose image #%d : %s", img_idx + 1, _imagesPath[img_idx].c_str());
+                        tt = getTickCount();
+#endif
                         // Read image and resize it if necessary.
                         fullImage = imread(_imagesPath[img_idx]);
-
-                        if (!isComposeScale) {
-                                if (composeMegapix > 0)
-                                        composeScale = min(1.0, sqrt(composeMegapix * 1e6 / fullImage.size().area()));
-
-                                isComposeScale = true;
-
-                                // Compute relative scales.
-                                composeWorkAspect = composeScale / workScale;
-
-                                // Update warped image scale.
-                                warpedImageScale *= static_cast<float>(composeWorkAspect);
-                                _warper = _warperCreator->create(warpedImageScale);
-
-                                // Update _corners and _sizes.
-                                for (int i = 0; i < numberImages; ++i) {
-                                        // Update intrinsics.
-                                        _cameras[i].focal *= composeWorkAspect;
-                                        _cameras[i].ppx *= composeWorkAspect;
-                                        _cameras[i].ppy *= composeWorkAspect;
-
-                                        // Update corner and size.
-                                        sz = _fullImagesSize[i];
-
-                                        if (std::abs(composeScale - 1) > 1e-1) {
-                                                sz.width = cvRound(_fullImagesSize[i].width * composeScale);
-                                                sz.height = cvRound(_fullImagesSize[i].height * composeScale);
-                                        }
-
-                                        _cameras[i].K().convertTo(K, CV_32F);
-                                        roi = _warper->warpRoi(sz, K, _cameras[i].R);
-                                        _corners[i] = roi.tl();
-                                        _sizes[i] = roi.size();
-                                }
-                        }
 
                         if (abs(composeScale - 1) > 1e-1)
                                 resize(fullImage, image, Size(), composeScale, composeScale);
@@ -800,16 +808,35 @@ extern "C"
 
                         _cameras[img_idx].K().convertTo(K, CV_32F);
 
+#ifdef DEBUG
+						__android_log_print(ANDROID_LOG_INFO, TAG, "resize image time : %f", ((getTickCount() - tt) / getTickFrequency()) );
+						tt = getTickCount();
+#endif
+
                         // Warp the current image.
                         _warper->warp(image, K, _cameras[img_idx].R, INTER_LINEAR, BORDER_REFLECT, imageWarped);
+#ifdef DEBUG
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "wrap image time : %f", ((getTickCount() - tt) / getTickFrequency()) );
+                        tt = getTickCount();
+#endif
 
                         // Warp the current image mask.
                         mask.create(imageSize, CV_8U);
                         mask.setTo(Scalar::all(255));
                         _warper->warp(mask, K, _cameras[img_idx].R, INTER_NEAREST, BORDER_CONSTANT, maskWarped);
 
+#ifdef DEBUG
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "wrap mask time : %f", ((getTickCount() - tt) / getTickFrequency()) );
+                        tt = getTickCount();
+#endif
+
                         // Compensate exposure.
                         _compensator->apply(img_idx, _corners[img_idx], imageWarped, maskWarped);
+
+#ifdef DEBUG
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "compensate exposure time : %f", ((getTickCount() - tt) / getTickFrequency()) );
+                        tt = getTickCount();
+#endif
 
                         imageWarped.convertTo(imageWarpedS, CV_16S);
                         imageWarped.release();
@@ -820,7 +847,8 @@ extern "C"
                         resize(dilatedMask, seamMask, maskWarped.size());
                         maskWarped = seamMask & maskWarped;
 
-                        if (blender.empty()) {
+                        if (blender.empty())
+                        {
                                 blender = Blender::createDefault(blendType, tryGPU);
                                 destinationsz = resultRoi(_corners, _sizes).size();
                                 blendWidth = sqrt(static_cast<float>(destinationsz.area())) * blendStrength / 100.f;
@@ -839,9 +867,18 @@ extern "C"
 
                                 blender->prepare(_corners, _sizes);
                         }
+#ifdef DEBUG
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "setting up blender time : %f", ((getTickCount() - tt) / getTickFrequency()) );
+                        tt = getTickCount();
+#endif
 
                         // Blend the current image.
                         blender->feed(imageWarpedS, maskWarped, _corners[img_idx]);
+
+#ifdef DEBUG
+                        __android_log_print(ANDROID_LOG_INFO, TAG, "blending time : %f", ((getTickCount() - tt) / getTickFrequency()) );
+                        tt = getTickCount();
+#endif
                 }
 
                 Mat result, resultMask;
