@@ -56,7 +56,10 @@ public class SnapshotManager implements SnapshotEventListener
 	 * *****/
 	private LinkedList<Snapshot> mSnapshots;
 	private JSONArray mJsonArray;
-	private String mPanoName;
+	private String mProjectName;
+	private String mWorkingDir;
+	
+	
 	
 	
 	/* ******
@@ -69,6 +72,9 @@ public class SnapshotManager implements SnapshotEventListener
 	{
 		mSnapshots = new LinkedList<Snapshot>();
 		mJsonArray = new JSONArray();
+		mWorkingDir="";
+		mProjectName = "";
+		
 	}
 	
 	/* *******
@@ -80,6 +86,12 @@ public class SnapshotManager implements SnapshotEventListener
 	 */
 	public void addSnapshot(Snapshot snapshot)
 	{
+		if(mWorkingDir=="" && mSnapshots.size()==0)
+		{
+			mWorkingDir = snapshot.getFileName();
+			mWorkingDir = mWorkingDir.substring(0, mWorkingDir.lastIndexOf(File.separator));			
+			mProjectName = mWorkingDir.substring(0, mWorkingDir.lastIndexOf(File.separator));
+		}
 		mSnapshots.add(snapshot);
 		
 		JSONObject jso = new JSONObject();
@@ -111,7 +123,7 @@ public class SnapshotManager implements SnapshotEventListener
 		
 		
 		try {
-			mPanoName = filename;
+			mProjectName = filename;
 			snapshots.put("panoName", filename);	
 			snapshots.put("panoData", mJsonArray);
 			File dir = new File(directory);
@@ -155,6 +167,26 @@ public class SnapshotManager implements SnapshotEventListener
 	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
 	{
 		addSnapshot(snapshot);
+	}
+	
+	public void setWorkingDir(String workingDir)
+	{
+		mWorkingDir = workingDir;
+	}
+	
+	public String getWorkingDir()
+	{
+		return mWorkingDir;
+	}
+	
+	public void setProjectName(String name)
+	{
+		mProjectName = name;
+	}
+	
+	public String getProjectName()
+	{
+		return mProjectName;
 	}
 	
 	/* ******
@@ -244,7 +276,7 @@ public class SnapshotManager implements SnapshotEventListener
 			
 			//parse JSON and build list
 			mSnapshots = new LinkedList<Snapshot>();
-			mPanoName = jsonSnapshots.getString("panoName");
+			mProjectName = jsonSnapshots.getString("panoName");
 			JSONArray panoDataArray = jsonSnapshots.getJSONArray("panoData");
 
 			Log.i(TAG, "Loading "+panoDataArray.length()+" snapshots from JSON");

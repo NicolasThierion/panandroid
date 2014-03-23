@@ -24,6 +24,8 @@ package fr.ensicaen.panandroid.stitcher;
  * @version 0.0.1 - Fri Mar 21 2014
  */
 public class StitcherWrapper {
+	
+	private int mStatus = -1;
     /**
      * Load JNI library.
      */
@@ -31,12 +33,18 @@ public class StitcherWrapper {
         System.loadLibrary("ocvstitcher");
     }
 
-    /**
+    public StitcherWrapper(String workingDir, String[] snapshotsUrl,
+			float[][] orientations) 
+    {
+    	mStatus = storeImagesPath(workingDir, snapshotsUrl, orientations);
+	}
+
+	/**
      * Store images path for OpenCV.
      * @param files Path to all images in the current folder.
      * @return Result of images storage.
      */
-    public native int storeImagesPath(Object[] files, float[][] orientations);
+    private native int storeImagesPath(String workingDir, Object[] files, float[][] orientations);
 
     /**
      * Find features in all bunch of images.
@@ -73,6 +81,17 @@ public class StitcherWrapper {
      * @return Result of compose panorama.
      */
     public native int composePanorama();
+
+    public int getStatus()
+    {
+    	//TODO
+    	return mStatus;
+    }
+    
+	public int getProgress() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 
 	
 }

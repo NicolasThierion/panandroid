@@ -53,7 +53,7 @@ public class StitcherActivity extends Activity {
     private static final String TAG = StitcherActivity.class.getSimpleName();
     //private File mFolder;
     private SnapshotManager mSnapshotManager;
-    private StitcherWrapper mWrapper = new StitcherWrapper();
+    private StitcherWrapper mWrapper ;
 
     /**
      * Called when StitcherActivity is starting.
@@ -187,8 +187,9 @@ public class StitcherActivity extends Activity {
         		i++;
         	}
         	
-            if (mWrapper.storeImagesPath(filenames, orientations) == SUCCESS) {
-                mProgress.setProgress(14);
+        	mWrapper = new StitcherWrapper(mSnapshotManager.getWorkingDir(), filenames, orientations);
+            if (mWrapper.getStatus() == SUCCESS) {
+                mProgress.setProgress(mWrapper.getProgress());
             } else {
                 return -1;
             }
