@@ -26,20 +26,20 @@ package fr.ensicaen.panandroid.stitcher;
  * @author Nicolas THIERION.
  * @author Jean MARGUERITE.
  */
-public class StitcherWrapper 
+public class StitcherWrapper
 {
-	
-	private int mStatus = -1;
+
+    private int mStatus = -1;
     /**
      * Load JNI library.
      */
     static {
-        System.loadLibrary("ocvstitcher");
+        System.loadLibrary("jniwrapper");
     }
-    
+
     /* *********
      * CONSTRUCTOR
-     * *********/    
+     * *********/
     //TODO : have to be a singleton.
     /**
      * Construct a new stitcher object
@@ -48,15 +48,15 @@ public class StitcherWrapper
      * @param orientations
      */
     public StitcherWrapper(String panoFilename, String[] snapshotsUrl,
-			float[][] orientations) 
+			float[][] orientations)
     {
     	mStatus = newStitcher(panoFilename, snapshotsUrl, orientations);
-	}
+    }
 
     /* **********
 	 * PUBLIC METHODS
 	 * *********/
-	
+
     /**
      * Find features in all bunch of images.
      * @return Result of finding features.
@@ -102,12 +102,12 @@ public class StitcherWrapper
 		// TODO Auto-generated method stub
     	return mStatus;
     }
-    
+
     /**
      * Get average progress (in percent) of all the stitching operations;
      * @return
      */
-	public int getProgress() 
+	public int getProgress()
 	{
 		// TODO Auto-generated method stub
 		return 0;
@@ -117,7 +117,7 @@ public class StitcherWrapper
 	 * *********/
 	 public static native int rotateImage(String imagePath, int angle);
 
-	
+
 	/* **********
 	 * PRIVATE NATIVE PROTOTYPES DECLARATION
 	 * **********/
@@ -129,7 +129,7 @@ public class StitcherWrapper
 	 private native int newStitcher(String panoFilename, Object[] files, float[][] orientations);
 
 
-	 
 
-	
+
+
 }

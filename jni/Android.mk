@@ -17,8 +17,8 @@ OPENCV_INSTALL_MODULES := on
 
 include $(OPENCV_HOME)/sdk/native/jni/OpenCV.mk
 
-LOCAL_MODULE    := ocvstitcher
-LOCAL_SRC_FILES := ocvstitcher.cpp
+LOCAL_MODULE    := jniwrapper
+LOCAL_SRC_FILES := jniwrapper.cpp
 LOCAL_LDLIBS +=  -llog -ldl
 
 include $(BUILD_SHARED_LIBRARY)
