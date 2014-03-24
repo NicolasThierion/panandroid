@@ -19,7 +19,8 @@ public class StitcherTestActivity extends Activity
 	SnapshotManager mManager;
 	
     private static final String PANORAMA_FILENAME = "result.jpg";
-
+    private static final String TEST_SAMPLES = "sample"
+    		+ "";
 	
 	@Override
 	public void onCreate(final Bundle savedInstanceState) 
@@ -28,7 +29,7 @@ public class StitcherTestActivity extends Activity
     	boolean success;
 		
     	//get context ressources
-    	String filename = Environment.getExternalStorageDirectory() + File.separator + "sample/PanoData.json";
+    	String filename = Environment.getExternalStorageDirectory() + File.separator + TEST_SAMPLES+File.separator+"PanoData.json";
     	
 		
 	
@@ -42,47 +43,19 @@ public class StitcherTestActivity extends Activity
 		//load snapshots url into the stitcher
 		LinkedList<Snapshot> snapshots = mManager.getSnapshotsList();
 
-		System.out.println("Loading snapshots : ");
-    	String snapshotsUrl[]= new String[snapshots.size()];
-    	float orientations[][] = new float[snapshots.size()][3];
-    	
-    	int i=0;
-    	for(Snapshot s : snapshots)
-    	{
-    		System.out.println(s.getFileName());
-    		snapshotsUrl[i] = s.getFileName();
-    		orientations[i][0] = s.getPitch();
-    		orientations[i][1] = s.getYaw();
-    		orientations[i][2] = s.getRoll();
-    		i++;
-    	}
     	//init stitcher wrapper
-		mStitcher = new StitcherWrapper(mManager.getWorkingDir()+File.separator + PANORAMA_FILENAME, snapshotsUrl, orientations);
-		Assert.assertTrue(mStitcher.getStatus()==0);
+		mStitcher = StitcherWrapper.getInstance();
+		
+		mStitcher.setSnapshotList(snapshots);
+		mStitcher.stitch(mManager.getWorkingDir()+File.separator + PANORAMA_FILENAME);
+		
+		Assert.assertTrue(mStitcher.getStatus()==StitcherWrapper.Status.DONE);
 		
 		
 		//group snapshots by neighbors
 		//TODO
 		LinkedList<LinkedList<Integer>> neighbors = mManager.getNeighborsId();
 	
-		//find features
-		mStitcher.findFeatures();
-		
-		//matchFeatures
-		mStitcher.matchFeatures();
-		
-		//adjustParameters
-		mStitcher.adjustParameters();
-				
-		
-		//warpImages
-		mStitcher.warpImages();
-		
-		//findSeamMasks
-		mStitcher.findSeamMasks();
-		
-		//composePanorama
-		mStitcher.composePanorama();
 		
 		super.onDestroy();
     }

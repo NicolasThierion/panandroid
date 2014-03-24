@@ -529,8 +529,14 @@ public class TexturedPlane extends Mesh
 	 * @param imgPath
 	 * @param sampleRate
 	 */
-	private void loadBitmapTexture(final String imgPath, final int sampleRate)
+	private void loadBitmapTexture(final String imgPath, int sampleRate)
 	{
+		
+		if(sampleRate<=0)
+			sampleRate = 1;
+		
+		final int sr = sampleRate;
+		
 		new Thread(new Runnable()
 		{
 
@@ -540,9 +546,9 @@ public class TexturedPlane extends Mesh
 				int iSample = 32, iSampled;
 				Bitmap oldTex;
 				if(!USE_MIPMAP_LOADING)
-					iSample = sampleRate;
+					iSample = sr;
 				
-				while(iSample >= sampleRate && mIsVisible)
+				while(iSample >= sr && mIsVisible)
 				{
 					Assert.assertTrue(iSample>=1);
 					

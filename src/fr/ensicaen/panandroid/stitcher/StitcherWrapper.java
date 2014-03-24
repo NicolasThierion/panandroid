@@ -19,6 +19,10 @@
 
 package fr.ensicaen.panandroid.stitcher;
 
+import java.util.LinkedList;
+
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+
 /**
  * StitcherWrapper is a stitcher engine based on openCV
  * StitcherWrapper class provides a wrapper between Java and JNI class.
@@ -28,8 +32,30 @@ package fr.ensicaen.panandroid.stitcher;
  */
 public class StitcherWrapper 
 {
+	/* *********
+     * ATTRIBUTES
+     * *********/
+	private static StitcherWrapper mInstance;
+	public static enum Status{
+		OK, ERR, DONE
+	}
 	
-	private int mStatus = -1;
+	
+	private Status mStatus = Status.ERR;
+	private int mProgress= -1;
+	private String mMessage = "-1";
+	private String mFilenames[];
+
+
+	private LinkedList<Snapshot> mSnapshotList;
+
+
+
+	private float[][] mOrientations;
+
+
+
+	private String mPanoFile;
     /**
      * Load JNI library.
      */
@@ -40,18 +66,118 @@ public class StitcherWrapper
     /* *********
      * CONSTRUCTOR
      * *********/    
-    //TODO : have to be a singleton.
-    /**
-     * Construct a new stitcher object
-     * @param workingDir
-     * @param snapshotsUrl
-     * @param orientations
-     */
-    public StitcherWrapper(String panoFilename, String[] snapshotsUrl,
-			float[][] orientations) 
+    private StitcherWrapper()
+    {}
+    
+    public static StitcherWrapper getInstance()
     {
-    	mStatus = newStitcher(panoFilename, snapshotsUrl, orientations);
-	}
+    	if(mInstance==null)
+    	{
+    		synchronized(StitcherWrapper.class)
+    		{
+    			if(mInstance==null)
+    			{
+    				mInstance = new StitcherWrapper();
+    			}
+    		}
+    	}
+    	return mInstance;
+    }
+    
+    public void setSnapshotList(LinkedList<Snapshot> list)
+    {
+    	mSnapshotList = list;
+    	mFilenames = new String[list.size()];
+    	mOrientations = new float[list.size()][3];
+    	
+    	int i=0;
+    	for(Snapshot s : list)
+    	{
+    		mFilenames[i] = s.getFileName();
+    		mOrientations[i][0] = s.getPitch();
+    		mOrientations[i][1] = s.getYaw();
+    		mOrientations[i][2] = s.getRoll();
+    		i++;
+    	}
+    	mStatus = Status.OK;
+    }
+
+    public Status stitch(String resultFile)
+    {
+    	int status = 0;
+    	mProgress = 0;
+    	mStatus = Status.OK;
+    	mPanoFile = resultFile;
+    	status = newStitcher(mPanoFile, mFilenames, mOrientations);
+    	if(status!=0)
+    	{
+    		mMessage = "stitcher creation failed";
+    		mStatus = Status.ERR;
+    		return Status.ERR;
+    	}
+    	mProgress = 10;
+    	
+    	
+    	status = findFeatures();
+    	if(status!=0)
+    	{
+    		mMessage = "find features failed";
+    		mStatus = Status.ERR;
+    		return Status.ERR;
+    	}
+    	mProgress = 20;
+    	
+    	status = matchFeatures();
+    	if(status!=0)
+    	{
+    		mMessage = "matchFeatures failed";
+    		mStatus = Status.ERR;
+    		return Status.ERR;
+    	}
+    	mProgress = 30;
+    	
+    	status = adjustParameters();
+    	if(status!=0)
+    	{
+    		mMessage = "adjustParameters failed";
+    		mStatus = Status.ERR;
+    		return Status.ERR;
+    	}
+    	mProgress = 40;
+
+    	
+    	status = warpImages();
+    	if(status!=0)
+    	{
+    		mMessage = "warpImages failed";
+    		mStatus = Status.ERR;
+    		return Status.ERR;
+    	}
+    	mProgress = 50;
+
+    	
+    	status = findSeamMasks();
+    	if(status!=0)
+    	{
+    		mMessage = "findSeamMasks failed";
+    		mStatus = Status.ERR;
+    		return Status.ERR;
+    	}
+    	mProgress = 60;
+
+    	
+    	status = composePanorama();
+    	if(status!=0)
+    	{
+    		mMessage = "composePanorama failed";
+    		mStatus = Status.ERR;
+    		return Status.ERR;
+    	}
+    	mProgress = 100;
+
+		return Status.DONE;
+    }	
+    
 
     /* **********
 	 * PUBLIC METHODS
@@ -97,9 +223,8 @@ public class StitcherWrapper
      * Return the status of the last executed stitching operation. zero if all is ok.
      * @return the status of the operation
      */
-    public int getStatus()
+    public Status getStatus()
     {
-		// TODO Auto-generated method stub
     	return mStatus;
     }
     
@@ -109,8 +234,7 @@ public class StitcherWrapper
      */
 	public int getProgress() 
 	{
-		// TODO Auto-generated method stub
-		return 0;
+		return mProgress;
 	}
 	/* **********
 	 * STATIC METHODS
@@ -121,6 +245,9 @@ public class StitcherWrapper
 	/* **********
 	 * PRIVATE NATIVE PROTOTYPES DECLARATION
 	 * **********/
+	 
+
+	 
 	 /**
      * Store images path for OpenCV.
      * @param files Path to all images in the current folder.

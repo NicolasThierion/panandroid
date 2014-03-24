@@ -28,12 +28,15 @@ import junit.framework.Assert;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnSystemUiVisibilityChangeListener;
@@ -94,10 +97,15 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	private String mWorkingDir = APP_DIRECTORY;
 	private String mPanoName;
 
+	private PowerManager mPowerManager;
+
+	private WakeLock mWakeLock;
+
 	/**
 	 * Called when the activity is first created.
 	 * @param savedInstanceState - The instance state.
 	 */
+	@SuppressWarnings("deprecation")
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
@@ -106,6 +114,9 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		//view in fullscreen, and don't turn screen off
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		
+		mPowerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		mWakeLock = mPowerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
 
 		//bind activity to its layout
 		setContentView(R.layout.capture_activity);
@@ -214,6 +225,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	{
 		Assert.assertTrue(mCaptureView!=null);
 		mCaptureView.onResume();
+		mWakeLock.acquire();
 		super.onResume();
 
 	}
@@ -225,7 +237,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	protected void onPause()
 	{
 		Log.i(TAG, "onPause()");
-		
+		mWakeLock.release();
 		Assert.assertTrue(mCaptureView!=null);
 		//pause camera, GL context, etc.
 		mCaptureView.onPause();

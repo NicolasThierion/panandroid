@@ -28,6 +28,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 
@@ -165,100 +166,46 @@ public class StitcherActivity extends Activity {
         protected Integer doInBackground(Void... params) {
         	
         	LinkedList<Snapshot> snapshots = mSnapshotManager.getSnapshotsList();
-        	String filenames[]= new String[snapshots.size()];
-        	float orientations[][] = new float[snapshots.size()][3];
-        	
-        	int i=0;
-        	for(Snapshot s : snapshots)
-        	{
-        		filenames[i] = s.getFileName();
-        		orientations[i][0] = s.getPitch();
-        		orientations[i][1] = s.getYaw();
-        		orientations[i][2] = s.getRoll();
-        		i++;
-        	}
         	
         	
-        	mWrapper = new StitcherWrapper(mSnapshotManager.getWorkingDir()+File.separator+PANORAMA_FILENAME, filenames, orientations);
-            if (mWrapper.getStatus() == SUCCESS) {
+        	mWrapper = StitcherWrapper.getInstance();
+        	mWrapper.setSnapshotList(snapshots);
+        	
+        	new Thread(new Runnable(){
+        		public void run()
+        		{
+                	mWrapper.stitch(mSnapshotManager.getWorkingDir()+File.separator+PANORAMA_FILENAME);
+
+        		}
+        	}).start();
+
+
+			while(mWrapper.getStatus() == StitcherWrapper.Status.OK && mWrapper.getProgress()<100)
+			{
+				Log.i(TAG, "progress :" +mWrapper.getProgress());
                 mProgress.setProgress(mWrapper.getProgress());
-            } else {
+                try 
+                {
+					Thread.sleep(1000);
+				}
+                catch (InterruptedException e) 
+				{
+					e.printStackTrace();
+				}
+			}
+ 		
+        	if (mWrapper.getStatus() == StitcherWrapper.Status.DONE) {
+        		
+        		try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException e) {}
+        		
+        		return SUCCESS;
+            }
+        	else 
+        	{
                 return -1;
             }
-
-            if (mWrapper.findFeatures() == SUCCESS) {
-                mProgress.setProgress(28);
-            } else {
-                return -1;
-            }
-
-            if (mWrapper.matchFeatures() == SUCCESS) {
-                mProgress.setProgress(42);
-            } else {
-                return -1;
-            }
-
-            if (mWrapper.adjustParameters() == SUCCESS) {
-                mProgress.setProgress(56);
-            } else {
-                return -1;
-            }
-
-            if (mWrapper.warpImages() == SUCCESS) {
-                mProgress.setProgress(70);
-            } else {
-                return -1;
-            }
-
-            if (mWrapper.findSeamMasks() == SUCCESS) {
-                mProgress.setProgress(84);
-            } else {
-                return -1;
-            }
-
-            if (mWrapper.composePanorama() == SUCCESS) {
-                mProgress.setProgress(100);
-            } else {
-                return -1;
-            }
-
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {}
-
-            return SUCCESS;
-            /*
-            String[] paths = mFolder.list();
-            List<String> arguments = new ArrayList<String>();
-
-            for (int i = 0; i < paths.length; ++i) {
-                if (paths[i].endsWith(".json")) {
-                    try {
-                        JSONObject file = new JSONObject(readPanoData());
-
-                        JSONArray pictureData = file.getJSONArray("panoData");
-
-                        for (int j = 0; j < pictureData.length(); ++j) {
-                            JSONObject data = pictureData.getJSONObject(j);
-                            Log.i(TAG, data.getString("snapshotId"));
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    arguments.add(mFolder.getAbsolutePath() + File.separator
-                            + paths[i]);
-                    Log.i(TAG, mFolder.getAbsolutePath()
-                            + File.separator + paths[i]);
-                }
-            }
-
-            arguments.add("--result");
-            arguments.add(mFolder.getAbsolutePath() + File.separator
-                    + "panorama.jpg");
-
-            return openCVStitcher(arguments.toArray());
-            */
         }
     }
 }
