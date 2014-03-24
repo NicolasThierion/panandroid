@@ -19,18 +19,8 @@
 
 package fr.ensicaen.panandroid.stitcher;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -38,9 +28,6 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.test.suitebuilder.TestSuiteBuilder.FailedToCreateTests;
-import android.util.Log;
-import fr.ensicaen.panandroid.capture.CaptureActivity;
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 
@@ -50,7 +37,9 @@ import fr.ensicaen.panandroid.snapshot.SnapshotManager;
  * @version 0.0.1 - Sat Feb 01 2014
  */
 public class StitcherActivity extends Activity {
-    private static final String TAG = StitcherActivity.class.getSimpleName();
+	
+    @SuppressWarnings("unused")
+	private static final String TAG = StitcherActivity.class.getSimpleName();
     private static final String PANORAMA_FILENAME = "result.jpg";
     
     //private File mFolder;

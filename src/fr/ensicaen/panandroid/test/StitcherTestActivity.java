@@ -5,19 +5,12 @@ import java.io.File;
 import java.util.LinkedList;
 
 import android.app.Activity;
-import android.content.Context;
-import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Environment;
-import android.test.ActivityTestCase;
-import android.test.AndroidTestCase;
-import android.test.suitebuilder.annotation.SmallTest;
 import junit.framework.Assert;
-import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 import fr.ensicaen.panandroid.stitcher.StitcherWrapper;
-import fr.ensicaen.panandroid.capture.CaptureActivity;
 
 
 public class StitcherTestActivity extends Activity
@@ -67,6 +60,7 @@ public class StitcherTestActivity extends Activity
 		mStitcher = new StitcherWrapper(mManager.getWorkingDir()+File.separator + PANORAMA_FILENAME, snapshotsUrl, orientations);
 		Assert.assertTrue(mStitcher.getStatus()==0);
 		
+		
 		//group snapshots by neighbors
 		//TODO
 		LinkedList<LinkedList<Integer>> neighbors = mManager.getNeighborsId();
@@ -79,6 +73,7 @@ public class StitcherTestActivity extends Activity
 		
 		//adjustParameters
 		mStitcher.adjustParameters();
+				
 		
 		//warpImages
 		mStitcher.warpImages();
