@@ -19,9 +19,7 @@ public class StitcherTestActivity extends Activity
 	SnapshotManager mManager;
 	
     private static final String PANORAMA_FILENAME = "result.jpg";
-    private static final String TEST_SAMPLES = "sample"
-    		+ "";
-	
+    private static final String TEST_SAMPLES = "sample16ensi";	
 	@Override
 	public void onCreate(final Bundle savedInstanceState) 
 	{
@@ -30,8 +28,6 @@ public class StitcherTestActivity extends Activity
 		
     	//get context ressources
     	String filename = Environment.getExternalStorageDirectory() + File.separator + TEST_SAMPLES+File.separator+"PanoData.json";
-    	
-		
 	
 		//and init snapshot manager
 		mManager= new SnapshotManager();

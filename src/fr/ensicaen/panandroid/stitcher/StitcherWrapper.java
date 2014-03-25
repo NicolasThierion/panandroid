@@ -30,7 +30,7 @@ import fr.ensicaen.panandroid.snapshot.Snapshot;
  * @author Nicolas THIERION.
  * @author Jean MARGUERITE.
  */
-public class StitcherWrapper 
+public class StitcherWrapper
 {
 	/* *********
      * ATTRIBUTES
@@ -53,16 +53,15 @@ public class StitcherWrapper
 
 	private float[][] mOrientations;
 
-
-
 	private String mPanoFile;
+
     /**
      * Load JNI library.
      */
     static {
-        System.loadLibrary("ocvstitcher");
+        System.loadLibrary("jniwrapper");
     }
-    
+
     /* *********
      * CONSTRUCTOR
      * *********/    
@@ -179,10 +178,11 @@ public class StitcherWrapper
     }	
     
 
+
     /* **********
 	 * PUBLIC METHODS
 	 * *********/
-	
+
     /**
      * Find features in all bunch of images.
      * @return Result of finding features.
@@ -227,12 +227,12 @@ public class StitcherWrapper
     {
     	return mStatus;
     }
-    
+
     /**
      * Get average progress (in percent) of all the stitching operations;
      * @return
      */
-	public int getProgress() 
+	public int getProgress()
 	{
 		return mProgress;
 	}
@@ -241,7 +241,7 @@ public class StitcherWrapper
 	 * *********/
 	 public static native int rotateImage(String imagePath, int angle);
 
-	
+
 	/* **********
 	 * PRIVATE NATIVE PROTOTYPES DECLARATION
 	 * **********/
@@ -256,7 +256,7 @@ public class StitcherWrapper
 	 private native int newStitcher(String panoFilename, Object[] files, float[][] orientations);
 
 
-	 
 
-	
+
+
 }

@@ -17,8 +17,24 @@ OPENCV_INSTALL_MODULES := on
 
 include $(OPENCV_HOME)/sdk/native/jni/OpenCV.mk
 
-LOCAL_MODULE    := ocvstitcher
-LOCAL_SRC_FILES := ocvstitcher.cpp
+LOCAL_MODULE    := jniwrapper
+LOCAL_SRC_FILES := jniwrapper.cpp \
+					opencv2/modules/stitching/src/autocalib.cpp \
+					opencv2/modules/stitching/src/blenders.cpp \
+					opencv2/modules/stitching/src/camera.cpp \
+					opencv2/modules/stitching/src/exposure_compensate.cpp \
+					opencv2/modules/stitching/src/motion_estimators.cpp \
+					opencv2/modules/stitching/src/seam_finders.cpp \
+					opencv2/modules/stitching/src/util.cpp \
+					opencv2/modules/stitching/src/warpers.cpp \
+					opencv2/modules/stitching/src/stitcher.cpp \
 LOCAL_LDLIBS +=  -llog -ldl
 
 include $(BUILD_SHARED_LIBRARY)
+
+APP_PLATFORM := android-17
+APP_OPTIM:= debug
+LOCAL_CFLAGS    := -DRAPIDXML_NO_EXCEPTIONS
+LOCAL_CFLAGS    += -g
+LOCAL_CFLAGS    += -ggdb
+LOCAL_CFLAGS    += -O1
