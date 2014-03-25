@@ -284,7 +284,7 @@ public class TexturedPlane extends Mesh
 	
 	
 	/**
-	 * Set the axis around wich one the mesh rotate first.
+	 * Set the axis around which one the mesh rotate first.
 	 * @param axis
 	 */
 	public void setAxis(Axis axis)
@@ -300,12 +300,6 @@ public class TexturedPlane extends Mesh
 	{
 		mAlpha = alpha;
 	}
-	
-	
-
-
-
-	
 
 	public void rotate(float rx, float ry, float rz)
 	{

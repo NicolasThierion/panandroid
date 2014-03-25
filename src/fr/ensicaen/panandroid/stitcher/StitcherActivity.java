@@ -182,7 +182,6 @@ public class StitcherActivity extends Activity {
 
 			while(mWrapper.getStatus() == StitcherWrapper.Status.OK && mWrapper.getProgress()<100)
 			{
-				Log.i(TAG, "progress :" +mWrapper.getProgress());
                 mProgress.setProgress(mWrapper.getProgress());
                 try 
                 {
@@ -194,7 +193,8 @@ public class StitcherActivity extends Activity {
 				}
 			}
  		
-        	if (mWrapper.getStatus() == StitcherWrapper.Status.DONE) {
+        	if (mWrapper.getStatus() == StitcherWrapper.Status.DONE) 
+        	{
         		
         		try {
                     Thread.sleep(1500);

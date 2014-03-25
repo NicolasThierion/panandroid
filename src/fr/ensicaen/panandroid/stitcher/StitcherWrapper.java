@@ -174,7 +174,7 @@ public class StitcherWrapper
     		return Status.ERR;
     	}
     	mProgress = 100;
-
+		mStatus = Status.DONE;
 		return Status.DONE;
     }	
     
