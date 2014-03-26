@@ -109,13 +109,13 @@ enum WaveCorrectKind WAVE_CORRECTION_TYPE=detail::WAVE_CORRECT_HORIZ;	//{WAVE_CO
 
 
 /** Pictures resolution for finding the seam **/
-float SEAM_ESTIMATION_RESOL = 0.1f;		// :0.1f
+float SEAM_ESTIMATION_RESOL = 0.4f;		// :0.1f
 
 /** ?? **/
-float REGISTRATION_RESOL = 0.1f; 		// :0.1f
+float REGISTRATION_RESOL = 0.4f; 		// :0.1f
 
 /**Pictures resolution for the composition step. **/
-float COMPOSITION_RESOL = 0.6f; 		// :0.6f
+float COMPOSITION_RESOL = 2.6f; 		// :0.6f
 
 /** Threshold for two images are from the same panorama confidence. Lower value decrease precision. **/
 float PANO_CONFIDENCE_THRESH = 1.0f; 	//:1.0f

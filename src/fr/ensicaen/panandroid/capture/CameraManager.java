@@ -40,6 +40,7 @@ import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
 import android.hardware.Camera.Size;
@@ -134,6 +135,7 @@ public class CameraManager /* implements SnapshotObserver */
 	private final ShutterCallback mShutterCallback = new OnShutterCallback();
 	private final PictureCallback mRawCallback = new RawCallback();
 	private final PictureCallback mJpegCallback = new JpegCallback();
+	private final AutoFocusCallback mAutoFocusCallback = new OnFocusCallback();
 	
 	private LinkedList<SnapshotEventListener> mListeners = new LinkedList<SnapshotEventListener>();
 	private ReentrantLock mListenersLock;
@@ -248,7 +250,7 @@ public class CameraManager /* implements SnapshotObserver */
 
 		mCameraParameters = mCamera.getParameters();
 		mCameraParameters.set("orientation", "portrait");
-		
+
 		mCamera.setParameters(mCameraParameters);
 		setPreviewFormat(DEFAULT_PREVIEW_FORMAT);
 
@@ -618,7 +620,6 @@ public class CameraManager /* implements SnapshotObserver */
 		//set picture orientation
 		mCameraParameters = mCamera.getParameters();
 		mCameraParameters.setJpegQuality(mJpegCompression);
-		
 		//take a picture in separated thread
 		try
 		{
@@ -632,10 +633,11 @@ public class CameraManager /* implements SnapshotObserver */
 				public void run() {
 					// Call to garbage collector to avoid bug http://code.opencv.org/issues/2961 
 				    System.gc();
-				    
-					mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
+			        mCamera.autoFocus(mAutoFocusCallback);
+		   
+				    }
 			
-				}
+				
 			}).start();
 		}
 		catch(RuntimeException e)
@@ -711,7 +713,16 @@ public class CameraManager /* implements SnapshotObserver */
 	/* *************
 	 * PRIVATE CALLBACK CLASSES
 	 * ************/
-	
+
+	private class OnFocusCallback implements AutoFocusCallback
+	{
+
+		@Override
+        public void onAutoFocus(boolean success, Camera camera) {
+			mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
+        }
+		
+	}
 	/**
 	 * If capture is sensorial, get current pitch and current yaw, and fill mTempSnapshot with it.
 	 * @author Nicolas THIERION.

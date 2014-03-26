@@ -1,6 +1,6 @@
 eclipse.preferences.version=1
 environment/project/com.android.toolchain.gcc.239206571/OPENCV_HOME/delimiter=;
 environment/project/com.android.toolchain.gcc.239206571/OPENCV_HOME/operation=replace
-environment/project/com.android.toolchain.gcc.239206571/OPENCV_HOME/value=D\:\\NVPACK\\OpenCV-2.4.5-Tegra-sdk-r2
+environment/project/com.android.toolchain.gcc.239206571/OPENCV_HOME/value=/home/benseddik/NVPACK/OpenCV-2.4.5-Tegra-sdk-r2
 environment/project/com.android.toolchain.gcc.239206571/append=true
 environment/project/com.android.toolchain.gcc.239206571/appendContributed=true

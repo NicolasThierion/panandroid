@@ -79,11 +79,33 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	private float mYawOffset = 0.0f;
 
 	/** Mesh that is drawed, given to the renderer **/
+	
+	/****/
+	float mPitchLimits[] = new float[2];
+	float mYawLimits[] =  new float[2];
+	
+	
 	//protected Mesh mMesh;
 	
     /* *********
 	 * CONSTRUCTORS
 	 * *********/
+
+	public float[] getmPitchLimits() {
+		return mPitchLimits;
+	}
+
+	public void setPitchLimits(float[] mPitchLimits) {
+		this.mPitchLimits = mPitchLimits;
+	}
+
+	public float[] getmYawLimits() {
+		return mYawLimits;
+	}
+
+	public void setYawLimits(float[] mYawLimits) {
+		this.mYawLimits = mYawLimits;
+	}
 
 	/**
 	 * Creates a new MeshView to put in the given context.
@@ -102,7 +124,11 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		if(renderer != null)
 		{        
 			super.setEGLContextClientVersion(1);
-
+			mPitchLimits[0] = -1000;
+			mPitchLimits[1] = 1000;
+			mYawLimits[0] = -1000;
+			mYawLimits[1] = 1000;
+			
 			setRenderer(renderer);
 		}
 
@@ -226,7 +252,12 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		
 		if(mRollEnable)
 			roll = mSensorFusionManager.getRelativeRoll();		
-				
+
+		
+		pitch = (pitch>mPitchLimits[1]?mPitchLimits[1]:pitch);
+		pitch = (pitch<mPitchLimits[0]?mPitchLimits[0]:pitch);
+		yaw = (yaw>mYawLimits[1]?mYawLimits[1]:yaw);
+		yaw = (yaw<mYawLimits[0]?mYawLimits[0]:yaw);
 		mRenderer.setRotation(pitch, yaw, roll);
 		
 		//mRenderer.setRotationMatrix(mSensorFusionManager.getRotationMatrix());
@@ -246,18 +277,24 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		int surfaceWidth = mRenderer.getSurfaceWidth();
 		int surfaceHeight = mRenderer.getSurfaceHeight();
 		float aspect = (float) surfaceWidth/(float) surfaceHeight;
-		float rotationLatitudeDeg = mRenderer.getPitch();
-		float rotationLongitudeDeg = mRenderer.getYaw();
+		float pitch = mRenderer.getPitch();
+		float yaw = mRenderer.getYaw();
 		float hFovDeg = mRenderer.getHFovDeg();
 		
 		float deltaLongitute = deltaYaw/surfaceWidth*hFovDeg;
-		rotationLongitudeDeg -= deltaLongitute;	
+		yaw -= deltaLongitute;	
 		
 		float fovYDeg = hFovDeg/aspect;
 		float deltaLatitude = deltaPitch/surfaceHeight*fovYDeg;
-		rotationLatitudeDeg -= deltaLatitude;
+		pitch -= deltaLatitude;
 	
-		mRenderer.setRotation(rotationLatitudeDeg, rotationLongitudeDeg);
+		pitch = (pitch>mPitchLimits[1]?mPitchLimits[1]:pitch);
+		pitch = (pitch<mPitchLimits[0]?mPitchLimits[0]:pitch);
+		yaw = (yaw>mYawLimits[1]?mYawLimits[1]:yaw);
+		yaw = (yaw<mYawLimits[0]?mYawLimits[0]:yaw);
+		
+
+		mRenderer.setRotation(pitch, yaw);
 	}
 
 	/* *********
@@ -408,6 +445,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		}
 		
 		EventInfo event1 = mMotionEvents.pop();
+				
 		long tEnd = event1.time;
 		float directionX = 0.0f;
 		float directionY = 0.0f;
@@ -456,6 +494,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		if (scrollSpeedX == 0.0f && scrollSpeedY == 0.0f) {
 			return;
 		}
+
 		mRenderer.startInertiaRotation(-1.0f*scrollSpeedY, -1.0f*scrollSpeedX);
 	}
 
