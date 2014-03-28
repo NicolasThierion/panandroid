@@ -48,6 +48,7 @@ namespace cv {
 
 Stitcher Stitcher::createDefault(bool try_use_gpu)
 {
+	//setting default parameters
     Stitcher stitcher;
     stitcher.setRegistrationResol(0.6);
     stitcher.setSeamEstimationResol(0.1);

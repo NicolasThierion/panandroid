@@ -112,10 +112,10 @@ float confidenceThreshold = 1.f;		//1.f
 float matchConfidence = 0.3f;			//0.3f
 
 /** Blending method. **/
-int blendType = Blender::MULTI_BAND;
+int BLEND_TYPE = Blender::MULTI_BAND;
 
 /** Exposure compensation method. **/
-int exposureCompensationType = ExposureCompensator::GAIN_BLOCKS;
+int EXPOSURE_COMPENSATOR_TYPE = ExposureCompensator::GAIN_BLOCKS;
 
 /** Warped image scale. **/
 static float warpedImageScale;
@@ -191,7 +191,7 @@ vector<Point> _corners;
 vector<Size> _sizes;
 
 /** Exposure compensator. **/
-static Ptr<ExposureCompensator> _compensator = ExposureCompensator::createDefault(exposureCompensationType);
+static Ptr<ExposureCompensator> _compensator = ExposureCompensator::createDefault(EXPOSURE_COMPENSATOR_TYPE);
 
 /** Warper. **/
 static Ptr<RotationWarper> _warper;
@@ -793,17 +793,17 @@ extern "C"
 
                         if (blender.empty())
                         {
-                                blender = Blender::createDefault(blendType, tryGPU);
+                                blender = Blender::createDefault(BLEND_TYPE, tryGPU);
                                 destinationsz = resultRoi(_corners, _sizes).size();
                                 blendWidth = sqrt(static_cast<float>(destinationsz.area())) * blendStrength / 100.f;
 
                                 if (blendWidth < 1.f)
                                         blender = Blender::createDefault(Blender::NO, tryGPU);
-                                else if (blendType == Blender::MULTI_BAND) {
+                                else if (BLEND_TYPE == Blender::MULTI_BAND) {
                                         MultiBandBlender* mb = dynamic_cast<MultiBandBlender*>(static_cast<Blender*>(blender));
                                         mb->setNumBands(static_cast<int>(ceil(log(blendWidth)/log(2.)) - 1.));
                                         __android_log_print(ANDROID_LOG_INFO, TAG, "Multi-band blender, number of bands: %d", mb->numBands());
-                                } else if (blendType == Blender::FEATHER) {
+                                } else if (BLEND_TYPE == Blender::FEATHER) {
                                         FeatherBlender* fb = dynamic_cast<FeatherBlender*>(static_cast<Blender*>(blender));
                                         fb->setSharpness(1.f / blendWidth);
                                         __android_log_print(ANDROID_LOG_INFO, TAG, "Feather blender, sharpness: %f", fb->sharpness());

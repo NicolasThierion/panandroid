@@ -34,6 +34,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 APP_PLATFORM := android-17
 APP_OPTIM:= debug
+APP_CFLAGS+= -O2 -mfpu=neon
 LOCAL_CFLAGS    := -DRAPIDXML_NO_EXCEPTIONS
 LOCAL_CFLAGS    += -g
 LOCAL_CFLAGS    += -ggdb

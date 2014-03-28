@@ -35,21 +35,21 @@
 
 #include "opencv2/highgui/highgui.hpp"
 
+
+#include <opencv2/stitching/detail/autocalib.hpp>
+#include <opencv2/stitching/detail/blenders.hpp>
+#include <opencv2/stitching/detail/camera.hpp>
+#include <opencv2/stitching/detail/exposure_compensate.hpp>
+#include <opencv2/stitching/detail/matchers.hpp>
+#include <opencv2/stitching/detail/motion_estimators.hpp>
+#include <opencv2/stitching/detail/seam_finders.hpp>
+#include <opencv2/stitching/detail/util.hpp>
+#include <opencv2/stitching/detail/warpers.hpp>
+#include <opencv2/stitching/warpers.hpp>
+
+
+
 /*
-#include "opencv2/stitching/detail/autocalib.hpp"
-#include "opencv2/stitching/detail/blenders.hpp"
-#include "opencv2/stitching/detail/camera.hpp"
-#include "opencv2/stitching/detail/exposure_compensate.hpp"
-#include "opencv2/stitching/detail/matchers.hpp"
-#include "opencv2/stitching/detail/motion_estimators.hpp"
-#include "opencv2/stitching/detail/seam_finders.hpp"
-#include "opencv2/stitching/detail/util.hpp"
-#include "opencv2/stitching/detail/warpers.hpp"
-#include "opencv2/stitching/warpers.hpp"
-
-*/
-
-
 
 #include "opencv2/modules/stitching/include/autocalib.hpp"
 #include "opencv2/modules/stitching/include/blenders.hpp"
@@ -60,7 +60,7 @@
 #include "opencv2/modules/stitching/include/util.hpp"
 #include "opencv2/modules/stitching/include/warpers.hpp"
 #include "opencv2/modules/stitching/include/stitcher.hpp"
-
+*/
 using namespace std;
 using namespace cv;
 using namespace cv::detail;
@@ -78,16 +78,16 @@ bool isComposeScale = false;	//compositor crashes if true
 bool tryGPU = true;
 
 /** Resolution for compositing step. **/
-double composeMegapix = -1;
+double composeMegapix = 0.5;		//:-1
 
 /** Resolution for seam estimation step in Mpx. **/
-double seamMegapix = 0.1;
+double seamMegapix = 0.2;
 
 /** Seam work aspect. **/
 double seamWorkAspect = 1;
 
 /** Resolution for image registration step in Mpx. **/
-double workMegapix = 0.6;
+double workMegapix = 0.3;	//:0.6
 
 /** Work scale. **/
 static double workScale = 1;
@@ -102,10 +102,10 @@ float confidenceThreshold = 1.f;
 float matchConfidence = 0.3f;
 
 /** Blending method. **/
-int blendType = Blender::MULTI_BAND;
+int BLEND_TYPE = Blender::MULTI_BAND;
 
 /** Exposure compensation method. **/
-int exposureCompensationType = ExposureCompensator::GAIN_BLOCKS;
+int EXPOSURE_COMPENSATOR_TYPE = ExposureCompensator::GAIN_BLOCKS;
 
 /** Warped image scale. **/
 static float warpedImageScale;
@@ -179,7 +179,7 @@ vector<Point> _corners;
 vector<Size> _sizes;
 
 /** Exposure compensator. **/
-static Ptr<ExposureCompensator> _compensator = ExposureCompensator::createDefault(exposureCompensationType);
+static Ptr<ExposureCompensator> _compensator = ExposureCompensator::createDefault(EXPOSURE_COMPENSATOR_TYPE);
 
 /** Warper. **/
 static Ptr<RotationWarper> _warper;
@@ -686,24 +686,29 @@ for (int img_idx = 0; img_idx < numberImages; ++img_idx)
         imageWarped.release();
         image.release();
         mask.release();
+        __android_log_print(ANDROID_LOG_INFO, TAG, "image converted" );
 
         dilate(_masksWarped[img_idx], dilatedMask, Mat());
+        __android_log_print(ANDROID_LOG_INFO, TAG, "image dilated" );
+
         resize(dilatedMask, seamMask, maskWarped.size());
         maskWarped = seamMask & maskWarped;
+        __android_log_print(ANDROID_LOG_INFO, TAG, "image resized" );
+
 
         if (blender.empty())
         {
-                blender = Blender::createDefault(blendType, tryGPU);
+                blender = Blender::createDefault(BLEND_TYPE, tryGPU);
                 destinationsz = resultRoi(_corners, _sizes).size();
                 blendWidth = sqrt(static_cast<float>(destinationsz.area())) * blendStrength / 100.f;
 
                 if (blendWidth < 1.f)
                         blender = Blender::createDefault(Blender::NO, tryGPU);
-                else if (blendType == Blender::MULTI_BAND) {
+                else if (BLEND_TYPE == Blender::MULTI_BAND) {
                         MultiBandBlender* mb = dynamic_cast<MultiBandBlender*>(static_cast<Blender*>(blender));
                         mb->setNumBands(static_cast<int>(ceil(log(blendWidth)/log(2.)) - 1.));
                         __android_log_print(ANDROID_LOG_INFO, TAG, "Multi-band blender, number of bands: %d", mb->numBands());
-                } else if (blendType == Blender::FEATHER) {
+                } else if (BLEND_TYPE == Blender::FEATHER) {
                         FeatherBlender* fb = dynamic_cast<FeatherBlender*>(static_cast<Blender*>(blender));
                         fb->setSharpness(1.f / blendWidth);
                         __android_log_print(ANDROID_LOG_INFO, TAG, "Feather blender, sharpness: %f", fb->sharpness());
@@ -719,19 +724,19 @@ for (int img_idx = 0; img_idx < numberImages; ++img_idx)
         // Blend the current image.
         blender->feed(imageWarpedS, maskWarped, _corners[img_idx]);
 
-#ifdef DEBUG
-        __android_log_print(ANDROID_LOG_INFO, TAG, "blending time : %f", ((getTickCount() - tt) / getTickFrequency()) );
-        tt = getTickCount();
-#endif
-}
+	#ifdef DEBUG
+		__android_log_print(ANDROID_LOG_INFO, TAG, "blending time : %f", ((getTickCount() - tt) / getTickFrequency()) );
+		tt = getTickCount();
+	#endif
+	}
 
-Mat result, resultMask;
-blender->blend(result, resultMask);
-#ifdef DEBUG
-__android_log_print(ANDROID_LOG_INFO, TAG, "Compositing time: %f sec", ((getTickCount() - t) / getTickFrequency()));
-__android_log_print(ANDROID_LOG_INFO, TAG, "Writing image file :%s", _resultPath.c_str());
-imwrite(_resultPath, result);
-#endif
+	Mat result, resultMask;
+	blender->blend(result, resultMask);
+	#ifdef DEBUG
+		__android_log_print(ANDROID_LOG_INFO, TAG, "Compositing time: %f sec", ((getTickCount() - t) / getTickFrequency()));
+		__android_log_print(ANDROID_LOG_INFO, TAG, "Writing image file :%s", _resultPath.c_str());
+		imwrite(_resultPath, result);
+	#endif
 
         return 0;
 }

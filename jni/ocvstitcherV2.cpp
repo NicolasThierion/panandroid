@@ -41,7 +41,7 @@
 //M*/
 
 #define DEBUG
-#define NCUSTOM_STITCHER
+#define CUSTOM_STITCHER
 
 #include <iostream>
 #include <fstream>
@@ -50,16 +50,16 @@
 #include <opencv2/opencv_modules.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#ifdef CUSTOM_STITCHER
-#include "opencv2/modules/stitching/include/autocalib.hpp"
-#include "opencv2/modules/stitching/include/blenders.hpp"
-#include "opencv2/modules/stitching/include/camera.hpp"
-#include "opencv2/modules/stitching/include/exposure_compensate.hpp"
-#include "opencv2/modules/stitching/include/motion_estimators.hpp"
-#include "opencv2/modules/stitching/include/seam_finders.hpp"
-#include "opencv2/modules/stitching/include/util.hpp"
-#include "opencv2/modules/stitching/include/warpers.hpp"
-#include "opencv2/modules/stitching/include/stitcher.hpp"
+#ifdef NCUSTOM_STITCHER
+#include "opencv2/modules/stitching/include/opencv2/stitching/details/autocalib.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/details/blenders.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/details/camera.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/details/exposure_compensate.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/details/motion_estimators.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/details/seam_finders.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/details/util.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/details/warpers.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching//stitcher.hpp"
 #else
 #include <opencv2/stitching/detail/autocalib.hpp>
 #include <opencv2/stitching/detail/blenders.hpp>
@@ -86,7 +86,9 @@ using namespace cv::detail;
  * ****/
 static Ptr<WarperCreator> buildWarper(string);
 static Ptr<FeaturesFinder> buildFeaturesFinder(string);
-static Ptr<detail::BundleAdjusterBase> buildBundleAdjuster(string);
+static Ptr<BundleAdjusterBase> buildBundleAdjuster(string);
+static Ptr<ExposureCompensator> buildExposureCompensator(int);
+static Ptr<Blender> buildBlender(int ,  vector<Point> , vector<Size> , int );
 
 
 
@@ -107,18 +109,27 @@ string BUNDLE_ADJUSTER_TYPE = "ray" ;			// {"reproj", "ray" : "ray" }
 bool ENABLE_WAVE_CORRECTION=true;		//:true
 enum WaveCorrectKind WAVE_CORRECTION_TYPE=detail::WAVE_CORRECT_HORIZ;	//{WAVE_CORRECT_VERT, WAVE_CORRECT_HORIZ : WAVE_CORRECT_HORIZ}
 
+/** exposure compensator type **/
+int EXPOSURE_COMPENSATOR_TYPE = ExposureCompensator::GAIN_BLOCKS; //{GAIN_BLOCKS, BLOCK, NO : GAIN_BLOCKS}
+
+/** Blending method. **/
+int BLENDER_TYPE = Blender::MULTI_BAND; //{MULTI_BAND, FEATHER, NO : BlenderMULTI_BAND;};
+
 
 /** Pictures resolution for finding the seam **/
 float SEAM_ESTIMATION_RESOL = 0.1f;		// :0.1f
 
 /** ?? **/
-float REGISTRATION_RESOL = 0.1f; 		// :0.1f
+float REGISTRATION_RESOL = 0.6f; 		// :0.6f
 
 /**Pictures resolution for the composition step. **/
 float COMPOSITION_RESOL = 0.6f; 		// :0.6f
 
 /** Threshold for two images are from the same panorama confidence. Lower value decrease precision. **/
-float PANO_CONFIDENCE_THRESH = 1.0f; 	//:1.0f
+float PANO_CONFIDENCE_THRESH = 1.0f; 	//:1.0f /!\ too low value (<0.5) can cause crashes!!!
+
+/** Blending strength from [0,100] range. **/
+float BLENDER_STRENGTH = 5;	//5
 
 bool TRY_GPU=true;
 
@@ -135,6 +146,15 @@ Ptr<WarperCreator> _warperCreator;
 
 /** features finder **/
 Ptr<FeaturesFinder> _featuresFinder;
+
+/** exposure compensator **/
+Ptr<ExposureCompensator> _exposureCompensator;
+
+/** blender **/
+Ptr<Blender> _blender;
+
+
+
 
 /** bundle adjuster **/
 Ptr<detail::BundleAdjusterBase> _bundleAdjuster;
@@ -165,7 +185,6 @@ static Mat _pano;
 /* ********
  * CONSTRUCTOR
  * ********/
-
 /**
  * Find feature in images from internal image array.
  *
@@ -217,6 +236,15 @@ int adjustParameters()
 	}
 	__android_log_print(ANDROID_LOG_INFO, TAG, "setting params..");
 
+	_exposureCompensator = buildExposureCompensator(EXPOSURE_COMPENSATOR_TYPE);
+	if(_exposureCompensator == 0)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown _exposureCompensatortype %d", EXPOSURE_COMPENSATOR_TYPE);
+		return -1;
+	}
+
+
+
 	_stitcher = new cv::Stitcher(Stitcher::createDefault(TRY_GPU));
 
 	//convert images into mat.
@@ -225,8 +253,6 @@ int adjustParameters()
 	{
 		_images.push_back(imread((*it)));
 	}
-
-
 
 	_stitcher->setWarper(_warperCreator);
 	_stitcher->setFeaturesFinder(_featuresFinder);
@@ -237,6 +263,8 @@ int adjustParameters()
 	_stitcher->setWaveCorrection(ENABLE_WAVE_CORRECTION);
 	_stitcher->setWaveCorrectKind(WAVE_CORRECTION_TYPE);
 
+
+	//TODO : adjust params
 	_stitcher->setFeaturesMatcher(new detail::BestOf2NearestMatcher(TRY_GPU,0.3));
 	_stitcher->setBundleAdjuster(_bundleAdjuster);
 	return 0;
@@ -267,6 +295,18 @@ int composePanorama()
 	__android_log_print(ANDROID_LOG_INFO, TAG, "stitching %d images", _images.size());
 	__android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
 #endif
+	//TODO
+/*
+	_blender = buildBlender(BLENDER_TYPE);
+		if(_blender == 0)
+		{
+			__android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown _exposureCompensatortype %d", EXPOSURE_COMPENSATOR_TYPE);
+			return -1;
+		}
+
+*/
+	_stitcher->setBlender(_blender);
+
 
 	Stitcher::Status status = _stitcher->stitch(_images, _pano);
 	imwrite(_resultPath, _pano);
@@ -365,6 +405,37 @@ static Ptr<detail::BundleAdjusterBase> buildBundleAdjuster(string bundleAdjustme
 	return adjuster;
 }
 
+static Ptr<detail::Blender> buildBlender(int blenderType, vector<Point> corners, vector<Size> sizes, int blendStrength)
+{
+	Ptr<Blender> blender = Blender::createDefault(blenderType, TRY_GPU);
+	Size destinationsz = resultRoi(corners, sizes).size();
+
+	int blendWidth = sqrt(static_cast<float>(destinationsz.area())) * blendStrength / 100.f;
+
+	if (blendWidth < 1.f)
+			blender = Blender::createDefault(Blender::NO, TRY_GPU);
+	else if (blenderType == Blender::MULTI_BAND)
+	{
+			MultiBandBlender* mb = dynamic_cast<MultiBandBlender*>(static_cast<Blender*>(blender));
+			mb->setNumBands(static_cast<int>(ceil(log(blendWidth)/log(2.)) - 1.));
+			__android_log_print(ANDROID_LOG_INFO, TAG, "Multi-band blender, number of bands: %d", mb->numBands());
+	}
+	else if (blenderType == Blender::FEATHER)
+	{
+			FeatherBlender* fb = dynamic_cast<FeatherBlender*>(static_cast<Blender*>(blender));
+			fb->setSharpness(1.f / blendWidth);
+			__android_log_print(ANDROID_LOG_INFO, TAG, "Feather blender, sharpness: %f", fb->sharpness());
+	}
+	blender->prepare(corners, sizes);
+	return blender;
+}
+
+static Ptr<detail::ExposureCompensator> buildExposureCompensator(int exposureCompensationType)
+{
+    Ptr<detail::ExposureCompensator> compensator;
+    compensator = ExposureCompensator::createDefault(exposureCompensationType);
+    return compensator;
+}
 
 
 

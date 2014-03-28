@@ -37,7 +37,7 @@ or revised without written permission of the authors.
                     <!-- android:name="fr.ensicaen.panandroid.capture.CaptureActivity" -->
         
         <activity
- 			android:name="fr.ensicaen.panandroid.test.StitcherTestActivity"             
+ 			android:name="fr.ensicaen.panandroid.panandroid.viewer.ViewerActivity"             
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance" >

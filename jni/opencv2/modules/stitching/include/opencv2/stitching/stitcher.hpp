@@ -145,6 +145,7 @@ private:
     double compose_resol_;
     double conf_thresh_;
     Ptr<detail::FeaturesFinder> features_finder_;
+    //TODO : bench with bestOf2NearestMatcher.
     Ptr<detail::FeaturesMatcher> features_matcher_;
     cv::Mat matching_mask_;
     Ptr<detail::BundleAdjusterBase> bundle_adjuster_;
