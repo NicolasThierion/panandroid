@@ -65,8 +65,8 @@ public class SphereViewerActivity extends Activity {
     
  
     //set GL view & its renderer
-    this.mSphereView = new Inside3dView(this, sphere);
-    this.setContentView(this.mSphereView);
+    mSphereView = new Inside3dView(this, sphere);
+    setContentView(this.mSphereView);
     
     
     mSphereView.setEnableInertialRotation(true);

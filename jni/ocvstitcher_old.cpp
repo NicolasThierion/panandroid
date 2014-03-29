@@ -79,7 +79,7 @@ using namespace cv::detail;
  * PARAMETERS
  ************/
 /** Wave correction : try to keep horizon horizontal **/
-bool doWaveCorrect = true;		// : true
+bool WAVE_CORRECTION = true;		// : true
 
 /** ????? **/
 bool isComposeScale = false;	//compositor crashes if true
@@ -505,7 +505,7 @@ extern "C"
                         warpedImageScale = static_cast<float>(focals[focals.size() / 2 - 1] + focals[focals.size() / 2]) * 0.5f;
 
                 // Wave correction.
-                if (doWaveCorrect) {
+                if (WAVE_CORRECTION) {
                         for (size_t i = 0; i < _cameras.size(); ++i)
                                 rmats.push_back(_cameras[i].R);
 

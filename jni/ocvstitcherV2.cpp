@@ -50,16 +50,17 @@
 #include <opencv2/opencv_modules.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#ifdef NCUSTOM_STITCHER
-#include "opencv2/modules/stitching/include/opencv2/stitching/details/autocalib.hpp"
-#include "opencv2/modules/stitching/include/opencv2/stitching/details/blenders.hpp"
-#include "opencv2/modules/stitching/include/opencv2/stitching/details/camera.hpp"
-#include "opencv2/modules/stitching/include/opencv2/stitching/details/exposure_compensate.hpp"
-#include "opencv2/modules/stitching/include/opencv2/stitching/details/motion_estimators.hpp"
-#include "opencv2/modules/stitching/include/opencv2/stitching/details/seam_finders.hpp"
-#include "opencv2/modules/stitching/include/opencv2/stitching/details/util.hpp"
-#include "opencv2/modules/stitching/include/opencv2/stitching/details/warpers.hpp"
-#include "opencv2/modules/stitching/include/opencv2/stitching//stitcher.hpp"
+#ifdef CUSTOM_STITCHER
+
+#include "opencv2/modules/stitching/include/opencv2/stitching/detail/autocalib.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/detail/blenders.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/detail/camera.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/detail/exposure_compensate.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/detail/motion_estimators.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/detail/seam_finders.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/detail/util.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/detail/warpers.hpp"
+#include "opencv2/modules/stitching/include/opencv2/stitching/stitcher.hpp"
 #else
 #include <opencv2/stitching/detail/autocalib.hpp>
 #include <opencv2/stitching/detail/blenders.hpp>
@@ -123,10 +124,10 @@ float SEAM_ESTIMATION_RESOL = 0.1f;		// :0.1f
 float REGISTRATION_RESOL = 0.6f; 		// :0.6f
 
 /**Pictures resolution for the composition step. **/
-float COMPOSITION_RESOL = 0.6f; 		// :0.6f
+float COMPOSITION_RESOL = 2.0f; 		// :0.6f
 
 /** Threshold for two images are from the same panorama confidence. Lower value decrease precision. **/
-float PANO_CONFIDENCE_THRESH = 1.0f; 	//:1.0f /!\ too low value (<0.5) can cause crashes!!!
+float PANO_CONFIDENCE_THRESH = 0.5f; 	//:1.0f /!\ too low value (<0.5) can cause crashes!!!
 
 /** Blending strength from [0,100] range. **/
 float BLENDER_STRENGTH = 5;	//5
@@ -295,7 +296,8 @@ int composePanorama()
 	__android_log_print(ANDROID_LOG_INFO, TAG, "stitching %d images", _images.size());
 	__android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
 #endif
-	//TODO
+
+
 /*
 	_blender = buildBlender(BLENDER_TYPE);
 		if(_blender == 0)
@@ -303,11 +305,15 @@ int composePanorama()
 			__android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown _exposureCompensatortype %d", EXPOSURE_COMPENSATOR_TYPE);
 			return -1;
 		}
+	Stitcher::Status;
 
-*/
-	_stitcher->setBlender(_blender);
+	status = _stitcher->estimateTransform(images);
 
 
+	status = _stitcher->setBlender(_blender);
+
+
+	 status = _stitcher->composePanorama();*/
 	Stitcher::Status status = _stitcher->stitch(_images, _pano);
 	imwrite(_resultPath, _pano);
 

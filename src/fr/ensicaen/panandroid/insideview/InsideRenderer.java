@@ -80,6 +80,9 @@ public class InsideRenderer implements Renderer, EulerAngles
 	private float mYaw; 	/* Rotation around y axis */
 	private float mPitch; 	/* Rotation around x axis */
 	private float mRoll; 	/* Rotation around z axis */
+	
+	float mPitchLimits[];
+	float mYawLimits[];
 
 	/** Rotation matrix = modelview matrix **/
 	private float[] mRotationMatrix = new float[16]; 		// While accessing this matrix, the renderer object has to be locked.
@@ -114,6 +117,12 @@ public class InsideRenderer implements Renderer, EulerAngles
 	  	setRotation(mYaw, mPitch);
 	  	mFovDeg = DEFAULT_FOV;	
 	  	
+	  	mPitchLimits  = new float[2];
+	  	mYawLimits  = new float[2];
+		mPitchLimits[0] = -1000;
+		mPitchLimits[1] = 1000;
+		mYawLimits[0] = -1000;
+		mYawLimits[1] = 1000;
 	  	
 	  	mRotationMatrix = Arrays.copyOf(IDENTITY, 16);
 	  	
@@ -455,11 +464,35 @@ public class InsideRenderer implements Renderer, EulerAngles
 			deltaYaw = 0.5f*tMax*mRotationYawSpeed;
 		}
   	
+		if(mPitch0+deltaPitch > mPitchLimits[1])
+		{
+			deltaPitch = mPitchLimits[1]-mPitch0;
+		}
+		else if(mPitch0+deltaPitch < mPitchLimits[0])
+		{
+			deltaPitch = mPitchLimits[0]-mPitch0;
+		}
+
+		if(mYaw0+deltaYaw > mYawLimits[1])
+		{
+			deltaYaw = mYawLimits[1]-mYaw0;
+		}
+		if(mYaw0+deltaYaw < mYawLimits[0])
+		{
+			deltaYaw = mYawLimits[0]-mYaw0;
+		}
+		
 		setRotation(mPitch0+deltaPitch, mYaw0+deltaYaw);
 	}
 
 	public void setRotationMatrix(float[] rotationMatrix) {
 		mRotationMatrix = rotationMatrix;
+	}
+
+	public void setRotationLimits(float[] pitchLimits, float[] yawLimits)
+	{
+		mPitchLimits = pitchLimits;
+		mYawLimits =  yawLimits;
 	}
 
 	

@@ -19,7 +19,7 @@ public class StitcherTestActivity extends Activity
 	SnapshotManager mManager;
 	
     private static final String PANORAMA_FILENAME = "result.jpg";
-    private static final String TEST_SAMPLES = "sample3ensi";	
+    private static final String TEST_SAMPLES = "sample16ensi";	
 	@Override
 	public void onCreate(final Bundle savedInstanceState) 
 	{

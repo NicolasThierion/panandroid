@@ -193,6 +193,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		}		
 		
 		
+		
 		// set glview to use a capture renderer with the provided skybox.
 		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
 		super.setRenderer(mRenderer);
