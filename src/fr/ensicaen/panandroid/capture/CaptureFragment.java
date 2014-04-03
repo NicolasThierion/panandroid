@@ -99,14 +99,19 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
 
     private WakeLock mWakeLock;
 
+    public CaptureFragment() {
+        // View in full screen, and don't turn screen off.
+        /*
+        getActivity().requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getActivity().getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        */
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        // View in full screen, and don't turn screen off.
-        getActivity().requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         mPowerManager = (PowerManager) getActivity().getSystemService(Context.POWER_SERVICE);
         mWakeLock = mPowerManager.newWakeLock(
                 PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
