@@ -78,7 +78,7 @@ bool isComposeScale = false;	//compositor crashes if true
 bool tryGPU = true;
 
 /** Resolution for compositing step. **/
-double composeMegapix = 0.5;		//:-1
+double composeMegapix = 0.8;		//:-1
 
 /** Resolution for seam estimation step in Mpx. **/
 double seamMegapix = 0.2;
@@ -87,25 +87,28 @@ double seamMegapix = 0.2;
 double seamWorkAspect = 1;
 
 /** Resolution for image registration step in Mpx. **/
-double workMegapix = 0.3;	//:0.6
+double workMegapix = 0.2;	//:0.6
 
 /** Work scale. **/
-static double workScale = 1;
+static double workScale = 0.3;
 
 /** Blending strength from [0,100] range. **/
 float blendStrength = 5;
 
 /** Threshold for two images are from the same panorama confidence. **/
-float confidenceThreshold = 1.f;
+float confidenceThreshold = 0.f;
 
 /** Confidence for feature matching step. **/
 float matchConfidence = 0.3f;
+int MATCHER_THRESH1 = 3;
+int MATCHER_THRESH2 = 3;
+
 
 /** Blending method. **/
 int BLEND_TYPE = Blender::MULTI_BAND;
 
 /** Exposure compensation method. **/
-int EXPOSURE_COMPENSATOR_TYPE = ExposureCompensator::GAIN_BLOCKS;
+int EXPOSURE_COMPENSATOR_TYPE = ExposureCompensator::GAIN;
 
 /** Warped image scale. **/
 static float warpedImageScale;
@@ -123,12 +126,17 @@ string bundleAdjustmentRefineMask = "xxxxx";
 
 /** Type of features. **/
 string featuresType = "orb";
+Size ORB_GRID_SIZE = Size(3,1);
+size_t ORB_FEATURES_N = 1500;
+/*const ORB::CommonParams &ORB_PARAMS = ORB::CommonParams(1.3f, 5);*/
 
 /** Seam estimation method. **/
-string seamFindType = "gc_color";
+string seamFindType = "dp_colorgrad";
 
 /** Warp surface type. **/
 string warpType = "spherical";
+
+
 
 /*************
  * ATTRIBUTES
@@ -190,6 +198,9 @@ Ptr<WarperCreator> _warperCreator;
 /** Perform wave effect correction. **/
 WaveCorrectKind _waveCorrection = detail::WAVE_CORRECT_HORIZ;
 
+static Mat _matchingMask;
+
+
 //================ REGISTRATION STEPS ============================
 // Find feature in images from internal image array.
 int findFeatures()
@@ -222,7 +233,8 @@ int findFeatures()
         }
         else if (featuresType == "orb")
         {
-                finder = new OrbFeaturesFinder();
+
+                finder = new OrbFeaturesFinder(ORB_GRID_SIZE, ORB_FEATURES_N/*, &ORB_PARAMS*/);
         }
         else
         {
@@ -275,6 +287,7 @@ int findFeatures()
                 }
 
                 // Find _features in the current working image.
+
                 (*finder)(image, _features[i]);
                 _features[i].img_idx = i;
 #ifdef DEBUG
@@ -305,7 +318,7 @@ int matchFeatures()
         vector<string> imagesPathSubset;
         vector<Mat> imagesSubset;
         vector<Size> fullImagesSizeSubset;
-        BestOf2NearestMatcher matcher(tryGPU, matchConfidence); // TODO : Adjust parameters using benchmark.
+        BestOf2NearestMatcher matcher(tryGPU, matchConfidence, MATCHER_THRESH1, MATCHER_THRESH2); // TODO : Adjust parameters using benchmark.
 
 #ifdef DEBUG
          int64 t = getTickCount();
@@ -313,7 +326,7 @@ int matchFeatures()
         __android_log_print(ANDROID_LOG_INFO, TAG, "pairwise matching");
          __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
 #endif
-        matcher(_features, _pairwiseMatches); // TODO : try another matcher method.
+        matcher(_features, _pairwiseMatches , _matchingMask); // TODO : try another matcher method.
         matcher.collectGarbage();
 
         __android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching time: %f sec", ((getTickCount() - t) / getTickFrequency()));
@@ -633,6 +646,27 @@ int composePanorama()
 			}
 		}
 
+
+		if (blender.empty())
+		{
+			blender = Blender::createDefault(BLEND_TYPE, tryGPU);
+			destinationsz = resultRoi(_corners, _sizes).size();
+			blendWidth = sqrt(static_cast<float>(destinationsz.area())) * blendStrength / 100.f;
+
+			if (blendWidth < 1.f)
+					blender = Blender::createDefault(Blender::NO, tryGPU);
+			else if (BLEND_TYPE == Blender::MULTI_BAND) {
+					MultiBandBlender* mb = dynamic_cast<MultiBandBlender*>(static_cast<Blender*>(blender));
+					mb->setNumBands(static_cast<int>(ceil(log(blendWidth)/log(2.)) - 1.));
+					__android_log_print(ANDROID_LOG_INFO, TAG, "Multi-band blender, number of bands: %d", mb->numBands());
+			} else if (BLEND_TYPE == Blender::FEATHER) {
+					FeatherBlender* fb = dynamic_cast<FeatherBlender*>(static_cast<Blender*>(blender));
+					fb->setSharpness(1.f / blendWidth);
+					__android_log_print(ANDROID_LOG_INFO, TAG, "Feather blender, sharpness: %f", fb->sharpness());
+			}
+
+			blender->prepare(_corners, _sizes);
+		}
 		for (int img_idx = 0; img_idx < numberImages; ++img_idx)
 		{
 			#ifdef DEBUG
@@ -696,26 +730,7 @@ int composePanorama()
 			__android_log_print(ANDROID_LOG_INFO, TAG, "image resized" );
 
 
-			if (blender.empty())
-			{
-				blender = Blender::createDefault(BLEND_TYPE, tryGPU);
-				destinationsz = resultRoi(_corners, _sizes).size();
-				blendWidth = sqrt(static_cast<float>(destinationsz.area())) * blendStrength / 100.f;
 
-				if (blendWidth < 1.f)
-						blender = Blender::createDefault(Blender::NO, tryGPU);
-				else if (BLEND_TYPE == Blender::MULTI_BAND) {
-						MultiBandBlender* mb = dynamic_cast<MultiBandBlender*>(static_cast<Blender*>(blender));
-						mb->setNumBands(static_cast<int>(ceil(log(blendWidth)/log(2.)) - 1.));
-						__android_log_print(ANDROID_LOG_INFO, TAG, "Multi-band blender, number of bands: %d", mb->numBands());
-				} else if (BLEND_TYPE == Blender::FEATHER) {
-						FeatherBlender* fb = dynamic_cast<FeatherBlender*>(static_cast<Blender*>(blender));
-						fb->setSharpness(1.f / blendWidth);
-						__android_log_print(ANDROID_LOG_INFO, TAG, "Feather blender, sharpness: %f", fb->sharpness());
-				}
-
-				blender->prepare(_corners, _sizes);
-			}
 			#ifdef DEBUG
 				__android_log_print(ANDROID_LOG_INFO, TAG, "setting up blender time : %f", ((getTickCount() - tt) / getTickFrequency()) );
 				tt = getTickCount();

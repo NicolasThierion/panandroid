@@ -19,7 +19,7 @@ public class StitcherTestActivity extends Activity
 	SnapshotManager mManager;
 	
     private static final String PANORAMA_FILENAME = "result.jpg";
-    private static final String TEST_SAMPLES = "sample16ensi";	
+    private static final String TEST_SAMPLES = "sample15ensi";	
 	@Override
 	public void onCreate(final Bundle savedInstanceState) 
 	{
@@ -37,7 +37,7 @@ public class StitcherTestActivity extends Activity
 		Assert.assertTrue(success);
 				
 		//load snapshots url into the stitcher
-		LinkedList<Snapshot> snapshots = mManager.getSnapshotsList();
+		LinkedList<LinkedList<Snapshot>> snapshots = mManager.getNeighbors();
 
     	//init stitcher wrapper
 		mStitcher = StitcherWrapper.getInstance();
@@ -48,9 +48,6 @@ public class StitcherTestActivity extends Activity
 		Assert.assertTrue(mStitcher.getStatus()==StitcherWrapper.Status.DONE);
 		
 		
-		//group snapshots by neighbors
-		//TODO
-		LinkedList<LinkedList<Integer>> neighbors = mManager.getNeighborsId();
 	
 		
 		super.onDestroy();

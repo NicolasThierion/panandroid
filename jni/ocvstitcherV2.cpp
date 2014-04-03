@@ -91,6 +91,7 @@ static Ptr<BundleAdjusterBase> buildBundleAdjuster(string);
 static Ptr<ExposureCompensator> buildExposureCompensator(int);
 static Ptr<Blender> buildBlender(int ,  vector<Point> , vector<Size> , int );
 
+static Ptr<detail::FeaturesMatcher> buildFeaturesMatcher();
 
 
 /* ****
@@ -118,19 +119,23 @@ int BLENDER_TYPE = Blender::MULTI_BAND; //{MULTI_BAND, FEATHER, NO : BlenderMULT
 
 
 /** Pictures resolution for finding the seam **/
-float SEAM_ESTIMATION_RESOL = 0.1f;		// :0.1f
+float SEAM_ESTIMATION_RESOL = 0.08f;		// :0.1f
 
 /** ?? **/
-float REGISTRATION_RESOL = 0.6f; 		// :0.6f
+float REGISTRATION_RESOL = 0.08f; 		// :0.6f
 
 /**Pictures resolution for the composition step. **/
-float COMPOSITION_RESOL = 2.0f; 		// :0.6f
+float COMPOSITION_RESOL = 0.6f; 		// :0.6f
 
 /** Threshold for two images are from the same panorama confidence. Lower value decrease precision. **/
-float PANO_CONFIDENCE_THRESH = 0.5f; 	//:1.0f /!\ too low value (<0.5) can cause crashes!!!
+float PANO_CONFIDENCE_THRESH = 0.7f; 	//:1.0f /!\ too low value (<0.5) can cause crashes!!!
 
 /** Blending strength from [0,100] range. **/
 float BLENDER_STRENGTH = 5;	//5
+
+float MATCHER_CONF = 0.45; //0.65
+int MATCHER_THRESH1 = 6;
+int MATCHER_THRESH2 = 6;
 
 bool TRY_GPU=true;
 
@@ -154,11 +159,12 @@ Ptr<ExposureCompensator> _exposureCompensator;
 /** blender **/
 Ptr<Blender> _blender;
 
-
-
-
 /** bundle adjuster **/
 Ptr<detail::BundleAdjusterBase> _bundleAdjuster;
+
+/** feature matcher **/
+Ptr<detail::FeaturesMatcher> _featuresMatcher;
+
 
 /* ***
  * Stitcher data
@@ -172,8 +178,7 @@ static vector<string> _imagesPath;
 /** loaded images **/
 static vector <Mat> _images;
 
-/** Images rotation **/
-static vector<float* > _imagesRotations;
+static Mat _matchingMask;
 
 /** Where store the result image. **/
 static string _resultPath;
@@ -187,6 +192,7 @@ static Mat _pano;
  * CONSTRUCTOR
  * ********/
 /**
+ * Step 1:
  * Find feature in images from internal image array.
  *
  * findFeatures()
@@ -197,12 +203,13 @@ int findFeatures()
 	return 0;
 }
 
-// Match _features.
+/**
+ * Step 2 :
+ * Math features.
+ */
 int matchFeatures()
 {
-	//TODO
-	return 0;
-
+    return 0;
 }
 
 /* Adjust parameters. */
@@ -228,6 +235,13 @@ int adjustParameters()
 		__android_log_print(ANDROID_LOG_ERROR, TAG, "Cannot build featureFinder of unknown type %s", FINDER_TYPE.c_str());
 		return -1;
 	}
+	_featuresMatcher = buildFeaturesMatcher();
+	if(_featuresMatcher == 0)
+		{
+			__android_log_print(ANDROID_LOG_ERROR, TAG, "Cannot build feature matcher of unknown type %s", FINDER_TYPE.c_str());
+			return -1;
+		}
+
 	__android_log_print(ANDROID_LOG_INFO, TAG, "bundleAdjuster..");
 	_bundleAdjuster= buildBundleAdjuster(BUNDLE_ADJUSTER_TYPE);
 	if(_bundleAdjuster == 0)
@@ -263,19 +277,20 @@ int adjustParameters()
 	_stitcher->setPanoConfidenceThresh(PANO_CONFIDENCE_THRESH);
 	_stitcher->setWaveCorrection(ENABLE_WAVE_CORRECTION);
 	_stitcher->setWaveCorrectKind(WAVE_CORRECTION_TYPE);
-
+	//_stitcher->setMatchingMask(_matchingMask);
+	_stitcher->setFeaturesMatcher(_featuresMatcher);
 
 	//TODO : adjust params
-	_stitcher->setFeaturesMatcher(new detail::BestOf2NearestMatcher(TRY_GPU,0.3));
 	_stitcher->setBundleAdjuster(_bundleAdjuster);
 	return 0;
 
 }
 
+
+
 /* Warp images. */
 int warpImages()
 {
-	//TODO
 	return 0;
 
 }
@@ -314,7 +329,20 @@ int composePanorama()
 
 
 	 status = _stitcher->composePanorama();*/
-	Stitcher::Status status = _stitcher->stitch(_images, _pano);
+
+#ifdef DEBUG
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Estimating transform");
+#endif
+	Stitcher::Status status = _stitcher->estimateTransform(_images);
+	if (status != Stitcher::OK)
+		return status;
+
+#ifdef DEBUG
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Composing pano");
+#endif
+	status = _stitcher->composePanorama(_pano);
+
+
 	imwrite(_resultPath, _pano);
 
 
@@ -368,7 +396,7 @@ static Ptr<WarperCreator> buildWarper(string warpType)
 		warperCreator = new cv::TransverseMercatorWarper();
 
 	if (warperCreator.empty()) {
-		__android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown _warper: %s", warpType.c_str());
+		__android_log_print(ANDROID_LOG_ERROR, TAG, "Unknown warper: %s", warpType.c_str());
 		return 0;
 	}
 
@@ -443,6 +471,11 @@ static Ptr<detail::ExposureCompensator> buildExposureCompensator(int exposureCom
     return compensator;
 }
 
+static Ptr<detail::FeaturesMatcher> buildFeaturesMatcher()
+{
+	Ptr<detail::FeaturesMatcher>  matcher = new BestOf2NearestMatcher(TRY_GPU, MATCHER_CONF, MATCHER_THRESH1, MATCHER_THRESH2);
+	return matcher;
+}
 
 
 

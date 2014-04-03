@@ -61,8 +61,8 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	 * ******/
 	public static final String TAG = CaptureActivity.class.getSimpleName();
 
-	private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
-	private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
+	private static final float DEFAULT_PITCH_STEP = 360.0f/16.0f;;
+	private static final float DEFAULT_YAW_STEP = 360.0f/16.0f;
 
 	/* *********
 	 * PARAMETERS

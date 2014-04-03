@@ -974,11 +974,13 @@ public class CameraManager /* implements SnapshotObserver */
 		if(prefix.equals(mPrefix))
 			id = mFileId;
 		
-		String absoluteFilename = path+prefix;
 		
-		File fJpeg = new File(absoluteFilename+".jpg");
-		File fRaw = new File(absoluteFilename+".raw");
-		if(fJpeg.exists() || fRaw.exists())
+		File fJpeg, fRaw;
+		String absoluteFilename = path+prefix;
+		/*
+		fJpeg = new File(absoluteFilename+".jpg");
+		fRaw = new File(absoluteFilename+".raw");
+		if(fJpeg.exists() || fRaw.exists())*/
 		{
 			do
 			{

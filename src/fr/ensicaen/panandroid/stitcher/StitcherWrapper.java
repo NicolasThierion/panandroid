@@ -19,8 +19,10 @@
 
 package fr.ensicaen.panandroid.stitcher;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 
+import android.annotation.SuppressLint;
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 
 /**
@@ -47,14 +49,13 @@ public class StitcherWrapper
 	private String mFilenames[];
 
 
-	private LinkedList<Snapshot> mSnapshotList;
-
-
-
 	private float[][] mOrientations;
 
 	private String mPanoFile;
-
+	private LinkedList<LinkedList<Snapshot>> mNeighborList;
+	private HashMap<Integer, Snapshot> mSnapshotMap;
+	private int mMatchingMask[][];
+	
     /**
      * Load JNI library.
      */
@@ -83,21 +84,46 @@ public class StitcherWrapper
     	return mInstance;
     }
     
-    public void setSnapshotList(LinkedList<Snapshot> list)
+	@SuppressLint("UseSparseArrays")
+	public void setSnapshotList(LinkedList<LinkedList<Snapshot>> neighborsList)
     {
-    	mSnapshotList = list;
-    	mFilenames = new String[list.size()];
-    	mOrientations = new float[list.size()][3];
+    	mNeighborList =neighborsList;
+    	mSnapshotMap = new HashMap<Integer, Snapshot>();
     	
     	int i=0;
-    	for(Snapshot s : list)
+    	for(LinkedList<Snapshot> list : neighborsList)
     	{
+    		for(Snapshot s : list)
+    		{
+    			mSnapshotMap.put(s.getId(), s);
+    		}
+    	}
+    	int size = mSnapshotMap.size();
+    	mFilenames = new String[size];
+    	mOrientations = new float[size][3];
+    	//convert hashmap into array
+    	for(i=0; i<mSnapshotMap.size(); ++i)
+    	{
+    		Snapshot s = mSnapshotMap.get(i);
+    		
     		mFilenames[i] = s.getFileName();
     		mOrientations[i][0] = s.getPitch();
     		mOrientations[i][1] = s.getYaw();
     		mOrientations[i][2] = s.getRoll();
-    		i++;
     	}
+    	
+    	
+    	mMatchingMask = new int[size][size];
+    	for(LinkedList<Snapshot>list : neighborsList)
+    	{
+    		int currId = list.get(0).getId();
+    		for(Snapshot s : list)
+    		{
+    			mMatchingMask[currId][s.getId()]=1;
+    		}
+    	}
+    	
+    	
     	mStatus = Status.OK;
     }
 
@@ -107,7 +133,10 @@ public class StitcherWrapper
     	mProgress = 0;
     	mStatus = Status.OK;
     	mPanoFile = resultFile;
-    	status = newStitcher(mPanoFile, mFilenames, mOrientations);
+    	
+    	
+    	
+    	status = newStitcher(mPanoFile, mFilenames, mMatchingMask);
     	if(status!=0)
     	{
     		mMessage = "stitcher creation failed";
@@ -178,6 +207,7 @@ public class StitcherWrapper
     }	
     
 
+  
 
     /* **********
 	 * PUBLIC METHODS
@@ -253,7 +283,7 @@ public class StitcherWrapper
      * @param files Path to all images in the current folder.
      * @return Result of images storage.
      */
-	 private native int newStitcher(String panoFilename, Object[] files, float[][] orientations);
+	 private native int newStitcher(String panoFilename, Object[] files, int[][] matchingMask);
 
 
 

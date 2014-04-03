@@ -41,8 +41,12 @@
 //M*/
 
 #include "precomp.hpp"
+#include <android/log.h>
 
+#define TAG "Stitcher"
 using namespace std;
+
+#define ENABLE_LOG true
 
 namespace cv {
 
@@ -121,6 +125,7 @@ Stitcher::Status Stitcher::composePanorama(OutputArray pano)
 Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
 {
     LOGLN("Warping images (auxiliary)... ");
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Warping images (auxiliary)... ");
 
     vector<Mat> imgs;
     images.getMatVector(imgs);
@@ -163,6 +168,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
     vector<Size> sizes(imgs_.size());
     vector<Mat> masks(imgs_.size());
 
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Preparing masks... ");
     // Prepare image masks
     for (size_t i = 0; i < imgs_.size(); ++i)
     {
@@ -170,6 +176,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
         masks[i].setTo(Scalar::all(255));
     }
 
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Warp images and their masks... ");
     // Warp images and their masks
     Ptr<detail::RotationWarper> w = warper_->create(float(warped_image_scale_ * seam_work_aspect_));
     for (size_t i = 0; i < imgs_.size(); ++i)
@@ -192,6 +199,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
         images_warped[i].convertTo(images_warped_f[i], CV_32F);
 
     LOGLN("Warping images, time: " << ((getTickCount() - t) / getTickFrequency()) << " sec");
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Warping images, time: %f sec ", ((getTickCount() - t) / getTickFrequency()));
 
     // Find seams
     exposure_comp_->feed(corners, images_warped, masks_warped);
@@ -204,6 +212,8 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
     masks.clear();
 
     LOGLN("Compositing...");
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Compositing... ");
+
 #if ENABLE_LOG
     t = getTickCount();
 #endif
@@ -222,6 +232,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
     for (size_t img_idx = 0; img_idx < imgs_.size(); ++img_idx)
     {
         LOGLN("Compositing image #" << indices_[img_idx] + 1);
+    	__android_log_print(ANDROID_LOG_INFO, TAG, "Compositing image #%d", indices_[img_idx] + 1);
 
         // Read image and resize it if necessary
         full_img = imgs_[img_idx];
@@ -260,10 +271,14 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
                 Rect roi = w->warpRoi(sz, K, cameras_[i].R);
                 corners[i] = roi.tl();
                 sizes[i] = roi.size();
+
             }
         }
+
         if (std::abs(compose_scale - 1) > 1e-1)
+        {
             resize(full_img, img, Size(), compose_scale, compose_scale);
+        }
         else
             img = full_img;
         full_img.release();
@@ -299,11 +314,9 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
             blender_->prepare(corners, sizes);
             is_blender_prepared = true;
         }
-
         // Blend the current image
         blender_->feed(img_warped_s, mask_warped, corners[img_idx]);
     }
-
     Mat result, result_mask;
     blender_->blend(result, result_mask);
 
@@ -401,6 +414,7 @@ Stitcher::Status Stitcher::matchImages()
         }
         features_[i].img_idx = (int)i;
         LOGLN("Features in image #" << i+1 << ": " << features_[i].keypoints.size());
+    	__android_log_print(ANDROID_LOG_INFO, TAG, "Features in image #%d : %d ", i+1, features_[i].keypoints.size());
 
         resize(full_img, img, Size(), seam_scale_, seam_scale_);
         seam_est_imgs_[i] = img.clone();
@@ -419,6 +433,7 @@ Stitcher::Status Stitcher::matchImages()
 #endif
     (*features_matcher_)(features_, pairwise_matches_, matching_mask_);
     features_matcher_->collectGarbage();
+
     LOGLN("Pairwise matching, time: " << ((getTickCount() - t) / getTickFrequency()) << " sec");
 
     // Leave only images we are sure are from the same panorama

@@ -42,7 +42,7 @@
 //M*/
 
 
-#define V2
+#define V3
 
 
 #define TAG "OpenCV stitcher"
@@ -51,8 +51,14 @@
 
 #ifdef V1
 #include "ocvstitcherV1.cpp"
-#else
+#endif
+
+#ifdef V2
 #include "ocvstitcherV2.cpp"
+#endif
+
+#ifdef V3
+#include "ocvstitcherV3.cpp"
 #endif
 
 #include "tools.cpp"
@@ -78,14 +84,13 @@ extern "C"
          */
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_newStitcher
-        (JNIEnv* env, jobject obj, jstring compositionFile, jobjectArray files, jobjectArray orientations)
+        (JNIEnv* env, jobject obj, jstring compositionFile, jobjectArray files, jobjectArray matchingMask)
         {
 
         		jstring tmpFileName;
-				float* orientation;
 				const char* path;
 				_nbImages = env->GetArrayLength(files);
-                jfloatArray orientationsArray;
+                jintArray matchingMaskLine;
 
 #ifdef DEBUG
                 int64 t = getTickCount();
@@ -93,21 +98,23 @@ extern "C"
                 __android_log_print(ANDROID_LOG_INFO, TAG, "Init stitcher");
                 __android_log_print(ANDROID_LOG_INFO, TAG, "=======================");
 #endif
+
+                _matchingMask = Mat::zeros(_nbImages, _nbImages, CV_8U);
+
                 // Fetch and convert images path from jstring to string.
                 for (int i = 0; i < _nbImages; ++i)
                 {
                 	tmpFileName = (jstring) env->GetObjectArrayElement(files, i);
-					orientation = new float[3];
-
-					orientationsArray = (jfloatArray)env->GetObjectArrayElement(orientations, i);
-				    jfloat *orientationElement=env->GetFloatArrayElements(orientationsArray, 0);
-				    for(int j=0; j<3; ++j)
+					matchingMaskLine = (jintArray)env->GetObjectArrayElement(matchingMask, i);
+				    int *matchingMaskElement=env->GetIntArrayElements(matchingMaskLine, 0);
+				    for(int j=0; j<_nbImages; ++j)
 				    {
-				    	orientation[j] = orientationElement[j];
+				    	_matchingMask.at<uchar>(i, j) = (uchar)matchingMaskElement[j];
 					}
+
+
 					path = env->GetStringUTFChars(tmpFileName, 0);
 					_imagesPath.push_back(path);
-					_imagesRotations.push_back(orientation);
 #ifdef DEBUG
 					__android_log_print(ANDROID_LOG_INFO, TAG, "Store path #%d : %s", i + 1, path);
 #endif

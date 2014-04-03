@@ -165,11 +165,10 @@ public class StitcherActivity extends Activity {
         @Override
         protected Integer doInBackground(Void... params) {
         	
-        	LinkedList<Snapshot> snapshots = mSnapshotManager.getSnapshotsList();
         	
         	
         	mWrapper = StitcherWrapper.getInstance();
-        	mWrapper.setSnapshotList(snapshots);
+        	mWrapper.setSnapshotList(mSnapshotManager.getNeighbors());
         	
         	new Thread(new Runnable(){
         		public void run()
