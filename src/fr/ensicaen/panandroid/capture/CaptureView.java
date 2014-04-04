@@ -19,12 +19,6 @@
 
 package fr.ensicaen.panandroid.capture;
 import java.util.LinkedList;
-
-
-
-
-
-
 import android.app.Activity;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
@@ -42,11 +36,14 @@ import android.graphics.Bitmap;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 
 
@@ -60,7 +57,7 @@ import android.widget.RelativeLayout;
 @SuppressLint("ViewConstructor")
 public class CaptureView extends Inside3dView implements SensorEventListener, SnapshotEventListener
 {
-	
+
 	private static final String TAG = CaptureView.class.getSimpleName();
 
 	/* *********
@@ -88,40 +85,56 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 
 	/** Camera manager, **/
 	private CameraManager mCameraManager;
-	
+
 	/** Sphere renderer **/
 	private CaptureRenderer mRenderer;
-	
+
 	/** SensorFusion used to guide capture **/
 	private SensorFusionManager mSensorManager;
-	
+
 	private float mPitchStep = DEFAULT_PITCH_STEP;
 	private float mYawStep = DEFAULT_YAW_STEP;
-	
+
 	private boolean mCaptureIsStared = false;
 	private ProgressBar mStartingProgressSpinner;
 
+	/** Handler for touch screen motion events. **/
+	private final GestureDetector.SimpleOnGestureListener mGestureListener;
+
+	/** Detects various gestures and events using the supplied MotionEvents. **/
+	private GestureDetector mGestureDetector;
 
 	/* **********
 	 * CONSTRUCTORS
 	 * *********/
-	
+
 	/**
 	 * Draws the given sphere in the center of the view, plus the camera preview given by CameraManager.
 	 * @param context - context of application.
 	 * @param mCameraManager - Camera manager, to redirect camera preview.
 	 */
-	public CaptureView(Context context, CameraManager cameraManager) 
+	public CaptureView(final Context context, CameraManager cameraManager)
 	{
 		super(context);
-		
+
+		mGestureListener = new GestureDetector.SimpleOnGestureListener() {
+		    @Override
+		    public boolean onFling(MotionEvent e1, MotionEvent e2,
+		            float velocityX, float velocityY) {
+		        Toast.makeText(context, "Fling Event performed", Toast.LENGTH_LONG).show();
+		        return true;
+		    }
+		};
+
+		mGestureDetector = new GestureDetector(context, mGestureListener);
+
 		//add the starting spinner at the center of the view.
 		ViewGroup layout = (ViewGroup) ((Activity)context).findViewById(android.R.id.content).getRootView();
 		mStartingProgressSpinner = new ProgressBar((Activity)context,null,android.R.attr.progressBarStyleLarge);
 		mStartingProgressSpinner.setIndeterminate(true);
 		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
 
-		RelativeLayout.LayoutParams params = new 
+		RelativeLayout.LayoutParams params = new
 		        RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
 
 		RelativeLayout rl = new RelativeLayout(context);
@@ -130,23 +143,23 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		rl.addView(mStartingProgressSpinner);
 
 		layout.addView(rl,params);
-		
-		//setup sensors	
-		mSensorManager = SensorFusionManager.getInstance(getContext());	
+
+		//setup sensors
+		mSensorManager = SensorFusionManager.getInstance(getContext());
 		if(!mSensorManager.start())
 		{
 			//TODO : error toast
 			Log.e(TAG, "Rotation not supported");
 		}
-		
+
 		//setup cameraManager
-		mCameraManager = cameraManager;	
+		mCameraManager = cameraManager;
 		mCameraManager.setSensorialCaptureEnabled(true);
-		
+
 		//adapt precision according to sensorFusion type.
 		mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_THREASHOLD);
 		mCameraManager.setAutoShootPrecision(DEFAULT_AUTOSHOOT_PRECISION);
-		
+
 		//TODO : implement or remove
 		/*
 		if(mSensorManager.isGyroscopeSupported())
@@ -158,13 +171,13 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 			mCameraManager.setAutoShootThreshold(DEFAULT_AUTOSHOOT_ACCELEROMETER_THREASHOLD);
 		}
 		 */
-		
+
 		//init the skybox
 		Cube skybox = null;
-		Resources res = super.getResources();	
+		Resources res = super.getResources();
 		int sampleSize=DEFAULT_SKYBOX_SAMPLE_SIZE;
 		boolean done = false;
-		
+
 		//try to load the best texture resolution
 		while(!done && sampleSize<32)
 		{
@@ -176,7 +189,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 				Bitmap texRight = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_rt, sampleSize);
 				Bitmap texBottom = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_bt, sampleSize);
 				Bitmap texTop = BitmapDecoder.safeDecodeBitmap(res, R.raw.skybox_tp, sampleSize);
-				
+
 				skybox = new Cube(SKYBOX_SIZE,texFront,texBack, texLeft, texRight, texBottom, texTop);
 				done = true;
 			}
@@ -185,37 +198,36 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 				sampleSize*=2;
 			}
 		}
-		
+
 		Assert.assertTrue(skybox!=null);
 		if(sampleSize!=DEFAULT_SKYBOX_SAMPLE_SIZE)
 		{
 			Log.w(TAG, "not enough memory to load skybox texture.. Forced to downscale texture by "+sampleSize);
-		}		
-		
-		
-		
+		}
+
+
 		// set glview to use a capture renderer with the provided skybox.
 		mRenderer = new CaptureRenderer(context, skybox, mCameraManager) ;
 		super.setRenderer(mRenderer);
-		  
+
 		//set first dot only. Other targers will be placed after first shoot
 		LinkedList<EulerAngles> initialTarget = new LinkedList<EulerAngles>();
 		initialTarget.add(new Snapshot(0.0f, 0.0f) );
 		mRenderer.setMarkerList(initialTarget);
-		
-		
+
+
 		//set view rotation parameters
 		super.setEnableSensorialRotation(true);
 		super.setEnableTouchRotation(false);
 		super.setEnableInertialRotation(false);
-		
-		//disable yaw. Will be enabled back after first shoot    
+
+		//disable yaw. Will be enabled back after first shoot
 		super.setEnablePitchRotation(true);
 		super.setEnableRollRotation(true);
 		super.setEnableYawRotation(false);
-		
+
 	}
-	
+
 	/**
 	 * Set pitch interval between markers and updates camera autoShoot targets, if the capture is started.
 	 * @param step - pitch interval.
@@ -227,7 +239,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 			setTargets();
 
 	}
-	
+
 	/**
 	 * Set yaw interval between markers and updates camera autoShoot targets, if the capture is started.
 	 * @param step - yaw interval.
@@ -236,22 +248,22 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	{
 		mYawStep = step;
 		if(mCaptureIsStared)
-			setTargets();	
+			setTargets();
 	}
 
-	
-	
+
+
 	private LinkedList<EulerAngles> setTargets()
 	{
 		//updates camera autoshoot targets
 		LinkedList<EulerAngles> targets = new LinkedList<EulerAngles>();
-		
+
 		double currentPitch, currentYaw;
 		double pitchStep = 180.0 / ((int)(180.0f / mPitchStep));
 		double yawStep = 360.0 / ((int)(360.0f / mYawStep));
 		double s = Math.toRadians(yawStep);
-		
-		
+
+
 		for(currentPitch=0; currentPitch< 90.1f - pitchStep; currentPitch+=pitchStep)
 		{
 			double phi = Math.toRadians(currentPitch);
@@ -268,18 +280,18 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 					targets.add(new Snapshot(-p, y));
 			}
 		}
-		
+
 		//add poles
 		targets.add(new Snapshot(90.0f, 0.0f));
 		targets.add(new Snapshot(-90.0f, 0.0f));
-		
+
 		mCameraManager.setAutoShootTargetList(targets);
 		mRenderer.setMarkerList(targets);
 
 		return targets;
 	}
-	
-	
+
+
 
 	/**
 	 * Watch pitch for starting initial shoot.
@@ -288,18 +300,18 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	public void onSensorChanged(SensorEvent e)
 	{
 		super.onSensorChanged(e);
-	
+
 		//if capture already started, continue
 		if(mCaptureIsStared)
 			return;
-		
+
 		//else, first call?
 		if(currentTime==0)
 		{
 			currentTime = (int) (System.currentTimeMillis());
 			return;
 		}
-		
+
 		//else, wait viewFinder to be on target for enough time.
 		int time = (int) (System.currentTimeMillis());
 		int elapsed = time - currentTime;
@@ -312,17 +324,17 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 			mStartingProgressSpinner.setVisibility(View.VISIBLE);
 			mStartingProgressSpinner.requestLayout();
 			startIn-=elapsed;
-			
+
 			if(startIn<=0)
 			{
 				Log.i(TAG, "Starting capture");
 
 				//set orientation's origin to current
-				mSensorManager.setReferenceYaw();	
-				
+				mSensorManager.setReferenceYaw();
+
 				mCameraManager.addSnapshotEventListener(this);
 				mCaptureIsStared  = true;
-				
+
 				//set all targets
 				setTargets();
 			}
@@ -333,13 +345,24 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 			startIn=START_DELAY;
 			mStartingProgressSpinner.setVisibility(View.INVISIBLE);
 			mStartingProgressSpinner.requestLayout();
-		}		
+		}
 	}
+
+	/**
+	 * Called when a touch screen motion event occurs.
+	 * @param event The motion event.
+	 */
+	@Override
+	public boolean onTouchEvent(MotionEvent event)
+	{
+	    return mGestureDetector.onTouchEvent(event);
+	}
+
 	/* **********
 	 * VIEW OVERRIDES
 	 * *********/
-	
-	
+
+
 	@Override
 	public void onPause()
 	{
@@ -347,21 +370,21 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		mCameraManager.onPause();
 		mSensorManager.onResume();
 	}
-	
+
 	@Override
 	public void onResume()
 	{
 		super.onResume();
 		mCameraManager.onResume();
-		mSensorManager.onResume();	
+		mSensorManager.onResume();
 	}
-	
+
 	public void onDestroy()
 	{
 		mCameraManager.onClose();
 	}
-	
-	
+
+
 	@Override
 	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
 	{
@@ -370,7 +393,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		mStartingProgressSpinner.requestLayout();
 		super.setEnableYawRotation(true);
 	}
-	
-	
+
+
 }
-	
+
