@@ -70,8 +70,8 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	private static final float SKYBOX_SIZE 				= 400f;
 	private static final int DEFAULT_SKYBOX_SAMPLE_SIZE = 4;		//[1 - 8] pow of 2.
 	
-	private static final float DEFAULT_PITCH_STEP 		= 360.0f/12.0f;;
-	private static final float DEFAULT_YAW_STEP 		= 360.0f/12.0f;
+	private static final float DEFAULT_PITCH_STEP 		= 360.0f/16.0f;;
+	private static final float DEFAULT_YAW_STEP 		= 360.0f/16.0f;
 
 	/** angle difference before considering a picture has to be captured **/
 	private static final float DEFAULT_AUTOSHOOT_THREASHOLD 			= 3.0f; //[deg]
@@ -259,7 +259,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 			double cosPhi = Math.cos(phi);
 			double lambda = Math.acos((Math.cos(s)-sinPhi*sinPhi)/(cosPhi*cosPhi));
 			yawStep = Math.toDegrees(lambda);
-			for(currentYaw = -180.0; currentYaw < 180.0 - yawStep; currentYaw+=yawStep)
+			for(currentYaw = -180.0; currentYaw < 180.1 - yawStep; currentYaw+=yawStep)
 			{
 				float p = (float)currentPitch;
 				float y = ((float)(currentYaw))%360;

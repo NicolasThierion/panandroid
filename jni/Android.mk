@@ -32,10 +32,14 @@ LOCAL_LDLIBS +=  -llog -ldl
 
 include $(BUILD_SHARED_LIBRARY)
 
+LOCAL_CFLAGS += -O3 -fopenmp -ftree-vectorize -mvectorize-with-neon-quad -mfpu=neon
+LOCAL_LDFLAGS +=-O3 -fopenmp -ftree-vectorize -mvectorize-with-neon-quad -mfpu=neon
+
 APP_PLATFORM := android-17
-APP_OPTIM:= debug
-APP_CFLAGS+= -O2 -mfpu=neon
-LOCAL_CFLAGS    := -DRAPIDXML_NO_EXCEPTIONS
-LOCAL_CFLAGS    += -g
-LOCAL_CFLAGS    += -ggdb
-LOCAL_CFLAGS    += -O1
+APP_OPTIM:= release
+
+APP_CFLAGS+= -O3 -fopenmp -ftree-vectorize -mvectorize-with-neon-quad -mfpu=neon
+#LOCAL_CFLAGS    := -DRAPIDXML_NO_EXCEPTIONS
+#LOCAL_CFLAGS    += -g
+#LOCAL_CFLAGS    += -ggdb
+#LOCAL_CFLAGS    += -O1

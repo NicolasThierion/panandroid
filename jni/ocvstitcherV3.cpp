@@ -75,8 +75,8 @@ bool preview = false;
 bool try_cuda = false;
 bool try_ocl = false;
 double work_megapix = 0.7;
-double seam_megapix = 0.08;
-double compose_megapix = 1.8;
+double seam_megapix = 0.4;
+double compose_megapix = 2.0;
 float conf_thresh = 0.7f;
 string ba_cost_func = "ray";
 string ba_refine_mask = "xxxxx";
@@ -85,15 +85,15 @@ WaveCorrectKind wave_correct = detail::WAVE_CORRECT_HORIZ;
 bool save_graph = false;
 std::string save_graph_to;
 string warp_type = "spherical";
-int expos_comp_type = ExposureCompensator::GAIN;
+int expos_comp_type = ExposureCompensator::GAIN_BLOCKS;
 float match_conf = 0.3f;
-string seam_find_type = "dp_colorgrad";
+string seam_find_type = "dp_color";
 int blend_type = Blender::MULTI_BAND;
 float blend_strength = 5;
 static string _resultPath;
 
-Size ORB_GRID_SIZE = Size(4,2);
-size_t ORB_FEATURES_N = 1500;
+Size ORB_GRID_SIZE = Size(3,1);
+size_t ORB_FEATURES_N = 2500;
 int composePanorama()
 {
 	__android_log_print(ANDROID_LOG_INFO, TAG, "Compose panorama...");
@@ -262,6 +262,8 @@ int composePanorama()
     if (ba_refine_mask[3] == 'x') refine_mask(1,1) = 1;
     if (ba_refine_mask[4] == 'x') refine_mask(1,2) = 1;
     adjuster->setRefinementMask(refine_mask);
+	__android_log_print(ANDROID_LOG_INFO, TAG, "adjusting bundle..");
+
     (*adjuster)(features, pairwise_matches, cameras);
 
 
@@ -517,19 +519,19 @@ int composePanorama()
 
         // Warp the current image
         warper->warp(img, K, cameras[img_idx].R, INTER_LINEAR, BORDER_REFLECT, img_warped);
+        img.release();
 
         // Warp the current image mask
         mask.create(img_size, CV_8U);
         mask.setTo(Scalar::all(255));
         warper->warp(mask, K, cameras[img_idx].R, INTER_NEAREST, BORDER_CONSTANT, mask_warped);
+        mask.release();
 
         // Compensate exposure
         compensator->apply(img_idx, corners[img_idx], img_warped, mask_warped);
 
         img_warped.convertTo(img_warped_s, CV_16S);
         img_warped.release();
-        img.release();
-        mask.release();
 
         dilate(masks_warped[img_idx], dilated_mask, Mat());
         resize(dilated_mask, seam_mask, mask_warped.size());
