@@ -91,7 +91,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	 * CONSTRUCTORS
 	 * *********/
 
-	
 
 	/**
 	 * Creates a new MeshView to put in the given context.
@@ -114,7 +113,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		{        
 			super.setEGLContextClientVersion(1);
 			renderer.setRotationLimits(mPitchLimits, mYawLimits );
-			
 			setRenderer(renderer);
 		}
 
@@ -519,8 +517,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		if (scrollSpeedX == 0.0f && scrollSpeedY == 0.0f) {
 			return;
 		}
-
-		
 		mRenderer.startInertiaRotation(-1.0f*scrollSpeedY, -1.0f*scrollSpeedX);
 	}
 

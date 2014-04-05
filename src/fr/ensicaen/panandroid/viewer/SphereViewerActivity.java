@@ -68,6 +68,8 @@ public class SphereViewerActivity extends Activity {
     mSphereView = new Inside3dView(this, sphere);
     setContentView(this.mSphereView);
     
+    //mSphereView.setPitchLimits(new float[]{-30, 30});
+    //mSphereView.setYawLimits(new float[]{-30, 30});
     
     mSphereView.setEnableInertialRotation(true);
     mSphereView.setEnableTouchRotation(true);

@@ -121,11 +121,13 @@ int BLENDER_TYPE = Blender::MULTI_BAND; //{MULTI_BAND, FEATHER, NO : BlenderMULT
 /** Pictures resolution for finding the seam **/
 float SEAM_ESTIMATION_RESOL = 0.08f;		// :0.1f
 
+
 /** ?? **/
 float REGISTRATION_RESOL = 0.08f; 		// :0.6f
 
+
 /**Pictures resolution for the composition step. **/
-float COMPOSITION_RESOL = 0.6f; 		// :0.6f
+float COMPOSITION_RESOL = 2.6f; 		// :0.6f
 
 /** Threshold for two images are from the same panorama confidence. Lower value decrease precision. **/
 float PANO_CONFIDENCE_THRESH = 0.7f; 	//:1.0f /!\ too low value (<0.5) can cause crashes!!!
