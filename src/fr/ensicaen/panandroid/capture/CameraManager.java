@@ -559,8 +559,21 @@ public class CameraManager /* implements SnapshotObserver */
 	
 	public void startPreview()
 	{
-		mPreviewStarted = true;
-		mCamera.startPreview();
+		try
+		{
+			mCamera.stopPreview();
+			mPreviewStarted = false;
+		}
+		catch(Exception e)
+		{}
+		
+		try
+		{
+			mCamera.startPreview();
+			mPreviewStarted = true;
+		}
+		catch(Exception e)
+		{}
 
 	}
 
@@ -897,12 +910,8 @@ public class CameraManager /* implements SnapshotObserver */
 			}
 			
 			//Reset camera preview : on some devices, camera preview sometimes stops.
-			try
-			{
-				mCamera.startPreview();
-			}
-			catch(Exception e)
-			{}
+			startPreview();
+			
 			
 			//tell camera is ready now
 			mCameraIsBusy = false;

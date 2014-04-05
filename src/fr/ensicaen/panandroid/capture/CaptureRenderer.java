@@ -92,6 +92,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** Size & distance of the camera preview **/
 	private static final float CAMERA_SIZE = 0.10f;
 	private static final float CAMERA_DISTANCE = 0.45f;
+	private static final float CAMERA_SURFACE_ALPHA = 0.75f;		//[0 - 1] : 1;
 
 	/** Size & distance of the viewFinder**/
 	private static final float VIEWFINDER_SIZE = 0.010f;
@@ -605,7 +606,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		//create a new TexturedPlane, that holds the camera texture.
 		mCameraSurface = new TexturedPlane(mCameraSize , CAMERA_RATIO );
 		mCameraSurface.setTexture(mCameraTextureId);
-
+		mCameraSurface.setAlpha(CAMERA_SURFACE_ALPHA);
 		//for unknown reason, the preview is not in correct orientation
 		mCameraSurface.rotate(0, 0, mCameraRoll);
 		mCameraSurface.translate(0, 0, CAMERA_DISTANCE);

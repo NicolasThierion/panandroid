@@ -52,8 +52,8 @@ public class SphereViewerActivity extends Activity {
     super.onCreate(savedInstanceState);
     
     //view in fullscreen
-    this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    requestWindowFeature(Window.FEATURE_NO_TITLE);
+    getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
     
     //init the sphere
     Sphere sphere = new Sphere(SPHERE_RESOLUTION, SPHERE_RADIUS);
@@ -66,7 +66,7 @@ public class SphereViewerActivity extends Activity {
  
     //set GL view & its renderer
     mSphereView = new Inside3dView(this, sphere);
-    setContentView(this.mSphereView);
+    setContentView(mSphereView);
     
     //mSphereView.setPitchLimits(new float[]{-30, 30});
     //mSphereView.setYawLimits(new float[]{-30, 30});
