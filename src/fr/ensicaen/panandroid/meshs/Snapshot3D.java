@@ -22,7 +22,6 @@ package fr.ensicaen.panandroid.meshs;
 import javax.microedition.khronos.opengles.GL10;
 
 import android.graphics.Bitmap;
-import android.util.Log;
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 import fr.ensicaen.panandroid.tools.EulerAngles;
 
@@ -33,6 +32,7 @@ import fr.ensicaen.panandroid.tools.EulerAngles;
  */
 public class Snapshot3D extends TexturedPlane implements EulerAngles
 {
+	@SuppressWarnings("unused")
 	private static final String TAG = Snapshot3D.class.getSimpleName();
 	/* ********
 	 * ATTRIBUTES
@@ -76,7 +76,7 @@ public class Snapshot3D extends TexturedPlane implements EulerAngles
 		super(scale, ratio);
 		super.rotate(-snapshot.getPitch(), -snapshot.getYaw(), 180.0f-snapshot.getRoll());
 		mSnapshot = snapshot;
-		super.setTexture(mSnapshot.getFileName());
+		super.setTexture(mSnapshot.getFilename());
 
 		
 	}

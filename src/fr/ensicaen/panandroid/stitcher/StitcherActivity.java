@@ -20,7 +20,6 @@
 package fr.ensicaen.panandroid.stitcher;
 
 import java.io.File;
-import java.util.LinkedList;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -28,8 +27,10 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
-import fr.ensicaen.panandroid.snapshot.Snapshot;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 
 /**
@@ -46,7 +47,8 @@ public class StitcherActivity extends Activity {
     //private File mFolder;
     private SnapshotManager mSnapshotManager;
     private StitcherWrapper mWrapper ;
-
+    private Button mStitchButton;
+	private String mProjectFile;
     /**
      * Called when StitcherActivity is starting.
      * @param savedInstanceState Contains the data it most recently supplied in
@@ -54,74 +56,40 @@ public class StitcherActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        
+		//bind activity to its layout
+		setContentView(R.layout.stitcher_activity);
         Intent intent = getIntent();
         
         mSnapshotManager = new SnapshotManager();
-        mSnapshotManager.loadJson(intent.getStringExtra("projectFile"));
+        mProjectFile = intent.getStringExtra("projectFile");
+        
+        
+        mSnapshotManager.loadJson(mProjectFile);
+        mStitchButton = (Button) findViewById(R.id.btn_stitch);
+        mStitchButton.setOnClickListener(new View.OnClickListener() {
 
-        new StitcherTask().execute();
+			@Override
+            public void onClick(View v) 
+			{
+				String panoname = ((EditText)StitcherActivity.super.findViewById(R.id.edittext_choose_panoname)).getText().toString();
+				mSnapshotManager.setProjectName(panoname);
+				mSnapshotManager.toJSON(mProjectFile.substring(mProjectFile.lastIndexOf(File.separator)));
+				
+				new StitcherTask().execute();
+				mStitchButton.setEnabled(false);
+            }
+        });
+
+       
     }
 
-    /**
-     * Reads content of PanoData.json file.
-     * @return String with content of PanoData.json
-     */
-   /* public String readPanoData() {
-        BufferedReader br = null;
-        String content = null;
-
-        try {
-            br = new BufferedReader(new FileReader(
-                    mFolder.getAbsoluteFile() + File.separator
-                    + "PanoData.json"));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            StringBuilder sb = new StringBuilder();
-            String line = br.readLine();
-
-            while (line != null) {
-                sb.append(line);
-                line = br.readLine();
-            }
-
-            content = sb.toString();
-            br.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return content;
-    }*/
-
-    /**
-     * Gets images from current folder.
-     * @return List of images path.
-     */
-   /* public List<String> getImagesPath() {
-        List<String> imagesPath = new ArrayList<String>();
-        String[] filesPath = mFolder.list();
-
-        for (int i = 0; i < filesPath.length; ++i) {
-            if (!filesPath[i].endsWith(".json")) {
-                imagesPath.add(mFolder.getAbsolutePath() + File.separator
-                        + filesPath[i]);
-            }
-        }
-
-        imagesPath.add(mFolder.getAbsolutePath() + File.separator
-                + "panorama.jpg");
-
-        return imagesPath;
-    }
-*/
+   
     /**
      * StitcherTask class provides treatments on the set of images.
      */
-    class StitcherTask extends AsyncTask<Void, Integer, Integer> {
+    class StitcherTask extends AsyncTask<Void, Integer, Integer> 
+    {
         public final int SUCCESS = 0;
         private ProgressDialog mProgress;
 
@@ -130,7 +98,8 @@ public class StitcherActivity extends Activity {
          * It runs on the UI thread before doInBackground.
          */
         @Override
-        protected void onPreExecute() {
+        protected void onPreExecute() 
+        {
             mProgress = new ProgressDialog(StitcherActivity.this);
             mProgress.setMessage("Stitching en cours");
             mProgress.setMax(100);
@@ -164,17 +133,14 @@ public class StitcherActivity extends Activity {
          */
         @Override
         protected Integer doInBackground(Void... params) {
-        	
-        	
-        	
+	
         	mWrapper = StitcherWrapper.getInstance();
-        	mWrapper.setSnapshotList(mSnapshotManager.getNeighbors());
+        	mWrapper.setSnapshotList(mSnapshotManager.getNeighborsList());
         	
         	new Thread(new Runnable(){
         		public void run()
         		{
                 	mWrapper.stitch(mSnapshotManager.getWorkingDir()+File.separator+PANORAMA_FILENAME);
-
         		}
         	}).start();
 
@@ -194,7 +160,6 @@ public class StitcherActivity extends Activity {
  		
         	if (mWrapper.getStatus() == StitcherWrapper.Status.DONE) 
         	{
-        		
         		try {
                     Thread.sleep(1500);
                 } catch (InterruptedException e) {}

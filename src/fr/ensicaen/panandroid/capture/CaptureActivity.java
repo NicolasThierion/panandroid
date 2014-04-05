@@ -243,7 +243,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		mCaptureView.onPause();
 		mCameraManager.onPause();
 		//save project to json
-		String res = mSnapshotManager.toJSON(mWorkingDir, SnapshotManager.DEFAULT_JSON_FILENAME);
+		String res = mSnapshotManager.toJSON(SnapshotManager.DEFAULT_JSON_FILENAME);
 		Log.i(TAG,  "saving project to "+res);
 
 		//call parent

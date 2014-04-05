@@ -36,10 +36,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.view.WindowManager;
 import android.view.View.OnSystemUiVisibilityChangeListener;
-import android.widget.TextView;
 
 /**
 *
@@ -52,17 +50,17 @@ import android.widget.TextView;
 *
 */
 public class CaptureFragment extends Fragment implements OnSystemUiVisibilityChangeListener {
-    /********************
-     * DEBUG PARAMETERS *
-     ********************/
+    /* *******************
+     * DEBUG PARAMETERS  *
+     * *******************/
     public static final String TAG = CaptureActivity.class.getSimpleName();
 
     private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
     private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
 
-    /**************
+    /* *************
      * PARAMETERS *
-     **************/
+     * *************/
 
     /** Directory where pictures will be saved **/
     private static final String APP_DIRECTORY = Environment.getExternalStorageDirectory()
@@ -78,9 +76,9 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
 
     public final static String FOLDER = "fr.ensicaen.panandroid.FOLDER";
 
-    /**************
-     * ATTRIBUTES *
-     **************/
+    /* *************
+     * ATTRIBUTES  *
+     * *************/
 
     /** The OpenGL view where to draw the sphere. */
     private CaptureView mCaptureView;
@@ -204,9 +202,9 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
         }
     }
 
-    /*******************
-     * PRIVATE METHODS *
-     *******************/
+    /* ******************
+     * PRIVATE METHODS  *
+     * ******************/
     private String genWorkingDir(String panoName)
     {
         File dir = new File(APP_DIRECTORY + File.separator + panoName);

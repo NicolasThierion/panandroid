@@ -12,7 +12,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
-
+@SuppressWarnings("unused")
 public class SnapshotManagerTestActivity extends Activity
 {
 

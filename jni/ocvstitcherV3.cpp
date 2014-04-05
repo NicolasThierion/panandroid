@@ -44,6 +44,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv_modules.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -58,8 +59,6 @@
 #include "opencv2/stitching/detail/warpers.hpp"
 #include "opencv2/stitching/warpers.hpp"
 
-
-
 using namespace std;
 using namespace cv;
 using namespace cv::detail;
@@ -67,82 +66,149 @@ using namespace cv::detail;
 #define TAG "OpenCV stitcher"
 #define ENABLE_LOG true
 
-// Default command line args
-int _nbImages;
-vector<String> _imagesPath;
-static Mat _matchingMask;
+/*************
+ * STEPS & PROGRESS VALUES
+ ************/
+int FINDER_STEP = 15;
+int MATCHER_STEP = 10;
+int ESTIMATOR_STEP = 5;
+int ADJUSTER_STEP = 5;
+int WARPER_STEP = 10;
+int COMPENSATOR_STEP = 20;
+int SEAM_STEP = 10;
+int COMPOSITOR_STEP = 30;
+
+
+/*************
+ * PARAMETERS
+ ************/
+
+
+/** ??? **/
 bool preview = false;
+
+/** don't support cuda at this time ... **/
 bool try_cuda = false;
+
+/** neither openCL **/
 bool try_ocl = false;
+
+/** working resolution **/
 double work_megapix = 0.7;
+
+/** seam finding resolution **/
 double seam_megapix = 0.4;
+
+/** final panorama resolution **/
 double compose_megapix = 2.0;
-float conf_thresh = 0.7f;
-string ba_cost_func = "ray";
+
+/** Threshold for two images are from the same panorama confidence. **/
+float conf_thresh = 0.5f;
+
+/** Bundle adjustment cost function. reproj don't seems suitable for spherical pano**/
+string ba_cost_func = "ray"; 	//["reproj", "ray" : "ray"]
+
+/** Set refinement mask for bundle adjustment. It looks like 'x_xxx'
+    where 'x' means refine respective parameter and '_' means don't
+    refine one, and has the following format:
+    <fx><skew><ppx><aspect><ppy>. The default mask is 'xxxxx'. If bundle
+    adjustment doesn't support estimation of selected parameter then
+    the respective flag is ignored. **/
 string ba_refine_mask = "xxxxx";
+
+/** if we should keep horizon straight **/
 bool do_wave_correct = true;
+
 WaveCorrectKind wave_correct = detail::WAVE_CORRECT_HORIZ;
 bool save_graph = false;
 std::string save_graph_to;
-string warp_type = "spherical";
-int expos_comp_type = ExposureCompensator::GAIN_BLOCKS;
-float match_conf = 0.3f;
-string seam_find_type = "dp_color";
-int blend_type = Blender::MULTI_BAND;
-float blend_strength = 5;
-static string _resultPath;
 
+/** Warp surface type. **/
+string warp_type = "spherical";
+
+/** Exposure compensation method. **/
+int expos_comp_type = ExposureCompensator::GAIN_BLOCKS;
+
+/** Confidence for feature matching step. **/
+float match_conf = 0.3f;
+
+/** Seam estimation method. **/
+string seam_find_type = "dp_color";
+
+/** Blending method. **/
+int blend_type = Blender::MULTI_BAND;
+
+/** Blending strength from [0,100] range. **/
+float blend_strength = 5;
+
+
+/** orb featureFInder parameters **/
 Size ORB_GRID_SIZE = Size(3,1);
 size_t ORB_FEATURES_N = 2500;
+
+/*************
+ * ATTRIBUTES
+ ************/
+
+/** final panorama name **/
+static string _resultPath;
+
+/** loaded images loaded **/
+vector<String> _imagesPath;
+int _nbImages;
+
+/** current progression of the stitching **/
+float _progress = -1;
+
+/** mask used to know what images should we match together **/
+static Mat _matchingMask;
+
+float _progressStep = 1;
+
 int composePanorama()
 {
-	__android_log_print(ANDROID_LOG_INFO, TAG, "Compose panorama...");
+	_progress = 0;
 
 #if ENABLE_LOG
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Compose panorama...");
     int64 app_start_time = getTickCount();
 #endif
 
     cv::setBreakOnError(true);
 
     // Check if have enough images
-    int num_images = static_cast<int>(_imagesPath.size());
-    if (num_images < 2)
+    _nbImages = static_cast<int>(_imagesPath.size());
+    if (_nbImages < 2)
     {
-        LOGLN("Need more images");
+        __android_log_print(ANDROID_LOG_ERROR, TAG, "Finding features...");
         return -1;
     }
 
     double work_scale = 1, seam_scale = 1, compose_scale = 1;
     bool is_work_scale_set = false, is_seam_scale_set = false, is_compose_scale_set = false;
 
-    LOGLN("Finding features...");
-	__android_log_print(ANDROID_LOG_INFO, TAG, "Finding features...");
-
+    // ================ Finding features... ==================
 #if ENABLE_LOG
+    __android_log_print(ANDROID_LOG_INFO, TAG, "Finding features...");
     int64 t = getTickCount();
 #endif
 
-    Ptr<FeaturesFinder> finder;
-
-	finder = new OrbFeaturesFinder(ORB_GRID_SIZE, ORB_FEATURES_N);
-
-
+    _progressStep = FINDER_STEP / _nbImages;
+    Ptr<FeaturesFinder> finder = new OrbFeaturesFinder(ORB_GRID_SIZE, ORB_FEATURES_N);
     Mat full_img, img;
-    vector<ImageFeatures> features(num_images);
-    vector<Mat> images(num_images);
-    vector<Size> full_img_sizes(num_images);
+    vector<ImageFeatures> features(_nbImages);
+    vector<Mat> images(_nbImages);
+    vector<Size> full_img_sizes(_nbImages);
     double seam_work_aspect = 1;
 
-    for (int i = 0; i < num_images; ++i)
+    for (int i = 0; i < _nbImages; ++i)
     {
         full_img = imread(_imagesPath[i]);
         full_img_sizes[i] = full_img.size();
 
         if (full_img.empty())
         {
-            LOGLN("Can't open image " << _imagesPath[i]);
         	__android_log_print(ANDROID_LOG_ERROR, TAG, "Can't open image %s", _imagesPath[i].c_str());
-
             return -1;
         }
         if (work_megapix < 0)
@@ -174,26 +240,33 @@ int composePanorama()
 
         resize(full_img, img, Size(), seam_scale, seam_scale);
         images[i] = img.clone();
+
+        _progress+=_progressStep;
     }
 
     finder->collectGarbage();
     full_img.release();
     img.release();
 
-    LOGLN("Finding features, time: " << ((getTickCount() - t) / getTickFrequency()) << " sec");
 	__android_log_print(ANDROID_LOG_INFO, TAG, "Finding features, time: %f sec",((getTickCount() - t) / getTickFrequency()));
 
-
-    LOG("Pairwise matching");
+    // ================ Pairwise matching... ==================
 #if ENABLE_LOG
+	__android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching");
     t = getTickCount();
 #endif
+
+
     vector<MatchesInfo> pairwise_matches;
     BestOf2NearestMatcher matcher(try_cuda, match_conf);
     matcher(features, pairwise_matches, _matchingMask);
     matcher.collectGarbage();
+    _progress+=MATCHER_STEP;
+
     LOGLN("Pairwise matching, time: " << ((getTickCount() - t) / getTickFrequency()) << " sec");
 	__android_log_print(ANDROID_LOG_INFO, TAG, "Pairwise matching, time: %f sec",((getTickCount() - t) / getTickFrequency()));
+
+
 
     // Check if we should save matches graph
     if (save_graph)
@@ -220,14 +293,15 @@ int composePanorama()
     full_img_sizes = full_img_sizes_subset;
 
     // Check if we still have enough images
-    num_images = static_cast<int>(_imagesPath.size());
-    if (num_images < 2)
+    _nbImages = static_cast<int>(_imagesPath.size());
+    if (_nbImages < 2)
     {
         LOGLN("Need more images");
     	__android_log_print(ANDROID_LOG_ERROR, TAG, "Need more images");
 
         return -1;
     }
+    // ================ estimate homography... ==================
 	__android_log_print(ANDROID_LOG_INFO, TAG, "estimate homography");
 
     HomographyBasedEstimator estimator;
@@ -245,7 +319,9 @@ int composePanorama()
 
 
     }
+    _progress+=ESTIMATOR_STEP;
 
+    // ================ adjuster... ==================
     Ptr<detail::BundleAdjusterBase> adjuster;
     if (ba_cost_func == "reproj") adjuster = new detail::BundleAdjusterReproj();
     else if (ba_cost_func == "ray") adjuster =  new detail::BundleAdjusterRay();
@@ -265,6 +341,7 @@ int composePanorama()
 	__android_log_print(ANDROID_LOG_INFO, TAG, "adjusting bundle..");
 
     (*adjuster)(features, pairwise_matches, cameras);
+    _progress+=ADJUSTER_STEP;
 
 
     // Find median focal length
@@ -294,22 +371,23 @@ int composePanorama()
         for (size_t i = 0; i < cameras.size(); ++i)
             cameras[i].R = rmats[i];
     }
-
-    LOGLN("Warping images (auxiliary)... ");
-	__android_log_print(ANDROID_LOG_INFO, TAG, "Warping images (auxiliary)... ");
+    // ================ Warping images... ==================
 
 #if ENABLE_LOG
+    LOGLN("Warping images (auxiliary)... ");
+   	__android_log_print(ANDROID_LOG_INFO, TAG, "Warping images (auxiliary)... ");
+
     t = getTickCount();
 #endif
 
-    vector<Point> corners(num_images);
-    vector<Mat> masks_warped(num_images);
-    vector<Mat> images_warped(num_images);
-    vector<Size> sizes(num_images);
-    vector<Mat> masks(num_images);
+    vector<Point> corners(_nbImages);
+    vector<Mat> masks_warped(_nbImages);
+    vector<Mat> images_warped(_nbImages);
+    vector<Size> sizes(_nbImages);
+    vector<Mat> masks(_nbImages);
 
     // Preapre images masks
-    for (int i = 0; i < num_images; ++i)
+    for (int i = 0; i < _nbImages; ++i)
     {
         masks[i].create(images[i].size(), CV_8U);
         masks[i].setTo(Scalar::all(255));
@@ -381,8 +459,8 @@ int composePanorama()
     }
 
     Ptr<RotationWarper> warper = warper_creator->create(static_cast<float>(warped_image_scale * seam_work_aspect));
-
-    for (int i = 0; i < num_images; ++i)
+    _progressStep = WARPER_STEP/_nbImages;
+    for (int i = 0; i < _nbImages; ++i)
     {
         Mat_<float> K;
         cameras[i].K().convertTo(K, CV_32F);
@@ -394,18 +472,22 @@ int composePanorama()
         sizes[i] = images_warped[i].size();
 
         warper->warp(masks[i], K, cameras[i].R, INTER_NEAREST, BORDER_CONSTANT, masks_warped[i]);
+        _progress+=_progressStep;
     }
 
-    vector<Mat> images_warped_f(num_images);
-    for (int i = 0; i < num_images; ++i)
+    vector<Mat> images_warped_f(_nbImages);
+    for (int i = 0; i < _nbImages; ++i)
         images_warped[i].convertTo(images_warped_f[i], CV_32F);
 
     LOGLN("Warping images, time: " << ((getTickCount() - t) / getTickFrequency()) << " sec");
 	__android_log_print(ANDROID_LOG_INFO, TAG, "Warping images, time: %f sec" ,((getTickCount() - t) / getTickFrequency()) );
 
+
+    // ================ Compensate exposure... ==================
 	__android_log_print(ANDROID_LOG_INFO, TAG, "Compensate exposure");
     Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(expos_comp_type);
     compensator->feed(corners, images_warped, masks_warped);
+    _progress+=COMPENSATOR_STEP;
 
     Ptr<SeamFinder> seam_finder;
     if (seam_find_type == "no")
@@ -440,9 +522,12 @@ int composePanorama()
         cout << "Can't create the following seam finder '" << seam_find_type << "'\n";
         return 1;
     }
+    // ================ finding seam... ==================
+
 	__android_log_print(ANDROID_LOG_INFO, TAG, "finding seam");
 
     seam_finder->find(images_warped_f, corners, masks_warped);
+    _progress+=SEAM_STEP;
 
     // Release unused memory
     images.clear();
@@ -450,10 +535,11 @@ int composePanorama()
     images_warped_f.clear();
     masks.clear();
 
+
+    // ================ Compositing... ==================
+#if ENABLE_LOG
     LOGLN("Compositing...");
 	__android_log_print(ANDROID_LOG_INFO, TAG, "Compositing..." );
-
-#if ENABLE_LOG
     t = getTickCount();
 #endif
 
@@ -462,8 +548,8 @@ int composePanorama()
     Ptr<Blender> blender;
     //double compose_seam_aspect = 1;
     double compose_work_aspect = 1;
-
-    for (int img_idx = 0; img_idx < num_images; ++img_idx)
+    _progressStep = COMPOSITOR_STEP/_nbImages;
+    for (int img_idx = 0; img_idx < _nbImages; ++img_idx)
     {
         LOGLN("Compositing image #" << indices[img_idx]+1);
     	__android_log_print(ANDROID_LOG_INFO, TAG, "Compositing image #%i" , indices[img_idx]+1 );
@@ -485,7 +571,7 @@ int composePanorama()
             warper = warper_creator->create(warped_image_scale);
 
             // Update corners and sizes
-            for (int i = 0; i < num_images; ++i)
+            for (int i = 0; i < _nbImages; ++i)
             {
                 // Update intrinsics
                 cameras[i].focal *= compose_work_aspect;
@@ -561,6 +647,7 @@ int composePanorama()
 
         // Blend the current image
         blender->feed(img_warped_s, mask_warped, corners[img_idx]);
+        _progress+=_progressStep;
     }
 
     Mat result, result_mask;
@@ -579,10 +666,12 @@ int composePanorama()
 }
 
 
-
+#ifdef TO_REMOVE
 /* Warp images. */
 int warpImages()
 {
+	__android_log_print(ANDROID_LOG_INFO, TAG, "wraping images");
+
 	return 0;
 
 }
@@ -590,13 +679,13 @@ int warpImages()
 /* Compensate exposure errors and find seam masks. */
 int findSeamMask()
 {
-	//TODO
+	__android_log_print(ANDROID_LOG_INFO, TAG, "finding seam mask");
 	return 0;
 }
 
 int findFeatures()
 {
-	//TODO
+	__android_log_print(ANDROID_LOG_INFO, TAG, "finding features");
 	return 0;
 }
 
@@ -606,11 +695,19 @@ int findFeatures()
  */
 int matchFeatures()
 {
+	__android_log_print(ANDROID_LOG_INFO, TAG, "matching features");
     return 0;
 }
 
 /* Adjust parameters. */
 int adjustParameters()
 {
+	__android_log_print(ANDROID_LOG_INFO, TAG, "adjusting camera parameters");
+
 	return 0;
+}
+#endif
+int getProgress()
+{
+	return (int)_progress;
 }

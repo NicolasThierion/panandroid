@@ -39,7 +39,7 @@ public class StitcherTestActivity extends Activity
 		Assert.assertTrue(success);
 				
 		//load snapshots url into the stitcher
-		LinkedList<LinkedList<Snapshot>> snapshots = mManager.getNeighbors();
+		LinkedList<LinkedList<Snapshot>> snapshots = mManager.getNeighborsList();
 
     	//init stitcher wrapper
 		mStitcher = StitcherWrapper.getInstance();

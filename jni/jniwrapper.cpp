@@ -131,31 +131,34 @@ extern "C"
                 return 0;
         }
 
-        // Find feature in images from internal image array.
-        JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findFeatures
-        (JNIEnv* env, jobject obj)
-        {
-                return findFeatures();
-        }
-
-        // Match _features.
-        JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_matchFeatures
-        (JNIEnv* env, jobject obj)
-        {
-                return matchFeatures();
-        }
-
-        // Adjust parameters.
-        JNIEXPORT jint JNICALL
-        Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_adjustParameters
-        (JNIEnv* env, jobject obj)
-        {
-                return adjustParameters();
-        }
+#ifdef TO_REMOVE
 
         //================ COMPOSITING STEPS ============================
+
+        // Find feature in images from internal image array.
+             JNIEXPORT jint JNICALL
+             Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_findFeatures
+             (JNIEnv* env, jobject obj)
+             {
+                     return findFeatures();
+             }
+
+             // Match _features.
+             JNIEXPORT jint JNICALL
+             Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_matchFeatures
+             (JNIEnv* env, jobject obj)
+             {
+                     return matchFeatures();
+             }
+
+             // Adjust parameters.
+             JNIEXPORT jint JNICALL
+             Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_adjustParameters
+             (JNIEnv* env, jobject obj)
+             {
+                     return adjustParameters();
+             }
+
         // Warp _images.
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_warpImages
@@ -171,7 +174,7 @@ extern "C"
         {
                 return findSeamMask();
         }
-
+#endif
         // Compose final panorama.
         JNIEXPORT jint JNICALL
         Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_composePanorama
@@ -179,5 +182,13 @@ extern "C"
         {
                 return composePanorama();
         }
+        // Compose final panorama.
+		JNIEXPORT jint JNICALL
+		Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_getProgress
+		(JNIEnv* env, jobject obj)
+		{
+				return getProgress();
+		}
+
 }
 

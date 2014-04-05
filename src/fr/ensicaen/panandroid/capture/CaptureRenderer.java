@@ -103,6 +103,8 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/** Size & distance of the markers **/
 	private static final float MARKERS_SIZE = 0.008f;
 	private static final float MARKERS_DISTANCE = 0.30f;
+	private float CONTOUR_ZOOM_PERCENT = 115.0f;
+
 	private static final float DEFAULT_MARKERS_ATTENUATION_FACTOR = 15.0f; 		//[ in percent]
 
 	private static final float CAMERA_RATIO = 4.0f/3.0f;
@@ -135,6 +137,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	/**... and some markers **/
 	private boolean mUseMarkers = USE_MARKERS;
 	private boolean mUseContours = USE_CONTOUR;
+
 	private final Bitmap mMarkerBitmap;
 	private final Bitmap mContourBitmap;
 
@@ -644,11 +647,11 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		contour34.rotate(0, 0, 90.0f);
 
 		contour43.setTexture(mContourBitmap);
-		contour43.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/10.0f);
+		contour43.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/(CONTOUR_ZOOM_PERCENT -100.0f));
 		contour43.setVisible(false);
 
 		contour34.setTexture(mContourBitmap);
-		contour34.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/10.0f);
+		contour34.translate(0.0f, 0.0f, CAMERA_DISTANCE - CAMERA_DISTANCE/(CONTOUR_ZOOM_PERCENT-100.0f));
 		contour34.setVisible(false);
 
 		mContours43.add(contour43);

@@ -22,7 +22,9 @@ package fr.ensicaen.panandroid.stitcher;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import junit.framework.Assert;
 import android.annotation.SuppressLint;
+import android.util.Log;
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 
 /**
@@ -34,6 +36,8 @@ import fr.ensicaen.panandroid.snapshot.Snapshot;
  */
 public class StitcherWrapper
 {
+	
+	private static final String TAG = StitcherWrapper.class.getSimpleName();
 	/* *********
      * ATTRIBUTES
      * *********/
@@ -44,7 +48,6 @@ public class StitcherWrapper
 	
 	
 	private Status mStatus = Status.ERR;
-	private int mProgress= -1;
 	private String mMessage = "-1";
 	private String mFilenames[];
 
@@ -104,9 +107,12 @@ public class StitcherWrapper
     	//convert hashmap into array
     	for(i=0; i<mSnapshotMap.size(); ++i)
     	{
-    		Snapshot s = mSnapshotMap.get(i);
+    		System.out.println(i);
     		
-    		mFilenames[i] = s.getFileName();
+    		Snapshot s = mSnapshotMap.get(i);
+    		Assert.assertTrue(s!=null);
+    		mFilenames[i] = s.getFilename();
+			Log.i(TAG, "loading "+s.getFilename());
     		mOrientations[i][0] = s.getPitch();
     		mOrientations[i][1] = s.getYaw();
     		mOrientations[i][2] = s.getRoll();
@@ -130,7 +136,6 @@ public class StitcherWrapper
     public Status stitch(String resultFile)
     {
     	int status = 0;
-    	mProgress = 0;
     	mStatus = Status.OK;
     	mPanoFile = resultFile;
     	
@@ -143,56 +148,7 @@ public class StitcherWrapper
     		mStatus = Status.ERR;
     		return Status.ERR;
     	}
-    	mProgress = 10;
     	
-    	
-    	status = findFeatures();
-    	if(status!=0)
-    	{
-    		mMessage = "find features failed";
-    		mStatus = Status.ERR;
-    		return Status.ERR;
-    	}
-    	mProgress = 20;
-    	
-    	status = matchFeatures();
-    	if(status!=0)
-    	{
-    		mMessage = "matchFeatures failed";
-    		mStatus = Status.ERR;
-    		return Status.ERR;
-    	}
-    	mProgress = 30;
-    	
-    	status = adjustParameters();
-    	if(status!=0)
-    	{
-    		mMessage = "adjustParameters failed";
-    		mStatus = Status.ERR;
-    		return Status.ERR;
-    	}
-    	mProgress = 40;
-
-    	
-    	status = warpImages();
-    	if(status!=0)
-    	{
-    		mMessage = "warpImages failed";
-    		mStatus = Status.ERR;
-    		return Status.ERR;
-    	}
-    	mProgress = 50;
-
-    	
-    	status = findSeamMasks();
-    	if(status!=0)
-    	{
-    		mMessage = "findSeamMasks failed";
-    		mStatus = Status.ERR;
-    		return Status.ERR;
-    	}
-    	mProgress = 60;
-
     	
     	status = composePanorama();
     	if(status!=0)
@@ -201,7 +157,7 @@ public class StitcherWrapper
     		mStatus = Status.ERR;
     		return Status.ERR;
     	}
-    	mProgress = 100;
+    	
 		mStatus = Status.DONE;
 		return Status.DONE;
     }	
@@ -262,10 +218,7 @@ public class StitcherWrapper
      * Get average progress (in percent) of all the stitching operations;
      * @return
      */
-	public int getProgress()
-	{
-		return mProgress;
-	}
+	public native int getProgress();
 	/* **********
 	 * STATIC METHODS
 	 * *********/

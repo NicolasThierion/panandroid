@@ -161,7 +161,7 @@ public class Snapshot implements EulerAngles
 	}
 	
 
-	public String getFileName()
+	public String getFilename()
 	{
 		return mFileName;
 	}
@@ -228,5 +228,10 @@ public class Snapshot implements EulerAngles
 		d = (dRoll*pitchCoef + dYaw * pitchCoef + dPitch);
 		
 		return d;
+	}
+
+	public void setId(int id)
+	{
+		mId = id;		
 	}
 }

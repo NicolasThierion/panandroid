@@ -33,7 +33,7 @@
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:clickable="true"
-        android:contentDescription="@string/shutter_button"
+        android:contentDescription="@string/btn_shutter"
         android:src="@drawable/btn_shutter_photo" />
 
 </RelativeLayout>

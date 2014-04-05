@@ -19,7 +19,6 @@
 
 package fr.ensicaen.panandroid.capture;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -34,10 +33,7 @@ import fr.ensicaen.panandroid.stitcher.StitcherWrapper;
 import fr.ensicaen.panandroid.tools.EulerAngles;
 import fr.ensicaen.panandroid.tools.SensorFusionManager;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
@@ -47,10 +43,7 @@ import android.hardware.Camera.Size;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.media.ExifInterface;
 import android.util.Log;
-import android.view.Surface;
-import android.view.WindowManager;
 
 /**
  * Helper to instantiate Camera, initialize parameter and redirect camera preview to a GL-Compatible texture.
@@ -250,7 +243,7 @@ public class CameraManager /* implements SnapshotObserver */
 
 		mCameraParameters = mCamera.getParameters();
 		mCameraParameters.set("orientation", "portrait");
-
+		mCameraParameters.setJpegQuality(mJpegCompression);
 		mCamera.setParameters(mCameraParameters);
 		setPreviewFormat(DEFAULT_PREVIEW_FORMAT);
 
@@ -561,19 +554,30 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		try
 		{
-			mCamera.stopPreview();
-			mPreviewStarted = false;
+			mCameraIsBusy=true;
+			//start preview in a separate thread to avoid random pause of main activity
+			new Thread(new Runnable(){
+	
+				@Override
+				public void run()
+				{
+						try
+						{
+							mCamera.startPreview();
+							mPreviewStarted = true;
+							mCameraIsBusy=false;
+
+						}
+						catch(Exception e)
+						{}
+			    }		
+			}).start();
 		}
-		catch(Exception e)
-		{}
-		
-		try
+		catch(RuntimeException e)
 		{
-			mCamera.startPreview();
-			mPreviewStarted = true;
+			e.printStackTrace();
 		}
-		catch(Exception e)
-		{}
+		
 
 	}
 
@@ -629,24 +633,16 @@ public class CameraManager /* implements SnapshotObserver */
 		mTempFilename = genAbsoluteFilename(filename);
 		filename = mTempFilename;
 		
-		//TODO
-		//set picture orientation
-		mCameraParameters = mCamera.getParameters();
-		mCameraParameters.setJpegQuality(mJpegCompression);
+		//TODO : remove
 		//take a picture in separated thread
-		try
+	/*	try
 		{
-			mCamera.setParameters(mCameraParameters);
-			
-			//mTempExifOrientation = getExifOrientation();
-
 			new Thread(new Runnable(){
 	
 				@Override
 				public void run() {
 					// Call to garbage collector to avoid bug http://code.opencv.org/issues/2961 
-				    System.gc();
-			        mCamera.autoFocus(mAutoFocusCallback);
+				    //System.gc();
 		   
 				    }
 			
@@ -656,7 +652,9 @@ public class CameraManager /* implements SnapshotObserver */
 		catch(RuntimeException e)
 		{
 			e.printStackTrace();
-		}
+		}*/
+        mCamera.autoFocus(mAutoFocusCallback);
+
 		
 		return filename;
 	}
