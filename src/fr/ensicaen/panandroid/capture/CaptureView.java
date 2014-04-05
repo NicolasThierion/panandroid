@@ -97,6 +97,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 
 	private boolean mCaptureIsStared = false;
 	private ProgressBar mStartingProgressSpinner;
+	private ShutterButton mShutterButton;
 
 	/** Handler for touch screen motion events. **/
 	private final GestureDetector.SimpleOnGestureListener mGestureListener;
@@ -134,6 +135,11 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		mStartingProgressSpinner.setIndeterminate(true);
 		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
 
+		// hide shutter button for the first shoot.
+		mShutterButton = (ShutterButton) ((Activity)context).findViewById(R.id.btn_shutter);
+		mShutterButton.setVisibility(View.GONE);
+		
+		
 		RelativeLayout.LayoutParams params = new
 		        RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
 
@@ -225,7 +231,9 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		super.setEnablePitchRotation(true);
 		super.setEnableRollRotation(true);
 		super.setEnableYawRotation(false);
-
+		
+		//wait for the first snapshot to be taken.
+		mCameraManager.addSnapshotEventListener(this);
 	}
 
 	/**
@@ -332,7 +340,6 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 				//set orientation's origin to current
 				mSensorManager.setReferenceYaw();
 
-				mCameraManager.addSnapshotEventListener(this);
 				mCaptureIsStared  = true;
 
 				//set all targets
@@ -390,6 +397,9 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	{
 		mCameraManager.removeSnapshotEventListener(this);
 		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
+		mShutterButton.setVisibility(View.VISIBLE);
+
+		//force layout redraw.
 		mStartingProgressSpinner.requestLayout();
 		super.setEnableYawRotation(true);
 	}

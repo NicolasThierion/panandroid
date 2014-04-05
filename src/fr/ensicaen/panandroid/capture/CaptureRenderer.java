@@ -88,11 +88,12 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 	private static final float SNAPSHOTS_DISTANCE = 0.50f;
 	private static final float DEFAULT_SNAPSHOT_ZOOM = 140.0f;
 	private static final int DEFAULT_SNAPSHOTS_SAMPLING_RATE= 0;	//[0 for automatic sample rate]
+	private static final float SNAPSHOT_AUTO_SAMPLE_RATIO = 4.0f;	 
 
 	/** Size & distance of the camera preview **/
 	private static final float CAMERA_SIZE = 0.10f;
 	private static final float CAMERA_DISTANCE = 0.45f;
-	private static final float CAMERA_SURFACE_ALPHA = 0.75f;		//[0 - 1] : 1;
+	private static final float CAMERA_SURFACE_ALPHA = 0.65f;		//[0 - 1] : 1;
 
 	/** Size & distance of the viewFinder**/
 	private static final float VIEWFINDER_SIZE = 0.010f;
@@ -227,7 +228,7 @@ public class CaptureRenderer extends InsideRenderer implements SnapshotEventList
 		if(mSampleRate == 0)
 		{
 			mSampleRate=(int) mCameraManager.getCameraResolution();
-			mSampleRate = ceilPowOf2(mSampleRate)/2;
+			mSampleRate = (int) (ceilPowOf2(mSampleRate)/SNAPSHOT_AUTO_SAMPLE_RATIO);
 		}
 
 		mViewMatrix = new float[16];
