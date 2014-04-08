@@ -2,7 +2,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
 	<string name="app_name">Panandroid</string>
 	<string name="launch_app">Panandroid</string>
-	<string name="btn_shutter">Shutter button</string>
+	<string name="btn_shutter">take a picture</string>
+	<string name="btn_sensorial_rotation">enable sensorial rotation</string>
 	<string name="edittext_choose_panoname">Enter pano name</string>
 	<string name="exit_confrm">Do you really want to exit?</string>
     <string name="exit_yes">exit</string>

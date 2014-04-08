@@ -192,7 +192,7 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 				mSimulatedRotationVector.updateRotationMatrix(event);
 		}
 		
-		if(mPitch<-361 || mYaw<-361)
+		if(!isReady())
 		{	
 			Log.w(TAG, "sensorFusion not yet started");
 			return;
@@ -234,6 +234,12 @@ public class SensorFusionManager implements SensorEventListener, EulerAngles
 	
 
 	    
+	}
+	
+	public boolean isReady()
+	{
+		return (mPitch>-361 && mYaw>-361);
+
 	}
 	
 	@Override

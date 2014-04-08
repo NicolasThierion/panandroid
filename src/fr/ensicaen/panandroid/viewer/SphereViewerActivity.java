@@ -23,6 +23,7 @@ import java.io.IOException;
 
 import org.json.JSONException;
 
+import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
 import fr.ensicaen.panandroid.meshs.Sphere;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
@@ -31,6 +32,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -68,12 +70,24 @@ public class SphereViewerActivity extends Activity
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 	    
+		//bind activity to its layout
+		setContentView(R.layout.viewer_activity);
+
 		// init the sphere
 		mSphere = new Sphere(SPHERE_RESOLUTION, SPHERE_RADIUS);
 	
 		//set GL view & its renderer
 	    mSphereView = new Inside3dView(this, mSphere);
-	    setContentView(mSphereView);
+	    //setContentView(mSphereView);
+	    
+	    //and populate the layout with it.
+  		ViewGroup parent = (ViewGroup) (mSphereView.getParent());
+  		if(parent !=null)
+  			parent.removeView(mSphereView);
+
+  		ViewGroup container = ((ViewGroup) findViewById(R.id.gl_renderer_container));
+  		container.addView(mSphereView);
+	    
 	    
 		/*
 		String textureFile = getIntent().getStringExtra("jpg");
@@ -96,6 +110,7 @@ public class SphereViewerActivity extends Activity
 	    mSphereView.setEnableTouchRotation(true);
 	    mSphereView.setInertiaFriction(50.0f);
 	    mSphereView.setEnablePinchZoom(true);
+	    mSphereView.setSensorialButtonVisible(true);
 	}
   
 	private void loadPanorama(String projectFile)

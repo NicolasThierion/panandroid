@@ -165,7 +165,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 	  	doInertiaRotation();
 
 	  	//load the rotation matrix
-	  	synchronized (this) {
+		synchronized(mRotationMatrix){
 	  		gl.glLoadMatrixf(mRotationMatrix, 0);
 	  		//draw the mesh in this new referential.
 			this.mMesh.draw(gl, mRotationMatrix);
@@ -354,7 +354,9 @@ public class InsideRenderer implements Renderer, EulerAngles
 	
 	protected float[] getRotationMatrix()
 	{
-		return mRotationMatrix;
+		synchronized(mRotationMatrix){
+			return mRotationMatrix;
+		}
 	}
 	
 	public void setFovDeg(float degree)
@@ -380,7 +382,9 @@ public class InsideRenderer implements Renderer, EulerAngles
 		Matrix.rotateM(rotationMatrix, 0, mRoll, 0, 0, 1);
 		Matrix.rotateM(rotationMatrix, 0, mPitch, 1, 0, 0);
 		Matrix.rotateM(rotationMatrix, 0, mYaw, 0, 1, 0);
-		mRotationMatrix = rotationMatrix; 
+		synchronized(mRotationMatrix){
+			mRotationMatrix = rotationMatrix;
+		}
   	}
 	
 	/**

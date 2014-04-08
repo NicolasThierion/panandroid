@@ -21,20 +21,30 @@ package fr.ensicaen.panandroid.insideview;
 
 import java.util.Stack;
 
+import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.capture.ShutterButton;
 import fr.ensicaen.panandroid.meshs.Mesh;
 import fr.ensicaen.panandroid.tools.SensorFusionManager;
+import fr.ensicaen.panandroid.viewer.SensorialRotationButton;
 import junit.framework.Assert;
 
 
+import android.app.Activity;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 
 /**
  * Surface view drawing a 3D mesh at the middle of the scene.
@@ -57,6 +67,8 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	public static final float MIN_FOV = 20;
 
 	public static final float MAX_FOV = 120;
+
+	private static final boolean DEFAULT_SENSORIAL_BUTTON_VISIBILITY = false;
 	
 	/* *********
 	 * ATTRIBUTES
@@ -94,6 +106,10 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 
 	private boolean mPinchZoomEnable = false;
 
+	private SensorialRotationButton mSensorialRotationButton;
+
+	private boolean mSensorialButtonIsVisible = DEFAULT_SENSORIAL_BUTTON_VISIBILITY;
+
 	
 	
 	//protected Mesh mMesh;
@@ -129,6 +145,11 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		
 		//scale gesture detector for pinch-n-zoom
 	    mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
+	    
+	    //add sensorial rotation button
+		mSensorialRotationButton = (SensorialRotationButton) ((Activity)context).findViewById(R.id.btn_sensorial_rotation);
+		mSensorialRotationButton.setVisibility(mSensorialButtonIsVisible ?View.VISIBLE:View.INVISIBLE);
+		mSensorialRotationButton.setParentView(this);
 
 	}
 	
@@ -247,6 +268,8 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	@Override
 	public void onSensorChanged(SensorEvent event)
 	{
+		if(!mSensorFusionManager.isReady())
+			return;
 		float roll = 0.0f;
 		float pitch = 0.0f;
 		float yaw = 0;
@@ -260,7 +283,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		if(mRollEnable)
 			roll = mSensorFusionManager.getRelativeRoll();		
 
-		
 		pitch = (pitch>mPitchLimits[1]?mPitchLimits[1]:pitch);
 		pitch = (pitch<mPitchLimits[0]?mPitchLimits[0]:pitch);
 		yaw = (yaw>mYawLimits[1]?mYawLimits[1]:yaw);
@@ -334,6 +356,13 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		return mPinchZoomEnable;
 	}
 	
+	public void setSensorialButtonVisible(boolean visible)
+	{
+		mSensorialButtonIsVisible = visible;
+		mSensorialRotationButton.setVisibility(mSensorialButtonIsVisible ?View.VISIBLE:View.GONE);
+
+	}
+	
 	/**
 	 * Set friction value for the inartial rotation.
 	 * @param coef
@@ -379,6 +408,8 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	{	
 		if(enable)
 		{
+			stopInertialRotation();
+
 			//create a new sensor manager
 			mSensorFusionManager = SensorFusionManager.getInstance(getContext());
 			
@@ -556,7 +587,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		mRenderer.startInertiaRotation(-1.0f*scrollSpeedY, -1.0f*scrollSpeedX);
 	}
 
-	
 	/* *********
 	 * PRIVATE CLASS
 	 * ********/
