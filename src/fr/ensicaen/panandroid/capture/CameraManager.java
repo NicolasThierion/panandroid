@@ -543,6 +543,7 @@ public class CameraManager /* implements SnapshotObserver */
 	public void onResume()
 	{
 		reOpen();
+		this.startPreview();
 		mSensorFusionManager.onResume();
 	}
 	
@@ -564,7 +565,8 @@ public class CameraManager /* implements SnapshotObserver */
 	
 	public void close()
 	{
-		mCamera.release();
+		if(mCamera!=null)
+			mCamera.release();
 		mCamera = null;
 		mCameraIsBusy = false;
 	}

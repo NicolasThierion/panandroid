@@ -264,9 +264,11 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		mCaptureView.onPause();
 		mCameraManager.onPause();
 		//save project to json
-		String res = mSnapshotManager.toJSON(SnapshotManager.DEFAULT_JSON_FILENAME);
-		Log.i(TAG,  "saving project to "+res);
-
+		if(mSnapshotManager.getSnapshotsList().size()>0)
+		{
+			String res = mSnapshotManager.toJSON(SnapshotManager.DEFAULT_JSON_FILENAME);
+			Log.i(TAG,  "saving project to "+res);
+		}
 		//call parent
 		super.onPause();
 	}
@@ -297,10 +299,17 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 				    Intent intent = new Intent(CaptureActivity.this,
 				            StitcherActivity.class);
 				    intent.putExtra("projectFile",mWorkingDir+File.separator+SnapshotManager.DEFAULT_JSON_FILENAME);
+				    intent.putExtra("commingFrom",CaptureActivity.class.getSimpleName());
+				    //intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
 				    startActivity(intent);
+				    //finish this activity in order to free maximum of memory
+				    finish();
 				}
 				else
-					CaptureActivity.this.onPause();
+				{
+					
+					CaptureActivity.this._onBackPressed();
+				}
 			}
 		});
 		alertDialog.setNegativeButton(R.string.exit_no, new DialogInterface.OnClickListener()
@@ -313,9 +322,14 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		AlertDialog alert = alertDialog.create();
 		alert.show();
+		
 
 	}
-
+	private void _onBackPressed()
+	{
+		
+		super.onBackPressed();
+	}
 
 	@Override
 	public void onSystemUiVisibilityChange(int visibility)

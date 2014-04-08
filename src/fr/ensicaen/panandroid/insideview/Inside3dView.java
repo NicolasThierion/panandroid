@@ -67,8 +67,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	public static final float MIN_FOV = 20;
 
 	public static final float MAX_FOV = 120;
-
-	private static final boolean DEFAULT_SENSORIAL_BUTTON_VISIBILITY = false;
 	
 	/* *********
 	 * ATTRIBUTES
@@ -108,7 +106,12 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 
 	private SensorialRotationButton mSensorialRotationButton;
 
-	private boolean mSensorialButtonIsVisible = DEFAULT_SENSORIAL_BUTTON_VISIBILITY;
+	private Context mContext;
+
+	private float mOPitch;
+
+	private float mOYaw;
+
 
 	
 	
@@ -130,6 +133,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	protected Inside3dView(Context context, Mesh mesh, InsideRenderer renderer)
 	{
 		super(context);
+		mContext = context;
 		super.setPreserveEGLContextOnPause(true);
 		mPitchLimits[0] = -1000;
 		mPitchLimits[1] = 1000;
@@ -146,10 +150,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		//scale gesture detector for pinch-n-zoom
 	    mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
 	    
-	    //add sensorial rotation button
-		mSensorialRotationButton = (SensorialRotationButton) ((Activity)context).findViewById(R.id.btn_sensorial_rotation);
-		mSensorialRotationButton.setVisibility(mSensorialButtonIsVisible ?View.VISIBLE:View.INVISIBLE);
-		mSensorialRotationButton.setParentView(this);
+	    setSensorialButtonVisible(false);
 
 	}
 	
@@ -287,7 +288,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		pitch = (pitch<mPitchLimits[0]?mPitchLimits[0]:pitch);
 		yaw = (yaw>mYawLimits[1]?mYawLimits[1]:yaw);
 		yaw = (yaw<mYawLimits[0]?mYawLimits[0]:yaw);
-		mRenderer.setRotation(pitch, yaw, roll);
+		mRenderer.setRotation(pitch+mOPitch, yaw+mOYaw, roll);
 		
 		//mRenderer.setRotationMatrix(mSensorFusionManager.getRotationMatrix());
 			
@@ -303,6 +304,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	 */
 	public void rotate(float deltaYaw, float deltaPitch) {
 		
+
 		int surfaceWidth = mRenderer.getSurfaceWidth();
 		int surfaceHeight = mRenderer.getSurfaceHeight();
 		Assert.assertTrue(surfaceWidth>0);
@@ -358,8 +360,19 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	
 	public void setSensorialButtonVisible(boolean visible)
 	{
-		mSensorialButtonIsVisible = visible;
-		mSensorialRotationButton.setVisibility(mSensorialButtonIsVisible ?View.VISIBLE:View.GONE);
+		if(visible)
+		{
+			//add sensorial rotation button
+			mSensorialRotationButton = (SensorialRotationButton) ((Activity)mContext).findViewById(R.id.btn_sensorial_rotation);
+			mSensorialRotationButton.setVisibility(View.VISIBLE);
+			mSensorialRotationButton.setParentView(this);
+		}
+		else
+		{
+			if(mSensorialRotationButton!=null)
+				mSensorialRotationButton.setVisibility(View.GONE);
+			mSensorialRotationButton=null;
+		}
 
 	}
 	
@@ -606,7 +619,9 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 
 	public void setReferenceRotation(float pitch, float yaw)
 	{
-		mRenderer.setReferenceRotation(pitch, yaw);
+		mOPitch = pitch;
+		mOYaw = yaw;
+		mRenderer.setRotation(pitch, yaw);
 	}
 
 

@@ -103,9 +103,7 @@ public class SphereViewerActivity extends Activity
 	    	loadPanorama(projectFile);
 	    else
 	    	Log.w(TAG, "created viewer without passing projectFile to intent");
-	    
-    	loadPanorama("/sdcard/sample15ensi2/PanoData.json");
-	
+	    	
 	    mSphereView.setEnableInertialRotation(true);
 	    mSphereView.setEnableTouchRotation(true);
 	    mSphereView.setInertiaFriction(50.0f);
@@ -155,12 +153,9 @@ public class SphereViewerActivity extends Activity
 		    minYaw = minYaw-YAW_RANGE;
 		    maxYaw = maxYaw+YAW_RANGE;
 	    }
-	    mSphereView.setReferenceRotation(0.0f,180-manager.getCameraHFov()/2);
+	    mSphereView.setReferenceRotation(0.0f,270-manager.getCameraHFov()/2);
 	    mSphereView.setPitchLimits(new float[]{minPitch, maxPitch});
 	    mSphereView.setYawLimits(new float[]{minYaw, maxYaw});
-	    
-
-
   }
 
   

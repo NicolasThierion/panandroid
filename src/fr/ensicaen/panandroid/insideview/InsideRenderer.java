@@ -510,9 +510,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 		mYawLimits =  yawLimits;
 	}
 
-	public void setReferenceRotation(float pitch, float yaw) {
-		setRotation(pitch, yaw);
-	}
+	
 
 	
 

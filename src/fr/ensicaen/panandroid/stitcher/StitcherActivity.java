@@ -78,7 +78,8 @@ public class StitcherActivity extends Activity
         Intent intent = getIntent();
         
         mProjectFile = intent.getStringExtra("projectFile");
-        mProjectFile = "/sdcard/sample15ensi2/PanoData.json";
+        mProjectFile = "/storage/emulated/0/Panandroid/temp30/PanoData.json";
+        
         Log.i(TAG , "loading file "+mProjectFile);
         try {
 			mSnapshotManager = new SnapshotManager(mProjectFile);
@@ -114,7 +115,13 @@ public class StitcherActivity extends Activity
 
        
     }
-
+/*
+    @Override
+	public void onBackPressed()
+    {
+    	super.onPause();
+    }
+*/
    
     /**
      * StitcherTask class provides treatments on the set of images.
@@ -158,21 +165,7 @@ public class StitcherActivity extends Activity
             //if stictching succeed => switch to viewer
             if (result == SUCCESS)
             {	
-            	//set new data into JSon
-            	float bounds[][] = mStitcher.getBoundingAngles();
             	
-            	float heading = mSnapshotManager.getSnapshotsList().get(0).getYaw();
-            	final float minPitch = bounds[0][0], minYaw = bounds[0][1], maxPitch= bounds[1][0], maxYaw= bounds[1][1];
-            	
-            	heading = Math.max(minYaw, heading);
-            	heading = Math.min(maxYaw, heading);
-        	
-            	Log.i(TAG, "panorama bounds : pitch@["+minPitch+","+maxPitch+"], yaw@["+minYaw+","+maxYaw+"]");
-            	
-            	mSnapshotManager.setBounds(bounds);
-            	mSnapshotManager.setHeading(heading);
-            	mSnapshotManager.doPhotoSphereTagging();
-            	mSnapshotManager.toJSON(mProjectFilename);
             	
                 dialog.setTitle(StitcherActivity.this.getString(R.string.stitch_success).toString());
                 dialog.setNeutralButton(R.string.show_pano_in_viewer,
@@ -231,20 +224,17 @@ public class StitcherActivity extends Activity
         	}
 
         	//poll status and update progress bar
-        	double pAcc=0, currentP=0;
-        	double diff=0, lp=0;
+        	double bp, sp, diff;
 			while(mStitcher.getStatus() == StitcherWrapper.Status.OK && mStitcher.getProgress()<100)
 			{
 				//smooth progression a little bit ;-)
-				diff = mStitcher.getProgress() -lp;
-				lp = mStitcher.getProgress();
-				pAcc += diff;
-				diff = pAcc;
-				diff/=10;
-				pAcc-=diff;
-				currentP+=diff;
+				sp = mStitcher.getProgress();
+				bp = mProgress.getProgress();
+				diff = (sp-bp)/((101-sp)/10);
+				bp += diff;
 				
-                mProgress.setProgress((int)currentP);
+				
+                mProgress.setProgress((int)bp);
                 try 
                 {
 					Thread.sleep(1000);
@@ -254,7 +244,8 @@ public class StitcherActivity extends Activity
 					e.printStackTrace();
 				}
 			}
- 		
+            mProgress.setProgress(100);
+
         	if (mStitcher.getStatus() == StitcherWrapper.Status.DONE || mStitcher.getStatus() == StitcherWrapper.Status.OK) 
         	{
                 String panoJpeg = mSnapshotManager.getPanoramaJpgPath();
@@ -281,18 +272,33 @@ public class StitcherActivity extends Activity
                 int croppedWidth = opts.outWidth;
                 int croppedHeight = opts.outHeight;
                 
-                
+                //set new data into JSon
+            	float bounds[][] = mStitcher.getBoundingAngles();
+            	
+            	float heading = mSnapshotManager.getSnapshotsList().get(0).getYaw();
+            	float minPitch = bounds[0][0], minYaw = bounds[0][1], maxPitch= bounds[1][0], maxYaw= bounds[1][1];
+            	
+            	heading = Math.max(minYaw, heading);
+            	heading = Math.min(maxYaw, heading);
+        	
+            	Log.i(TAG, "panorama bounds : pitch@["+minPitch+","+maxPitch+"], yaw@["+minYaw+","+maxYaw+"]");
+            	
+            	mSnapshotManager.setBounds(bounds);
+            	mSnapshotManager.setHeading(heading);
+            	mSnapshotManager.toJSON(mProjectFilename);
                 
                 //add padding to cover 360°
             	float hfov = mSnapshotManager.getCameraHFov();
             	float vfov = mSnapshotManager.getCameraVFov();
             	
-            	float minPitch = mSnapshotManager.getMinPitch() - vfov/2;
-            	float maxPitch = mSnapshotManager.getMaxPitch() + vfov/2;
-            	float minYaw = mSnapshotManager.getMinYaw() - hfov/2;
-            	float maxYaw= mSnapshotManager.getMaxYaw() + hfov/2;
+            	minPitch -= vfov/2;
+            	maxPitch +=  vfov/2;
+            	minYaw -=  hfov/2;
+            	maxYaw += hfov/2;
             	
             	//get actual area coverage of the pano
+               	Log.i(TAG, "minPitch = "+minPitch+"°, maxPitch ="+maxPitch+"°, minYaw = "+ minYaw+"°, maxYaw="+maxYaw+"°");
+
             	float xrange = maxYaw - minYaw;
             	float yrange = maxPitch - minPitch;
     	
@@ -310,9 +316,9 @@ public class StitcherActivity extends Activity
                	int fullResY = (int) (croppedHeight*ry);
                	int fullResX = (int) (croppedWidth*rx);
                	
-                //make resolution multiple of 4
-               	fullResX = (fullResX>>2)<<2;
-               	fullResY = (fullResY>>2)<<2;
+                //make resolution multiple of 8
+               	fullResX = (fullResX>>3)<<3;
+               	fullResY = (fullResY>>3)<<3;
                	
                	Log.i(TAG, "estimated full pano resolution before rescale : "+fullResX+"x"+fullResY);
                	Log.i(TAG, "cropped pano area resolution before rescale : "+croppedWidth+"x"+croppedHeight);
@@ -329,8 +335,8 @@ public class StitcherActivity extends Activity
                		croppedHeight = (int) Math.ceil(croppedHeight/r);
                		croppedWidth = (int) Math.ceil(croppedWidth/r);
                		
-               		croppedHeight = (croppedHeight>>2)<<2;
-               		croppedWidth= (croppedWidth>>2)<<2;
+               		croppedHeight = (croppedHeight>>3)<<3;
+               		croppedWidth= (croppedWidth>>3)<<3;
                		//tmpJpeg = genTempFilename("__tmp",panoJpeg);
                		//for an unknow reason, resize fail the first time.
                		mTempFilenames.add(genTempFilename("__tmpRSZ1", panoJpeg));
@@ -338,8 +344,8 @@ public class StitcherActivity extends Activity
                		StitcherWrapper.resizeImg(tempFilename, tempFilename, croppedWidth,croppedHeight);
 
                		//ensure resolution is still multiple of 4
-	               	fullResX = (fullResX>>2)<<2;
-	               	fullResY = (fullResY>>2)<<2;
+	               	fullResX = (fullResX>>3)<<3;
+	               	fullResY = (fullResY>>3)<<3;
 
                	}
               
@@ -364,7 +370,8 @@ public class StitcherActivity extends Activity
                	while(mTempFilenames.size()>0)
                		new File(mTempFilenames.removeFirst()).delete();
                
-                
+            	mSnapshotManager.doPhotoSphereTagging();
+
         		return SUCCESS;
             }
         	else 
@@ -372,7 +379,7 @@ public class StitcherActivity extends Activity
                 return -1;
             }
         }
-
+       
 		private String genTempFilename(String prefix, String filename)
 		{
 			String dir = filename.substring(0, filename.lastIndexOf(File.separator)+1);
