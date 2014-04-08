@@ -154,9 +154,14 @@ public class StitcherWrapper
     	if(status!=0)
     	{
     		mMessage = "composePanorama failed";
+    		Log.e(TAG, mMessage );
     		mStatus = Status.ERR;
     		return Status.ERR;
     	}
+    	Log.i(TAG, "Stitching done!!");
+    	
+    	//float bounds[][] = getBoundingAngles();
+    	
     	
 		mStatus = Status.DONE;
 		return Status.DONE;
@@ -165,46 +170,11 @@ public class StitcherWrapper
 
   
 
+   
     /* **********
 	 * PUBLIC METHODS
 	 * *********/
-
-    /**
-     * Find features in all bunch of images.
-     * @return Result of finding features.
-     */
-    public native int findFeatures();
-
-    /**
-     * Match features.
-     * @return Result of match features.
-     */
-    public native int matchFeatures();
-
-    /**
-     * Adjust different kinds of parameters.
-     * @return Result of adjust parameters.
-     */
-    public native int adjustParameters();
-
-    /**
-     * Warp images.
-     * @return Result of warp images.
-     */
-    public native int warpImages();
-
-    /**
-     * Find seam masks.
-     * @return Result of find seam masks.
-     */
-    public native int findSeamMasks();
-
-    /**
-     * Compose final panorama.
-     * @return Result of compose panorama.
-     */
-    public native int composePanorama();
-
+   
     /**
      * Return the status of the last executed stitching operation. zero if all is ok.
      * @return the status of the operation
@@ -213,22 +183,105 @@ public class StitcherWrapper
     {
     	return mStatus;
     }
+    
+    public float[][] getBoundingAngles()
+    {
+    	//get used indices of images in the panorama
+    	int[] indices = getUsedIndices();
+    	
+    	//seek orientations at these indices to find min and max (bounds)
+    	float minPitch, maxPitch, minYaw, maxYaw, p, y;
+    	minPitch = minYaw = Float.MAX_VALUE;
+    	maxPitch = maxYaw = Float.MIN_VALUE;
+    	for(int i : indices)
+    	{
+    		p = mOrientations[i][0];
+    		y = mOrientations[i][1];
+    		
+    		minPitch = Math.min(minPitch,  p);
+    		minYaw = Math.min(minYaw,  y);
+    		maxPitch = Math.max(maxPitch,  p);
+    		maxYaw = Math.max(maxYaw,  y);
+    		
+    	}
+    	
+    	float[][] bounds = new float[2][2];
+    	bounds[0][0] = minPitch;
+    	bounds[1][0] = maxPitch;
+    	bounds[0][1] = minYaw;
+    	bounds[1][1] = maxYaw;
+    	
+    	Log.i(TAG, "Bounding angles : mPitch = "+minPitch +"\nMPitch = "+maxPitch + "\nmYaw = "+minYaw+"\nMYaw = "+maxYaw);
+    	
+    	
+    	return bounds;
+    }
 
     /**
      * Get average progress (in percent) of all the stitching operations;
      * @return
      */
 	public native int getProgress();
+	
+	
 	/* **********
 	 * STATIC METHODS
 	 * *********/
 	 public static native int rotateImage(String imagePath, int angle);
+	 
+	 public static native void setPadding(String panoJpeg, String panoJpeg2, int paddL,
+				int paddT, int paddR, int paddB);
 
-
+	 public static native void resizeImg(String panoJpeg, String panoJpeg2,
+				int newWidth, int newHeight);
+	 
 	/* **********
 	 * PRIVATE NATIVE PROTOTYPES DECLARATION
-	 * **********/
-	 
+	 * **********/    
+    /**
+     * Find features in all bunch of images.
+     * @return Result of finding features.
+     */
+    private native int findFeatures();
+
+    /**
+     * Match features.
+     * @return Result of match features.
+     */
+    private native int matchFeatures();
+
+    /**
+     * Adjust different kinds of parameters.
+     * @return Result of adjust parameters.
+     */
+    private native int adjustParameters();
+
+    /**
+     * Warp images.
+     * @return Result of warp images.
+     */
+    private native int warpImages();
+
+    /**
+     * Find seam masks.
+     * @return Result of find seam masks.
+     */
+    private native int findSeamMasks();
+
+    /**
+     * Compose final panorama.
+     * @return Result of compose panorama.
+     */
+    private native int composePanorama();
+
+
+    /**
+     * 
+     * @param filename
+     * @param bounds
+     * @return
+     */
+    //private native int addPading(String srcJpg, String dstJpg, float[][] bounds);
 
 	 
 	 /**
@@ -238,8 +291,14 @@ public class StitcherWrapper
      */
 	 private native int newStitcher(String panoFilename, Object[] files, int[][] matchingMask);
 
+	 public native int[] getUsedIndices();
 
+	 public native double getWorkingResolution();
 
+	
 
+	
+
+	 
 
 }

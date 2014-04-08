@@ -273,7 +273,6 @@ public class CameraManager /* implements SnapshotObserver */
 				return res;
 		}
 		
-		
 		if(mCameraParameters!=null)
 		{
 			mCamera.setParameters(mCameraParameters);
@@ -412,6 +411,26 @@ public class CameraManager /* implements SnapshotObserver */
 			throw new IOException("Cannot open camera.");
 		return mCameraParameters.getPreviewSize();
 	}
+	
+	/**
+	 * 
+	 * @return HFov in degrees.
+	 */
+	public float getHorizontalViewAngle()
+	{
+		return mCamera.getParameters().getHorizontalViewAngle();
+	}
+	
+	/**
+	 * 
+	 * @return VFov in degrees.
+	 */
+	public float getVerticalViewAngle()
+	{
+		return mCamera.getParameters().getVerticalViewAngle();
+	}
+	
+	
 	
 	public boolean setSensorialCaptureEnabled(boolean enable)
 	{	
@@ -1019,6 +1038,20 @@ public class CameraManager /* implements SnapshotObserver */
 		
 		double mpx = (double)(size.height * size.width) /1024000.0 ;
 		return mpx;
+	}
+
+
+
+	public int getCameraResX() {
+		Camera.Size size = mCameraParameters.getPictureSize();
+
+		return size.width;
+	}
+	
+	public int getCameraResY() {
+		Camera.Size size = mCameraParameters.getPictureSize();
+
+		return size.height;
 	}
 
 /*

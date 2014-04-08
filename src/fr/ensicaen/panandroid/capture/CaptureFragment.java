@@ -87,6 +87,7 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
     private CameraManager mCameraManager;
 
     /** Instance of SnapshotManager, observer of onSnapshotTaken()**/
+    //TODO : remove
     private SnapshotManager mSnapshotManager;
 
     /** directory where images and JSon file are stored **/
@@ -141,9 +142,11 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
             e.printStackTrace();
         }
 
+        //TODO : remove
         // Setup JSON and snapshot manager.
+        /*
         mSnapshotManager = new SnapshotManager();
-        mCameraManager.addSnapshotEventListener(mSnapshotManager);
+        mCameraManager.addSnapshotEventListener(mSnapshotManager);*/
 
         // Setup GL view & its renderer.
         mCaptureView = new CaptureView(getActivity(), mCameraManager);

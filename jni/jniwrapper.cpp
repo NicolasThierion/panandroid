@@ -43,7 +43,7 @@
 
 
 #define V3
-
+#define DEBUG
 
 #define TAG "OpenCV stitcher"
 #include <jni.h>
@@ -182,13 +182,48 @@ extern "C"
         {
                 return composePanorama();
         }
-        // Compose final panorama.
+        // get current progress
 		JNIEXPORT jint JNICALL
 		Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_getProgress
 		(JNIEnv* env, jobject obj)
 		{
 				return getProgress();
 		}
+
+		// get indices of used images in the panorama.
+		JNIEXPORT jintArray JNICALL
+		Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_getUsedIndices
+		(JNIEnv* env, jobject obj)
+		{
+			jintArray indices;
+			int size = _indices.size();
+			indices = (*env).NewIntArray(size);
+			if (indices == NULL)
+			{
+				return NULL; /* out of memory error thrown */
+			}
+			int i=0;
+			vector<int>::iterator it, itEnd = _indices.end();
+
+			// fill a temp structure to use to populate the java int array
+			jint* fill = new jint[size];
+			for (it = _indices.begin(); it != itEnd; ++it)
+			{
+				fill[i++] = (*it);
+			}
+			// move from the temp structure to the java structure
+			(*env).SetIntArrayRegion(indices, 0, size, fill);
+			free(fill);
+			return indices;
+		}
+
+		JNIEXPORT jdouble JNICALL
+		Java_fr_ensicaen_panandroid_stitcher_StitcherWrapper_getWorkingResolution
+		(JNIEnv* env, jobject obj)
+		{
+			return compose_megapix;
+		}
+
 
 }
 

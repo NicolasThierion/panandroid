@@ -100,6 +100,9 @@ public class InsideRenderer implements Renderer, EulerAngles
 	private float mRotationYawSpeed, mRotationPitchSpeed; 	// [deg/s]
 	private float mYaw0, mPitch0;							//[deg]
 	private long mT0; 										// [ms]
+
+	private boolean mHasToResetFov = false;
+
 	
 	/* *************
 	 * CONSTRUCTOR
@@ -144,7 +147,13 @@ public class InsideRenderer implements Renderer, EulerAngles
 	
 	@Override
 	public void onDrawFrame(final GL10 gl) 
-	{
+	{		
+		if(mHasToResetFov)
+		{
+			mHasToResetFov=false;
+			setProjection(gl);
+		}
+		
 		//clear the whole frame
 		gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
 	  	
@@ -168,7 +177,6 @@ public class InsideRenderer implements Renderer, EulerAngles
 	{
 		mSurfaceWidth = width;
 		mSurfaceHeight = height;
-		
 		setProjection(gl);		
 		gl.glViewport(0, 0, width, height);
 		
@@ -237,6 +245,7 @@ public class InsideRenderer implements Renderer, EulerAngles
 		mYaw = yaw;
 		mPitch = pitch;
 		mRoll = roll;
+		
 		normalizeRotation();
 		computeRotationMatrix();		
 	}
@@ -351,6 +360,8 @@ public class InsideRenderer implements Renderer, EulerAngles
 	public void setFovDeg(float degree)
 	{
 		mFovDeg = degree;
+		mHasToResetFov=true;
+	
 	}
 	
 	
@@ -493,6 +504,10 @@ public class InsideRenderer implements Renderer, EulerAngles
 	{
 		mPitchLimits = pitchLimits;
 		mYawLimits =  yawLimits;
+	}
+
+	public void setReferenceRotation(float pitch, float yaw) {
+		setRotation(pitch, yaw);
 	}
 
 	

@@ -22,13 +22,13 @@ import android.opengl.GLUtils;
  */
 public class Sphere extends Mesh
 {
-	
+
 	private static final float DEFAULT_RADIUS = 1.0f;
-	private static final int DEFAULT_DEPTH = 4;
+	private static final int DEFAULT_DEPTH = 6;
 
 	/** Maximum allowed depth. */
 	protected static final int MAXIMUM_ALLOWED_DEPTH = 5;
-	
+
 	/** Buffer holding the vertices. */
 	private final List<FloatBuffer> mVertexBuffer = new ArrayList<FloatBuffer>();
 
@@ -121,7 +121,7 @@ for (int stripNum = 0; stripNum < this.mTotalNumStrips; stripNum++) {
     vertices[vertexPos++] = (float) z;
 
     // First point - Texture.
-    texturePoints[texturePos++] = (float) (1 - azimuth / Maths.THREE_SIXTY_DEGREES);
+    texturePoints[texturePos++] = (float) (azimuth / Maths.THREE_SIXTY_DEGREES);
     texturePoints[texturePos++] = (float) (1 - (altitude + Maths.NINETY_DEGREES) / Maths.ONE_EIGHTY_DEGREES);
 
     // Second point - Vertex.
@@ -136,7 +136,7 @@ for (int stripNum = 0; stripNum < this.mTotalNumStrips; stripNum++) {
     vertices[vertexPos++] = (float) z;
 
     // Second point - Texture.
-    texturePoints[texturePos++] = (float) (1 - azimuth / Maths.THREE_SIXTY_DEGREES);
+    texturePoints[texturePos++] = (float) (azimuth / Maths.THREE_SIXTY_DEGREES);
     texturePoints[texturePos++] = (float) (1 - (altitude + Maths.NINETY_DEGREES) / Maths.ONE_EIGHTY_DEGREES);
 
     azimuth += azimuthStepAngle;
@@ -173,25 +173,25 @@ for (int stripNum = 0; stripNum < this.mTotalNumStrips; stripNum++) {
    * @param gl Graphics handle.
    */
   public void draw(final GL10 gl, float[] modelViewMatrix) {
-	  
+
 	//enter 2d texture mode
 	gl.glEnable(GL10.GL_TEXTURE_2D);
     
 	// bind the previously generated texture.
 	gl.glBindTexture(GL10.GL_TEXTURE_2D, mTextures[0]);
-	
+
 	// Point to our buffers.
 	gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
 	gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
-	
+
 	// Set the face rotation, clockwise in this case.
 	gl.glFrontFace(GL10.GL_CW);
-	
+
 	// Point to our vertex buffer.
 	for (int i = 0; i < this.mTotalNumStrips; i++) {
 		gl.glVertexPointer(AMOUNT_OF_NUMBERS_PER_VERTEX_POINT, GL10.GL_FLOAT, 0, this.mVertexBuffer.get(i));
 		gl.glTexCoordPointer(AMOUNT_OF_NUMBERS_PER_TEXTURE_POINT, GL10.GL_FLOAT, 0, this.mTextureBuffer.get(i));
-		
+
 		// Draw the vertices as triangle strip.
 		gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, this.mVertices.get(i).length / AMOUNT_OF_NUMBERS_PER_VERTEX_POINT);
 	}
@@ -230,7 +230,7 @@ for (int stripNum = 0; stripNum < this.mTotalNumStrips; stripNum++) {
 	{
 		GLES10.glDeleteTextures(1, mTextures, 0);
 	}
-	
-	
-	
+
+
+
 }

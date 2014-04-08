@@ -1,7 +1,10 @@
 package fr.ensicaen.panandroid.test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.LinkedList;
+
+import org.json.JSONException;
 
 import fr.ensicaen.panandroid.snapshot.Snapshot;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
@@ -32,11 +35,16 @@ public class SnapshotManagerTestActivity extends Activity
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 	
-		mSnapshotManager = new SnapshotManager();
-		
 		//load JSON file
-		mSnapshotManager.loadJson(
-				Environment.getExternalStorageDirectory() + File.separator + "Panandroid/temp/PanoData.json");
+		try {
+			mSnapshotManager = new SnapshotManager(Environment.getExternalStorageDirectory() + File.separator + "Panandroid/temp/PanoData.json");
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+
 		
 		
 		LinkedList<LinkedList<Integer>> neighbors = mSnapshotManager.getNeighborsId();

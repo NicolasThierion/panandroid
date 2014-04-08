@@ -2,7 +2,10 @@ package fr.ensicaen.panandroid.test;
 
 
 import java.io.File;
+import java.io.IOException;
 import java.util.LinkedList;
+
+import org.json.JSONException;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -20,23 +23,26 @@ public class StitcherTestActivity extends Activity
 	
     private static final String PANORAMA_FILENAME = "result.jpg";
 
-    private static final String TEST_SAMPLES = "sample27ensi";	
+    private static final String TEST_SAMPLES = "sample15ensi2";	
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState) 
 	{
 		super.onCreate(savedInstanceState);
-    	boolean success;
 		
     	//get context ressources
     	String filename = Environment.getExternalStorageDirectory() + File.separator + TEST_SAMPLES+File.separator+"PanoData.json";
 	
 		//and init snapshot manager
-		mManager= new SnapshotManager();
-		
 		//load testing sample configuration
-		success = mManager.loadJson(filename);
-		Assert.assertTrue(success);
+		try {
+			mManager= new SnapshotManager(filename);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 				
 		//load snapshots url into the stitcher
 		LinkedList<LinkedList<Snapshot>> snapshots = mManager.getNeighborsList();

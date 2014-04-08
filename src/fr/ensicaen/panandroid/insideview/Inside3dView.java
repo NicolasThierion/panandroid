@@ -33,6 +33,8 @@ import android.hardware.SensorEventListener;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
+import android.view.View;
 
 /**
  * Surface view drawing a 3D mesh at the middle of the scene.
@@ -51,6 +53,10 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	 * ********/
 	private static final long INERTIA_TIME_INTERVAL = 200; // [ms]
 	private static final int REST_THRESHOLD = 5; // [pixel]
+
+	public static final float MIN_FOV = 20;
+
+	public static final float MAX_FOV = 120;
 	
 	/* *********
 	 * ATTRIBUTES
@@ -76,13 +82,18 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	/** The sensorFusion manager for sensorial rotation **/
 	private SensorFusionManager mSensorFusionManager = null;
 
-	private float mYawOffset = 0.0f;
 
 	/** Mesh that is drawed, given to the renderer **/
 	
 	/****/
 	float mPitchLimits[] = new float[2];
 	float mYawLimits[] =  new float[2];
+
+	
+	private ScaleGestureDetector mScaleDetector;
+
+	private boolean mPinchZoomEnable = false;
+
 	
 	
 	//protected Mesh mMesh;
@@ -115,6 +126,9 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 			renderer.setRotationLimits(mPitchLimits, mYawLimits );
 			setRenderer(renderer);
 		}
+		
+		//scale gesture detector for pinch-n-zoom
+	    mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
 
 	}
 	
@@ -144,6 +158,12 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	@Override
 	public boolean onTouchEvent(final MotionEvent event)
 	{
+		
+		if(isPinchZommEnabled())
+		{
+		    mScaleDetector.onTouchEvent(event);
+
+		}
 		if(!isTouchScrollEnabled())
 		{
 			return false;
@@ -152,6 +172,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		
 		switch (event.getAction()) 
 		{
+		
 	    	case MotionEvent.ACTION_DOWN :
 	    		stopInertialRotation();
 	    		
@@ -190,6 +211,8 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
     	return false;
 	}
 	
+	
+
 	@Override
 	public void onResume()
 	{
@@ -226,7 +249,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	{
 		float roll = 0.0f;
 		float pitch = 0.0f;
-		float yaw = -this.mYawOffset;
+		float yaw = 0;
 		
 		if(mPitchEnable)
 			pitch = mSensorFusionManager.getPitch();
@@ -260,6 +283,9 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		
 		int surfaceWidth = mRenderer.getSurfaceWidth();
 		int surfaceHeight = mRenderer.getSurfaceHeight();
+		Assert.assertTrue(surfaceWidth>0);
+		Assert.assertTrue(surfaceHeight>0);
+		
 		float aspect = (float) surfaceWidth/(float) surfaceHeight;
 		float pitch = mRenderer.getPitch();
 		float yaw = mRenderer.getYaw();
@@ -272,6 +298,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		float deltaLatitude = deltaPitch/surfaceHeight*fovYDeg;
 		pitch -= deltaLatitude;
 	
+		
 		pitch = (pitch>mPitchLimits[1]?mPitchLimits[1]:pitch);
 		pitch = (pitch<mPitchLimits[0]?mPitchLimits[0]:pitch);
 		yaw = (yaw>mYawLimits[1]?mYawLimits[1]:yaw);
@@ -296,6 +323,15 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	public boolean isInertialRotationEnabled()
 	{
 		return mInertiaEnable;
+	}
+	
+	public void setEnablePinchZoom(boolean enabled)
+	{
+		mPinchZoomEnable  = enabled;
+	}
+	public boolean isPinchZommEnabled() {
+		
+		return mPinchZoomEnable;
 	}
 	
 	/**
@@ -536,6 +572,40 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
     		this.time = time;
     	}
     }
+
+
+	public void setReferenceRotation(float pitch, float yaw)
+	{
+		mRenderer.setReferenceRotation(pitch, yaw);
+	}
+
+
+	private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+	    @Override
+	    public boolean onScale(ScaleGestureDetector detector) {
+
+	        float scaleFactor = detector.getScaleFactor();
+	        float fov = mRenderer.getFov();
+	        fov/=scaleFactor;
+	        // Don't let the object get too small or too large.
+	        fov = (float) Math.max(MIN_FOV, Math.min(fov, MAX_FOV));
+
+	        mRenderer.setFovDeg(fov);
+	        return true;
+	    }
+	    
+	   
+	    @Override
+	    public boolean onScaleBegin(ScaleGestureDetector detector) {
+	    	startInertialRotation();
+	    return true;
+	    }
+	    @Override
+	    public void onScaleEnd(ScaleGestureDetector detector) {
+	    	startInertialRotation();
+	    }
+	   
+	}
 
 
 

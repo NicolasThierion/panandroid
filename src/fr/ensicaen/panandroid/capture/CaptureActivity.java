@@ -78,7 +78,9 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	private static final int IMERSIVE_DELAY = 4000; //[s]
 	private static final int NAVIGATION_HIDE_TYPE = View.SYSTEM_UI_FLAG_LOW_PROFILE;
 
-	public final static String FOLDER = "fr.ensicaen.panandroid.FOLDER";
+	/** Some devices don't return good FOV values. In these cases, DEFAULT_FOV will be used **/
+	private static final float DEFAULT_HFOV = 59.62f;	//values for my nexus 5
+	private static final float DEFAULT_VFOV = 46.6f;	//TODO : manually set fov of known devices.
 
 	/* *********
 	 * ATTRIBUTES
@@ -137,6 +139,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		//setup camera manager
 		mCameraManager = CameraManager.getInstance(this);
+		
 		try
 		{
 			mCameraManager.setTargetDir(mWorkingDir);
@@ -148,7 +151,25 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 			return;
 		}
 		//setup JSON and snapshot manager
-		mSnapshotManager = new SnapshotManager();
+		int resX = mCameraManager.getCameraResX();
+		int resY = mCameraManager.getCameraResY();
+		float hfov = mCameraManager.getHorizontalViewAngle();
+		float vfov = mCameraManager.getVerticalViewAngle();
+		
+		if(hfov<1)
+		{
+			Log.e(TAG, "Invalid hfov : "+hfov+"\nSetting hfov to "+DEFAULT_HFOV);
+			hfov = DEFAULT_HFOV;
+		}
+		if(vfov<1)
+		{
+			Log.e(TAG, "Invalid vfov : "+vfov+"\nSetting hfov to "+DEFAULT_VFOV);
+			hfov = DEFAULT_VFOV;
+		}
+		mSnapshotManager = new SnapshotManager(SnapshotManager.DEFAULT_JSON_FILENAME,
+												resX, resY ,hfov, vfov,
+												DEFAULT_PITCH_STEP, DEFAULT_YAW_STEP);
+		
 		mCameraManager.addSnapshotEventListener(mSnapshotManager);
 
 		//setup GL view & its renderer
@@ -270,10 +291,16 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		{
 			public void onClick(DialogInterface dialog, int id)
 			{
-			    Intent intent = new Intent(CaptureActivity.this,
-			            StitcherActivity.class);
-			    intent.putExtra("projectFile",mWorkingDir+File.separator+SnapshotManager.DEFAULT_JSON_FILENAME);
-			    startActivity(intent);
+				//if we have at least 2 snapshots to stitch, switch to stitcher activity
+				if(mSnapshotManager.getSnapshotsList().size()>1)
+				{
+				    Intent intent = new Intent(CaptureActivity.this,
+				            StitcherActivity.class);
+				    intent.putExtra("projectFile",mWorkingDir+File.separator+SnapshotManager.DEFAULT_JSON_FILENAME);
+				    startActivity(intent);
+				}
+				else
+					CaptureActivity.this.onPause();
 			}
 		});
 		alertDialog.setNegativeButton(R.string.exit_no, new DialogInterface.OnClickListener()

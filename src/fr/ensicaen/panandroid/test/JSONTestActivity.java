@@ -21,7 +21,7 @@ public class JSONTestActivity extends Activity
 	 */
 	@Override
 	public void onCreate(final Bundle savedInstanceState) 
-	{
+	{/*
 		super.onCreate(savedInstanceState);
 	    
 	    //view in fullscreen
@@ -43,7 +43,7 @@ public class JSONTestActivity extends Activity
 		this.setContentView(this.mView);	
 		
 		//TODO
-		//mSnapshotManager.createJSONFile();
+		//mSnapshotManager.createJSONFile();*/
 	}
 	
 	  

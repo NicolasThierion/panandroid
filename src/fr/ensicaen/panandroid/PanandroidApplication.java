@@ -22,6 +22,7 @@ package fr.ensicaen.panandroid;
 
 import fr.ensicaen.panandroid.capture.CameraManager;
 import android.app.Application;
+import android.content.Context;
 import android.util.Log;
 
 /**
@@ -39,6 +40,9 @@ public class PanandroidApplication extends Application
 	/* *******
 	 * ATTRIBUTES
 	 * ******/
+    /** this application **/
+    private static Context mContext;
+    
     /** Exception handler **/
     private Thread.UncaughtExceptionHandler mDefaultExHandler;
     private CameraManager mCamManager;
@@ -65,6 +69,12 @@ public class PanandroidApplication extends Application
         mDefaultExHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(mExHandler);
         mCamManager = CameraManager.getInstance(this);
+        mContext = this;
+    }
+    
+    public static Context getContext()
+    {
+    	return mContext;
     }
 
 }
