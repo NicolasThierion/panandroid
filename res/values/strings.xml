@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
-	<string name="app_name">Panandroid</string>
-	<string name="launch_app">Panandroid</string>
-	<string name="btn_shutter">take a picture</string>
-	<string name="btn_sensorial_rotation">enable sensorial rotation</string>
-	<string name="edittext_choose_panoname">Enter pano name</string>
-	<string name="exit_confrm">Do you really want to exit?</string>
+
+    <string name="app_name">Panandroid</string>
+    <string name="launch_app">Panandroid</string>
+    <string name="btn_shutter">take a picture</string>
+    <string name="btn_sensorial_rotation">enable sensorial rotation</string>
+    <string name="edittext_choose_panoname">Enter pano name</string>
+    <string name="exit_confrm">Do you really want to exit?</string>
     <string name="exit_yes">exit</string>
     <string name="exit_no">don\'t exit</string>
     <string name="stitch">stitch</string>
@@ -13,6 +14,10 @@
     <string name="stitch_failure">Unable to stitch : an error occured.</string>
     <string name="show_pano_in_viewer">Show panorama.</string>
     <string name="stitching_in_progress">Stitching in progress...</string>
-    	
-			
+    <string name="desc">Splash screen image</string>
+    <string name="title_activity_gallery">GalleryActivity</string>
+    <string name="action_settings">Settings</string>
+    <string name="desc">desc</string><string name="hello_world">Hello world!</string>
+    
+
 </resources>

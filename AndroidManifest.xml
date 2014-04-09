@@ -32,46 +32,43 @@ or revised without written permission of the authors.
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/Theme.FullScreen">
-        
+        android:theme="@style/Theme.FullScreen" >
+
         <!-- android:theme="@style/AppTheme" > -->
-                    <!-- android:name="fr.ensicaen.panandroid.capture.CaptureActivity" -->
-        
+        <!-- android:name="fr.ensicaen.panandroid.capture.CaptureActivity" -->
+
         <activity
- 			android:name="fr.ensicaen.panandroid.capture.CaptureActivity"             
+            android:name="fr.ensicaen.panandroid.capture.CaptureActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance" >
-             
-           
         </activity>
-        <!-- 
-        <activity
- 			android:name="fr.ensicaen.panandroid.capture.CaptureActivity"             
-            android:configChanges="orientation|screenSize"
-            android:label="@string/app_name"
-            android:launchMode="singleInstance" >
-        </activity> -->
 
         <activity
             android:name="fr.ensicaen.panandroid.stitcher.StitcherActivity"
-            android:label="@string/app_name" 
-  			android:configChanges="orientation|screenSize"
-            >
- 			
-        </activity>    
-         <activity
- 			android:name="fr.ensicaen.panandroid.viewer.SphereViewerActivity"             
+            android:configChanges="orientation|screenSize"
+            android:label="@string/app_name" >
+        </activity>
+        
+        <activity
+            android:name="fr.ensicaen.panandroid.viewer.SphereViewerActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance" >
-           <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            
         </activity>
+
         <uses-library android:name="android.test.runner" />
 
+        <activity
+            android:name="fr.ensicaen.panandroid.viewer.GalleryActivity"
+            android:label="@string/title_activity_gallery" >  
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>  
+        </activity>
     </application>
 
 </manifest>
