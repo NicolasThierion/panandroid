@@ -104,6 +104,9 @@ public class SphereViewerActivity extends Activity
 	    else
 	    	Log.w(TAG, "created viewer without passing projectFile to intent");
 	    	
+	    
+    	//loadPanorama("/sdcard/sampleCafet/PanoData.json");
+
 	    mSphereView.setEnableInertialRotation(true);
 	    mSphereView.setEnableTouchRotation(true);
 	    mSphereView.setInertiaFriction(50.0f);
@@ -153,9 +156,11 @@ public class SphereViewerActivity extends Activity
 		    minYaw = minYaw-YAW_RANGE;
 		    maxYaw = maxYaw+YAW_RANGE;
 	    }
-	    mSphereView.setReferenceRotation(0.0f,270-manager.getCameraHFov()/2);
-	    mSphereView.setPitchLimits(new float[]{minPitch, maxPitch});
-	    mSphereView.setYawLimits(new float[]{minYaw, maxYaw});
+	    //mSphereView.setReferenceRotation(0.0f,270-manager.getCameraHFov()/2);
+
+	    //TODO re enable & debug
+	    mSphereView.setPitchRange(new float[]{minPitch, maxPitch});
+	    mSphereView.setYawRange(new float[]{minYaw, maxYaw});
   }
 
   

@@ -103,6 +103,10 @@ public class InsideRenderer implements Renderer, EulerAngles
 
 	private boolean mHasToResetFov = false;
 
+	private float mOPitch;
+
+	private float mOYaw;
+
 	
 	/* *************
 	 * CONSTRUCTOR
@@ -504,11 +508,12 @@ public class InsideRenderer implements Renderer, EulerAngles
 		mRotationMatrix = rotationMatrix;
 	}
 
-	public void setRotationLimits(float[] pitchLimits, float[] yawLimits)
+	public void setRotationRange(float[] pitchLimits, float[] yawLimits)
 	{
 		mPitchLimits = pitchLimits;
 		mYawLimits =  yawLimits;
 	}
+
 
 	
 

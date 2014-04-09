@@ -42,7 +42,10 @@ or revised without written permission of the authors.
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance" >
-            
+               <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
            
         </activity>
         <!-- 
@@ -58,17 +61,14 @@ or revised without written permission of the authors.
             android:label="@string/app_name" 
   			android:configChanges="orientation|screenSize"
             >
- 			 <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+ 			
         </activity>    
          <activity
  			android:name="fr.ensicaen.panandroid.viewer.SphereViewerActivity"             
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance" >
-           
+         
         </activity>
         <uses-library android:name="android.test.runner" />
 

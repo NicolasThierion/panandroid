@@ -78,7 +78,7 @@ public class StitcherActivity extends Activity
         Intent intent = getIntent();
         
         mProjectFile = intent.getStringExtra("projectFile");
-        mProjectFile = "/storage/emulated/0/Panandroid/temp30/PanoData.json";
+       // mProjectFile = "/sdcard/sampleCafet/PanoData.json";
         
         Log.i(TAG , "loading file "+mProjectFile);
         try {
@@ -227,14 +227,16 @@ public class StitcherActivity extends Activity
         	double bp, sp, diff;
 			while(mStitcher.getStatus() == StitcherWrapper.Status.OK && mStitcher.getProgress()<100)
 			{
+				/*
 				//smooth progression a little bit ;-)
 				sp = mStitcher.getProgress();
 				bp = mProgress.getProgress();
-				diff = (sp-bp)/((101-sp)/10);
+				diff = (sp-bp)/(Math.max((100-sp), 1)/10);
 				bp += diff;
 				
 				
-                mProgress.setProgress((int)bp);
+                mProgress.setProgress((int)bp);*/
+				mProgress.setProgress(mStitcher.getProgress());
                 try 
                 {
 					Thread.sleep(1000);
@@ -246,6 +248,8 @@ public class StitcherActivity extends Activity
 			}
             mProgress.setProgress(100);
 
+            
+            //pano succeed?
         	if (mStitcher.getStatus() == StitcherWrapper.Status.DONE || mStitcher.getStatus() == StitcherWrapper.Status.OK) 
         	{
                 String panoJpeg = mSnapshotManager.getPanoramaJpgPath();
@@ -272,20 +276,17 @@ public class StitcherActivity extends Activity
                 int croppedWidth = opts.outWidth;
                 int croppedHeight = opts.outHeight;
                 
-                //set new data into JSon
+                //set new data into JSon...
+                
+                //Get range
             	float bounds[][] = mStitcher.getBoundingAngles();
-            	
             	float heading = mSnapshotManager.getSnapshotsList().get(0).getYaw();
             	float minPitch = bounds[0][0], minYaw = bounds[0][1], maxPitch= bounds[1][0], maxYaw= bounds[1][1];
-            	
+
             	heading = Math.max(minYaw, heading);
             	heading = Math.min(maxYaw, heading);
         	
             	Log.i(TAG, "panorama bounds : pitch@["+minPitch+","+maxPitch+"], yaw@["+minYaw+","+maxYaw+"]");
-            	
-            	mSnapshotManager.setBounds(bounds);
-            	mSnapshotManager.setHeading(heading);
-            	mSnapshotManager.toJSON(mProjectFilename);
                 
                 //add padding to cover 360°
             	float hfov = mSnapshotManager.getCameraHFov();
@@ -363,6 +364,8 @@ public class StitcherActivity extends Activity
                	mSnapshotManager.setCropPanoHeight(croppedHeight);
                	mSnapshotManager.setTopPadding(paddY);
                	mSnapshotManager.setLeftPadding(paddX);
+               	mSnapshotManager.setBounds(bounds);
+            	mSnapshotManager.setHeading(heading);
                	
                	StitcherWrapper.setPadding(tempFilename, tempFilename, paddX, paddY, paddX, paddY );
 
@@ -371,6 +374,8 @@ public class StitcherActivity extends Activity
                		new File(mTempFilenames.removeFirst()).delete();
                
             	mSnapshotManager.doPhotoSphereTagging();
+            	mSnapshotManager.toJSON(mProjectFilename);
+
 
         		return SUCCESS;
             }
