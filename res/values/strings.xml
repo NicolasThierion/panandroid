@@ -5,15 +5,12 @@
     <string name="launch_app">Panandroid</string>
     <string name="btn_shutter">take a picture</string>
     <string name="btn_sensorial_rotation">enable sensorial rotation</string>
-    <string name="edittext_choose_panoname">Enter pano name</string>
+    <string name="panorama_name">Saisir le nom de votre panorama</string>
     <string name="exit_capture">Voulez-vous mettre fin à la capture ?</string>
     <string name="exit_yes">Oui</string>
     <string name="exit_no">Non</string>
-    <string name="stitch">stitch</string>
-    <string name="stitch_success">Stitching done successfully!</string>
+    <string name="stitch">Créer le panorama</string>
     <string name="stitch_failure">Unable to stitch : an error occured.</string>
-    <string name="show_pano_in_viewer">Show panorama.</string>
-    <string name="stitching_in_progress">Stitching in progress...</string>
     <!-- <string name="desc">Splash screen image</string> -->
     <string name="title_activity_gallery">GalleryActivity</string>
     <string name="action_settings">Settings</string>

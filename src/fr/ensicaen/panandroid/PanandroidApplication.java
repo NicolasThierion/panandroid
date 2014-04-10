@@ -51,6 +51,9 @@ public class PanandroidApplication extends Application
     /** Camera manager */
     private CameraManager mCameraManager;
 
+    /** Application context */
+    private static Context mContext;
+
     /** Exception handler */
     private Thread.UncaughtExceptionHandler mExceptionHandler =
             new Thread.UncaughtExceptionHandler() {
@@ -79,6 +82,7 @@ public class PanandroidApplication extends Application
         mDefaultHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(mExceptionHandler);
         mCameraManager = CameraManager.getInstance(this);
+        mContext = this;
     }
 
     /**********
@@ -89,6 +93,6 @@ public class PanandroidApplication extends Application
      * @return context of the application.
      */
     public static Context getContext() {
-    	return PanandroidApplication.getContext();
+    	return mContext;
     }
 }
