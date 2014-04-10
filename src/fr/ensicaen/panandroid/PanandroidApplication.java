@@ -20,9 +20,12 @@
 package fr.ensicaen.panandroid;
 
 
+import java.io.File;
+
 import fr.ensicaen.panandroid.capture.CameraManager;
 import android.app.Application;
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 
 /**
@@ -36,6 +39,9 @@ public class PanandroidApplication extends Application
 	 * PARAMETERS
 	 * ******/
     private final static String TAG = PanandroidApplication.class.getSimpleName();
+    
+	public static final String APP_DIRECTORY = Environment.getExternalStorageDirectory() + File.separator + "Panandroid";
+
 
 	/* *******
 	 * ATTRIBUTES

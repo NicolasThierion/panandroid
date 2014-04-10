@@ -63,6 +63,7 @@ public class Sphere extends Mesh
 
   /** The texture pointer. */
   protected final int[] mTextures = new int[1];
+private int md;
   
 
   /**
@@ -89,21 +90,20 @@ public class Sphere extends Mesh
    */
   public Sphere(final int depth, final float radius) {
     // Clamp depth to the range 1 to MAXIMUM_ALLOWED_DEPTH;
-final int d = Math.max(1, Math.min(MAXIMUM_ALLOWED_DEPTH, depth));
+ md = Math.max(1, Math.min(MAXIMUM_ALLOWED_DEPTH, depth));
 
 // Calculate basic values for the sphere.
-this.mTotalNumStrips = Maths.power(2, d - 1) * VERTEX_MAGIC_NUMBER;
-final int numVerticesPerStrip = Maths.power(2, d) * 3;
-final double altitudeStepAngle = Maths.ONE_TWENTY_DEGREES / Maths.power(2, d);
+this.mTotalNumStrips = Maths.power(2, md - 1) * VERTEX_MAGIC_NUMBER;
+final int numVerticesPerStrip = Maths.power(2, md) * 3;
+final double altitudeStepAngle = Maths.ONE_TWENTY_DEGREES / Maths.power(2, md);
 final double azimuthStepAngle = Maths.THREE_SIXTY_DEGREES / this.mTotalNumStrips;
 double x, y, z, h, altitude, azimuth;
 
-for (int stripNum = 0; stripNum < this.mTotalNumStrips; stripNum++) {
+int stripNum = 0;
+for (int i = 0; i < this.mTotalNumStrips; i++ ){
   // Setup arrays to hold the points for this strip.
   final float[] vertices = new float[numVerticesPerStrip * NUM_FLOATS_PER_VERTEX]; // NOPMD
-  final float[] texturePoints = new float[numVerticesPerStrip * NUM_FLOATS_PER_TEXTURE]; // NOPMD
   int vertexPos = 0;
-  int texturePos = 0;
 
   // Calculate position of the first vertex in this strip.
   altitude = Maths.NINETY_DEGREES;
@@ -120,10 +120,6 @@ for (int stripNum = 0; stripNum < this.mTotalNumStrips; stripNum++) {
     vertices[vertexPos++] = (float) y;
     vertices[vertexPos++] = (float) z;
 
-    // First point - Texture.
-    texturePoints[texturePos++] = (float) (azimuth / Maths.THREE_SIXTY_DEGREES);
-    texturePoints[texturePos++] = (float) (1 - (altitude + Maths.NINETY_DEGREES) / Maths.ONE_EIGHTY_DEGREES);
-
     // Second point - Vertex.
     altitude -= altitudeStepAngle;
     azimuth -= azimuthStepAngle / 2.0;
@@ -135,37 +131,87 @@ for (int stripNum = 0; stripNum < this.mTotalNumStrips; stripNum++) {
     vertices[vertexPos++] = (float) y;
     vertices[vertexPos++] = (float) z;
 
-    // Second point - Texture.
-    texturePoints[texturePos++] = (float) (azimuth / Maths.THREE_SIXTY_DEGREES);
-    texturePoints[texturePos++] = (float) (1 - (altitude + Maths.NINETY_DEGREES) / Maths.ONE_EIGHTY_DEGREES);
-
+  
     azimuth += azimuthStepAngle;
     
     
   }
 
   this.mVertices.add(vertices);
-  this.mTexture.add(texturePoints);
 
   ByteBuffer byteBuffer = ByteBuffer.allocateDirect(numVerticesPerStrip * NUM_FLOATS_PER_VERTEX * Float.SIZE);
   byteBuffer.order(ByteOrder.nativeOrder());
   FloatBuffer fb = byteBuffer.asFloatBuffer();
-  fb.put(this.mVertices.get(stripNum));
+  fb.put(this.mVertices.get(i));
   fb.position(0);
   this.mVertexBuffer.add(fb);
 
-  // Setup texture.
-      byteBuffer = ByteBuffer.allocateDirect(numVerticesPerStrip * NUM_FLOATS_PER_TEXTURE * Float.SIZE);
-      byteBuffer.order(ByteOrder.nativeOrder());
-      fb = byteBuffer.asFloatBuffer();
-      fb.put(this.mTexture.get(stripNum));
-      fb.position(0);
-      this.mTextureBuffer.add(fb);
+      stripNum++;
+      stripNum%=this.mTotalNumStrips;
     }
     int[] colorArray = new int[]{Color.GREEN};
     mBitmapTexture = Bitmap.createBitmap(colorArray, 1, 1, Config.RGB_565);
+    initTexture(radius);
   }
 
+  
+  private void initTexture(float radius)
+  {
+	// Calculate basic values for the sphere.
+	  final int numVerticesPerStrip = Maths.power(2, md) * 3;
+	  final double altitudeStepAngle = Maths.ONE_TWENTY_DEGREES / Maths.power(2, md);
+	  final double azimuthStepAngle = Maths.THREE_SIXTY_DEGREES / this.mTotalNumStrips;
+	  double altitude, azimuth;
+
+	  int stripNum = 3*mTotalNumStrips/4;
+	  for (int i = 0; i < this.mTotalNumStrips; i++ ){
+	    // Setup arrays to hold the points for this strip.
+	    final float[] texturePoints = new float[numVerticesPerStrip * NUM_FLOATS_PER_TEXTURE]; // NOPMD
+	    int texturePos = 0;
+
+	    // Calculate position of the first vertex in this strip.
+	    altitude = Maths.NINETY_DEGREES;
+	    azimuth = stripNum * azimuthStepAngle;
+
+	    // Draw the rest of this strip.
+	    for (int vertexNum = 0; vertexNum < numVerticesPerStrip; vertexNum += 2) {
+	  
+	    
+
+	      // First point - Texture.
+	      texturePoints[texturePos++] = (float) (azimuth / Maths.THREE_SIXTY_DEGREES);
+	      texturePoints[texturePos++] = (float) (1 - (altitude + Maths.NINETY_DEGREES) / Maths.ONE_EIGHTY_DEGREES);
+
+	      altitude -= altitudeStepAngle;
+	      azimuth -= azimuthStepAngle / 2.0;
+	    
+	      // Second point - Texture.
+	      texturePoints[texturePos++] = (float) (azimuth / Maths.THREE_SIXTY_DEGREES);
+	      texturePoints[texturePos++] = (float) (1 - (altitude + Maths.NINETY_DEGREES) / Maths.ONE_EIGHTY_DEGREES);
+
+	      azimuth += azimuthStepAngle;
+	      
+	      
+	    }
+
+	    this.mTexture.add(texturePoints);
+
+
+	    // Setup texture.
+	    ByteBuffer byteBuffer = ByteBuffer.allocateDirect(numVerticesPerStrip * NUM_FLOATS_PER_TEXTURE * Float.SIZE);
+	        byteBuffer.order(ByteOrder.nativeOrder());
+	        FloatBuffer  fb = byteBuffer.asFloatBuffer();
+	        fb.put(this.mTexture.get(i));
+	        fb.position(0);
+	        this.mTextureBuffer.add(fb);
+	        
+	        stripNum++;
+	        stripNum%=this.mTotalNumStrips;
+	      }
+	      int[] colorArray = new int[]{Color.GREEN};
+	      mBitmapTexture = Bitmap.createBitmap(colorArray, 1, 1, Config.RGB_565);
+	    }
+  
   
   /**
    * The draw method for the square with the GL context.

@@ -94,7 +94,7 @@ bool try_cuda = false;
 bool try_ocl = false;
 
 /** working resolution **/
-double work_megapix = 0.5;
+double work_megapix = 0.35;
 
 /** seam finding resolution **/
 double seam_megapix = 0.2;
@@ -103,7 +103,7 @@ double seam_megapix = 0.2;
 double compose_megapix = 1.0;
 
 /** Threshold for two images are from the same panorama confidence. **/
-float conf_thresh = 0.57f;	// frequent crashes when < 0.7
+float conf_thresh = 0.7f;	// frequent crashes when < 0.7
 
 /** Bundle adjustment cost function. reproj don't seems suitable for spherical pano**/
 string ba_cost_func = "ray"; 	//["reproj", "ray" : "ray"]
@@ -144,7 +144,7 @@ float blend_strength = 5;
 
 /** orb featureFinder parameters **/
 Size ORB_GRID_SIZE = Size(1,1);
-size_t ORB_FEATURES_N = 4500;
+size_t ORB_FEATURES_N = 3500;
 
 /*************
  * ATTRIBUTES

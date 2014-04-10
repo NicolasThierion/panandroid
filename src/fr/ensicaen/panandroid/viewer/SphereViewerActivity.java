@@ -27,6 +27,7 @@ import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
 import fr.ensicaen.panandroid.meshs.Sphere;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
+import fr.ensicaen.panandroid.tools.BitmapDecoder;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -103,9 +104,10 @@ public class SphereViewerActivity extends Activity
 	    	loadPanorama(projectFile);
 	    else
 	    	Log.w(TAG, "created viewer without passing projectFile to intent");
+	    	
 	    
-    	loadPanorama("/sdcard/sample15ensi2/PanoData.json");
-	
+    	//loadPanorama("/sdcard/sampleCafet/PanoData.json");
+
 	    mSphereView.setEnableInertialRotation(true);
 	    mSphereView.setEnableTouchRotation(true);
 	    mSphereView.setInertiaFriction(50.0f);
@@ -139,7 +141,7 @@ public class SphereViewerActivity extends Activity
 	    maxYaw = manager.getMaxYaw();
 	
 	    Log.i(TAG, "loading panorama "+textureFile);
-	    Bitmap texture = BitmapFactory.decodeFile(textureFile);
+	    Bitmap texture = BitmapDecoder.safeDecodeBitmap(textureFile);
 	    mSphere.setGlTexture(texture);
 	   
 	    
@@ -155,12 +157,11 @@ public class SphereViewerActivity extends Activity
 		    minYaw = minYaw-YAW_RANGE;
 		    maxYaw = maxYaw+YAW_RANGE;
 	    }
-	    mSphereView.setReferenceRotation(0.0f,180-manager.getCameraHFov()/2);
-	    mSphereView.setPitchLimits(new float[]{minPitch, maxPitch});
-	    mSphereView.setYawLimits(new float[]{minYaw, maxYaw});
-	    
+	    //mSphereView.setReferenceRotation(0.0f,270-manager.getCameraHFov()/2);
 
-
+	    //TODO re enable & debug
+	    mSphereView.setPitchRange(new float[]{minPitch, maxPitch});
+	    mSphereView.setYawRange(new float[]{minYaw, maxYaw});
   }
 
   

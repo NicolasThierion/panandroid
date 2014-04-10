@@ -19,6 +19,7 @@
 
 package fr.ensicaen.panandroid.insideview;
 
+import java.util.Arrays;
 import java.util.Stack;
 
 import fr.ensicaen.panandroid.R;
@@ -67,8 +68,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	public static final float MIN_FOV = 20;
 
 	public static final float MAX_FOV = 120;
-
-	private static final boolean DEFAULT_SENSORIAL_BUTTON_VISIBILITY = false;
 	
 	/* *********
 	 * ATTRIBUTES
@@ -98,8 +97,8 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	/** Mesh that is drawed, given to the renderer **/
 	
 	/****/
-	float mPitchLimits[] = new float[2];
-	float mYawLimits[] =  new float[2];
+	float mPitchRange[] = new float[2];
+	float mYawRange[] =  new float[2];
 
 	
 	private ScaleGestureDetector mScaleDetector;
@@ -108,7 +107,12 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 
 	private SensorialRotationButton mSensorialRotationButton;
 
-	private boolean mSensorialButtonIsVisible = DEFAULT_SENSORIAL_BUTTON_VISIBILITY;
+	private Context mContext;
+
+	private float mOPitch;
+
+	private float mOYaw;
+
 
 	
 	
@@ -130,26 +134,24 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	protected Inside3dView(Context context, Mesh mesh, InsideRenderer renderer)
 	{
 		super(context);
+		mContext = context;
 		super.setPreserveEGLContextOnPause(true);
-		mPitchLimits[0] = -1000;
-		mPitchLimits[1] = 1000;
-		mYawLimits[0] = -1000;
-		mYawLimits[1] = 1000;
+		mPitchRange[0] = -1000;
+		mPitchRange[1] = 1000;
+		mYawRange[0] = -1000;
+		mYawRange[1] = 1000;
 		//if renderer is set, assign the view to it.
 		if(renderer != null)
 		{        
 			super.setEGLContextClientVersion(1);
-			renderer.setRotationLimits(mPitchLimits, mYawLimits );
+			renderer.setRotationRange(mPitchRange, mYawRange );
 			setRenderer(renderer);
 		}
 		
 		//scale gesture detector for pinch-n-zoom
 	    mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
 	    
-	    //add sensorial rotation button
-		mSensorialRotationButton = (SensorialRotationButton) ((Activity)context).findViewById(R.id.btn_sensorial_rotation);
-		mSensorialRotationButton.setVisibility(mSensorialButtonIsVisible ?View.VISIBLE:View.INVISIBLE);
-		mSensorialRotationButton.setParentView(this);
+	    setSensorialButtonVisible(false);
 
 	}
 	
@@ -283,10 +285,10 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		if(mRollEnable)
 			roll = mSensorFusionManager.getRelativeRoll();		
 
-		pitch = (pitch>mPitchLimits[1]?mPitchLimits[1]:pitch);
-		pitch = (pitch<mPitchLimits[0]?mPitchLimits[0]:pitch);
-		yaw = (yaw>mYawLimits[1]?mYawLimits[1]:yaw);
-		yaw = (yaw<mYawLimits[0]?mYawLimits[0]:yaw);
+		pitch = (pitch>mPitchRange[1]?mPitchRange[1]:pitch);
+		pitch = (pitch<mPitchRange[0]?mPitchRange[0]:pitch);
+		yaw = (yaw>mYawRange[1]?mYawRange[1]:yaw);
+		yaw = (yaw<mYawRange[0]?mYawRange[0]:yaw);
 		mRenderer.setRotation(pitch, yaw, roll);
 		
 		//mRenderer.setRotationMatrix(mSensorFusionManager.getRotationMatrix());
@@ -298,10 +300,10 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	
 	/**
 	 * Set the mesh rotation
-	 * @param deltaYaw - How many degree to rotate horizontally
-	 * @param deltaPitch - How many degrees to rotate vertically
+	 * @param deltaWidthPx - How many px to rotate horizontally
+	 * @param deltaHeightPx - How many px to rotate vertically
 	 */
-	public void rotate(float deltaYaw, float deltaPitch) {
+	public void rotate(float deltaWidthPx, float deltaHeightPx) {
 		
 		int surfaceWidth = mRenderer.getSurfaceWidth();
 		int surfaceHeight = mRenderer.getSurfaceHeight();
@@ -313,18 +315,18 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		float yaw = mRenderer.getYaw();
 		float hFovDeg = mRenderer.getHFovDeg();
 		
-		float deltaLongitute = deltaYaw/surfaceWidth*hFovDeg;
+		float deltaLongitute = deltaWidthPx/surfaceWidth*hFovDeg;
 		yaw -= deltaLongitute;	
 		
 		float fovYDeg = hFovDeg/aspect;
-		float deltaLatitude = deltaPitch/surfaceHeight*fovYDeg;
+		float deltaLatitude = deltaHeightPx/surfaceHeight*fovYDeg;
 		pitch -= deltaLatitude;
 	
 		
-		pitch = (pitch>mPitchLimits[1]?mPitchLimits[1]:pitch);
-		pitch = (pitch<mPitchLimits[0]?mPitchLimits[0]:pitch);
-		yaw = (yaw>mYawLimits[1]?mYawLimits[1]:yaw);
-		yaw = (yaw<mYawLimits[0]?mYawLimits[0]:yaw);
+		pitch = (pitch>mPitchRange[1]?mPitchRange[1]:pitch);
+		pitch = (pitch<mPitchRange[0]?mPitchRange[0]:pitch);
+		yaw = (yaw>mYawRange[1]?mYawRange[1]:yaw);
+		yaw = (yaw<mYawRange[0]?mYawRange[0]:yaw);
 		
 
 		mRenderer.setRotation(pitch, yaw);
@@ -358,8 +360,19 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	
 	public void setSensorialButtonVisible(boolean visible)
 	{
-		mSensorialButtonIsVisible = visible;
-		mSensorialRotationButton.setVisibility(mSensorialButtonIsVisible ?View.VISIBLE:View.GONE);
+		if(visible)
+		{
+			//add sensorial rotation button
+			mSensorialRotationButton = (SensorialRotationButton) ((Activity)mContext).findViewById(R.id.btn_sensorial_rotation);
+			mSensorialRotationButton.setVisibility(View.VISIBLE);
+			mSensorialRotationButton.setParentView(this);
+		}
+		else
+		{
+			if(mSensorialRotationButton!=null)
+				mSensorialRotationButton.setVisibility(View.GONE);
+			mSensorialRotationButton=null;
+		}
 
 	}
 	
@@ -394,7 +407,7 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 	{	
         mRenderer = renderer;
         super.setRenderer(mRenderer);
-		mRenderer.setRotationLimits(mPitchLimits, mYawLimits );
+		mRenderer.setRotationRange(mPitchRange, mYawRange );
 		
 	}
 	
@@ -473,30 +486,23 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		return mSensorialRotationEnable;
 	}
 	
-	public float[] getmPitchLimits() {
-		return mPitchLimits;
-	}
-
-	public void setPitchLimits(float[] pitchLimits)
+	
+	public void setPitchRange(float[] pitchRange)
 	{
-		mPitchLimits = pitchLimits;
+		mPitchRange = Arrays.copyOf(pitchRange, pitchRange.length);
 		if(mRenderer!=null)
 		{
-			mRenderer.setRotationLimits(mPitchLimits, mYawLimits );
+			mRenderer.setRotationRange(mPitchRange, mYawRange );
 		}
 	}
 
-	public float[] getmYawLimits()
-	{
-		return mYawLimits;
-	}
 
-	public void setYawLimits(float[] yawLimits)
+	public void setYawRange(float[] yawRange)
 	{
-		mYawLimits = yawLimits;
+		mYawRange = Arrays.copyOf(yawRange,  yawRange.length);
 		if(mRenderer!=null)
 		{
-			mRenderer.setRotationLimits(mPitchLimits, mYawLimits );
+			mRenderer.setRotationRange(mPitchRange, mYawRange );
 		}
 
 	}
@@ -576,9 +582,9 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		float pitch = mRenderer.getPitch();
 		float yaw = mRenderer.getYaw();
 		
-		if (pitch>=mPitchLimits[1] || pitch <=mPitchLimits[0])
+		if (pitch>=mPitchRange[1] || pitch <=mPitchRange[0])
 			scrollSpeedY = 0;
-		if (yaw>=mYawLimits[1] || yaw <=mYawLimits[0])
+		if (yaw>=mYawRange[1] || yaw <=mYawRange[0])
 			scrollSpeedX = 0;
 		
 		if (scrollSpeedX == 0.0f && scrollSpeedY == 0.0f) {
@@ -603,11 +609,6 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
     	}
     }
 
-
-	public void setReferenceRotation(float pitch, float yaw)
-	{
-		mRenderer.setReferenceRotation(pitch, yaw);
-	}
 
 
 	private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {

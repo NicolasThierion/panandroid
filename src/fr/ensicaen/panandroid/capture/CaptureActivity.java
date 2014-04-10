@@ -21,6 +21,7 @@ package fr.ensicaen.panandroid.capture;
 import java.io.File;
 import java.io.IOException;
 
+import fr.ensicaen.panandroid.PanandroidApplication;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 import fr.ensicaen.panandroid.stitcher.StitcherActivity;
@@ -69,7 +70,6 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	 * *********/
 
 	/** Directory where pictures will be saved **/
-	private static final String APP_DIRECTORY = Environment.getExternalStorageDirectory() + File.separator + "Panandroid";
 	private static final String TEMP_PREFIX = "temp";
 	/** immersive mode will hide status bar and navigation bar **/
 	private static boolean IMMERSIVE_ENABLE = true;
@@ -96,7 +96,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	private SnapshotManager mSnapshotManager;
 
 	/** directory where images and JSon file are stored **/
-	private String mWorkingDir = APP_DIRECTORY;
+	private String mWorkingDir ;
 	private String mPanoName;
 
 	private PowerManager mPowerManager;
@@ -264,9 +264,11 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		mCaptureView.onPause();
 		mCameraManager.onPause();
 		//save project to json
-		String res = mSnapshotManager.toJSON(SnapshotManager.DEFAULT_JSON_FILENAME);
-		Log.i(TAG,  "saving project to "+res);
-
+		if(mSnapshotManager.getSnapshotsList().size()>0)
+		{
+			String res = mSnapshotManager.toJSON(SnapshotManager.DEFAULT_JSON_FILENAME);
+			Log.i(TAG,  "saving project to "+res);
+		}
 		//call parent
 		super.onPause();
 	}
@@ -297,10 +299,17 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 				    Intent intent = new Intent(CaptureActivity.this,
 				            StitcherActivity.class);
 				    intent.putExtra("projectFile",mWorkingDir+File.separator+SnapshotManager.DEFAULT_JSON_FILENAME);
+				    intent.putExtra("commingFrom",CaptureActivity.class.getSimpleName());
+				    //intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
 				    startActivity(intent);
+				    //finish this activity in order to free maximum of memory
+				    finish();
 				}
 				else
-					CaptureActivity.this.onPause();
+				{
+					
+					CaptureActivity.this._onBackPressed();
+				}
 			}
 		});
 		alertDialog.setNegativeButton(R.string.exit_no, new DialogInterface.OnClickListener()
@@ -313,9 +322,14 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		AlertDialog alert = alertDialog.create();
 		alert.show();
+		
 
 	}
-
+	private void _onBackPressed()
+	{
+		
+		super.onBackPressed();
+	}
 
 	@Override
 	public void onSystemUiVisibilityChange(int visibility)
@@ -342,9 +356,9 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	private String genWorkingDir(String panoName)
 	{
 
-		File dir = new File(APP_DIRECTORY+File.separator+panoName);
+		File dir = new File(PanandroidApplication.APP_DIRECTORY+File.separator+panoName);
 		dir.mkdirs();
-		return APP_DIRECTORY+File.separator+panoName;
+		return dir.getAbsolutePath();
 	}
 
 
@@ -353,14 +367,14 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		int id = 1;
 
-		String path = APP_DIRECTORY+File.separator+prefix;
+		String path = PanandroidApplication.APP_DIRECTORY+File.separator+prefix;
 
 		File dir = new File(path);
 		if(dir.exists())
 		{
 			do
 			{
-				path = APP_DIRECTORY+File.separator+prefix+(id++);
+				path = PanandroidApplication.APP_DIRECTORY+File.separator+prefix+(id++);
 				dir = new File(path);
 
 			}while(dir.exists());
