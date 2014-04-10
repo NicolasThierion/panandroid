@@ -116,12 +116,12 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		//view in fullscreen, and don't turn screen off
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		
+
 		mPowerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		mWakeLock = mPowerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
 
 		//bind activity to its layout
-		setContentView(R.layout.capture_activity);
+		setContentView(R.layout.activity_capture);
 
 		// Hide both the navigation bar and the status bar.
 		View decorView = getWindow().getDecorView();
@@ -139,10 +139,10 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		//setup camera manager
 		mCameraManager = CameraManager.getInstance(this);
-		
+
 		try
 		{
-			mCameraManager.setTargetDir(mWorkingDir);
+			mCameraManager.setTargetDirectory(mWorkingDir);
 			mCameraManager.open();
 		}
 		catch (IOException e)
@@ -155,7 +155,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		int resY = mCameraManager.getCameraResY();
 		float hfov = mCameraManager.getHorizontalViewAngle();
 		float vfov = mCameraManager.getVerticalViewAngle();
-		
+
 		if(hfov<1)
 		{
 			Log.e(TAG, "Invalid hfov : "+hfov+"\nSetting hfov to "+DEFAULT_HFOV);
@@ -169,7 +169,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		mSnapshotManager = new SnapshotManager(SnapshotManager.DEFAULT_JSON_FILENAME,
 												resX, resY ,hfov, vfov,
 												DEFAULT_PITCH_STEP, DEFAULT_YAW_STEP);
-		
+
 		mCameraManager.addSnapshotEventListener(mSnapshotManager);
 
 		//setup GL view & its renderer
@@ -186,7 +186,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
 		mCaptureView.setYawStep(DEFAULT_YAW_STEP);
-	
+
 
 		//do not set the view as content cause it is bind to layout.
 		//this.setContentView(this.mCaptureView);
@@ -287,7 +287,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	public void onBackPressed()
 	{
 		AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
-		alertDialog.setMessage(getString(R.string.exit_confrm)).setCancelable(false);
+		alertDialog.setMessage(getString(R.string.exit_capture)).setCancelable(false);
 
 		alertDialog.setPositiveButton(getString(R.string.exit_yes), new DialogInterface.OnClickListener()
 		{
@@ -307,7 +307,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 				}
 				else
 				{
-					
+
 					CaptureActivity.this._onBackPressed();
 				}
 			}
@@ -322,12 +322,12 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		AlertDialog alert = alertDialog.create();
 		alert.show();
-		
+
 
 	}
 	private void _onBackPressed()
 	{
-		
+
 		super.onBackPressed();
 	}
 

@@ -31,18 +31,24 @@ or revised without written permission of the authors.
         <activity
             android:name="fr.ensicaen.panandroid.MainActivity"
             android:configChanges="orientation|screenSize"
-            android:label="@string/app_name">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:label="@string/app_name" />
 
         <activity
             android:name="fr.ensicaen.panandroid.viewer.SphereViewerActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance" />
+        
+        <activity
+            android:name="fr.ensicaen.panandroid.SplashscreenActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/app_name"
+            android:launchMode="singleInstance">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name="fr.ensicaen.panandroid.stitcher.StitcherActivity"

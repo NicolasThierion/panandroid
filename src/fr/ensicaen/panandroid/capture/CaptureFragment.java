@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Nicolas THIERION, Saloua BENSEDDIK, Jean Marguerite.
+ * Copyright (C) 2013 Saloua BENSEDDIK, Jean MARGUERITE, Nicolas THIERION
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -8,29 +8,24 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA  02110-1301, USA.
+ * MA 02110-1301, USA.
  */
+
 package fr.ensicaen.panandroid.capture;
 
 import java.io.File;
 import java.io.IOException;
 
-import fr.ensicaen.panandroid.R;
-import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -39,86 +34,78 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 
+import fr.ensicaen.panandroid.PanandroidApplication;
+import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.snapshot.SnapshotManager;
+
 /**
-*
-* Fragment through what the user can capture snapshots in order to make his panorama.
-* The fragment opens a 3D and draws a cubic skybox seen from inside.
-* The view rotates with the device orientation. Dots are put all around the view,
-* and a snapshot is taken automatically when viewfinder and dot are alligned.
-*
-* @author Nicolas THIERION.
-*
-*/
+ * Fragment through what the user can capture snapshots in order to make his panorama.
+ * The fragment opens a 3D and draws a cubic skybox seen from inside.
+ * The view rotates with the device orientation. Dots are put all around the view,
+ * and a snapshot is taken automatically when view finder and dot are aligned.
+ * @author Nicolas Thierion <nicolas.thierion@ecole.ensicaen.fr>
+ * @TODO Manually set field of view values of known devices.
+ * @TODO Remove SnapshotManager.
+ */
 public class CaptureFragment extends Fragment implements OnSystemUiVisibilityChangeListener {
-    /* *******************
-     * DEBUG PARAMETERS  *
-     * *******************/
-    public static final String TAG = CaptureActivity.class.getSimpleName();
+    /********************
+     * DEBUG PARAMETERS *
+     ********************/
+    private static final String TAG = CaptureFragment.class.getSimpleName();
 
-    private static final float DEFAULT_PITCH_STEP = 360.0f/12.0f;;
-    private static final float DEFAULT_YAW_STEP = 360.0f/12.0f;
+    private static final float DEFAULT_PITCH_STEP = 360.0f / 12.0f;
+    private static final float DEFAULT_YAW_STEP = 360.0f / 12.0f;
 
-    /* *************
+    /**************
      * PARAMETERS *
-     * *************/
-
-    /** Directory where pictures will be saved **/
-    private static final String APP_DIRECTORY = Environment.getExternalStorageDirectory()
-            + File.separator + "Panandroid";
+     **************/
+    /** Directory where pictures will be saved */
     private static final String TEMP_PREFIX = "temp";
 
-    /** Immersive mode will hide status bar and navigation bar **/
+    /** Immersive mode will hide status and navigation bar */
     private static boolean IMMERSIVE_ENABLE = true;
 
-    /** Delay for hiding bars **/
-    private static final int IMERSIVE_DELAY = 4000; //[s]
+    /** Delay for hiding bars in seconds */
+    private static final int IMMERSIVE_DELAY = 4000;
+
+    /** Hide both navigation and status bar. */
     private static final int NAVIGATION_HIDE_TYPE = View.SYSTEM_UI_FLAG_LOW_PROFILE;
 
-    public final static String FOLDER = "fr.ensicaen.panandroid.FOLDER";
+    /**
+     * Some devices don't return good field of view values.
+     * In these cases, DEFAULT_FOV will be used
+     */
+    private static final float DEFAULT_HFOV = 59.62f; // Values Nexus 5
+    private static final float DEFAULT_VFOV = 46.6f;
 
-    /* *************
-     * ATTRIBUTES  *
-     * *************/
-
-    /** The OpenGL view where to draw the sphere. */
+    /**************
+     * ATTRIBUTES *
+     **************/
+    /** OpenGL view where to draw the sphere */
     private CaptureView mCaptureView;
 
-    /** The Camera manager **/
+    /** Camera manager */
     private CameraManager mCameraManager;
 
-    /** Instance of SnapshotManager, observer of onSnapshotTaken()**/
-    //TODO : remove
+    /** Instance of SnapshotManager, observer of onSnapshotTaken() */
     private SnapshotManager mSnapshotManager;
 
-    /** directory where images and JSon file are stored **/
-    private String mWorkingDir = APP_DIRECTORY;
-    private String mPanoName;
+    /** Directory where images and JSON file are stored */
+    private String mWorkingDirectory = PanandroidApplication.APP_DIRECTORY;
 
-    private PowerManager mPowerManager;
+    /** Name of the panorama */
+    private String mPanoramaName;
 
-    private WakeLock mWakeLock;
-
-    public CaptureFragment() {
-        // View in full screen, and don't turn screen off.
-        /*
-        getActivity().requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getActivity().getWindow().setFlags(
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        */
-    }
-
+    /**
+     * Called to have the fragment instantiate its user interface view.
+     * @return Created view.
+     */
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        mPowerManager = (PowerManager) getActivity().getSystemService(Context.POWER_SERVICE);
-        mWakeLock = mPowerManager.newWakeLock(
-                PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
+        // Bind activity to its layout.
+        View root = inflater.inflate(R.layout.activity_capture, container, false);
 
-        // Bind activity to its layout
-        View root = inflater.inflate(R.layout.capture_activity, container, false);
-
-        // Hide both the navigation bar and the status bar.
         View decorView = getActivity().getWindow().getDecorView();
         decorView.setOnSystemUiVisibilityChangeListener(this);
 
@@ -129,49 +116,63 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
         }
 
         // Set up panorama name and working directory.
-        mPanoName = genPanoName(TEMP_PREFIX);
-        mWorkingDir = genWorkingDir(mPanoName);
+        mPanoramaName = generatePanoramaName();
+        mWorkingDirectory = generateWorkingDirectory(mPanoramaName);
 
         // Setup camera manager.
         mCameraManager = CameraManager.getInstance(getActivity());
 
         try {
-            mCameraManager.setTargetDir(mWorkingDir);
+            mCameraManager.setTargetDirectory(mWorkingDirectory);
             mCameraManager.open();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        //TODO : remove
         // Setup JSON and snapshot manager.
-        /*
-        mSnapshotManager = new SnapshotManager();
-        mCameraManager.addSnapshotEventListener(mSnapshotManager);*/
+        int resX = mCameraManager.getCameraResX();
+        int resY = mCameraManager.getCameraResY();
+        float hfov = mCameraManager.getHorizontalViewAngle();
+        float vfov = mCameraManager.getVerticalViewAngle();
 
-        // Setup GL view & its renderer.
+        if (hfov < 1) {
+            Log.e(TAG, "Invalid hfov : " + hfov + "\nSetting hfov : " + DEFAULT_HFOV);
+            hfov = DEFAULT_HFOV;
+        }
+
+        if (vfov < 1) {
+            Log.e(TAG, "Invalid vfov : " + vfov + "\nSetting hfov : " + DEFAULT_VFOV);
+            hfov = DEFAULT_VFOV;
+        }
+
+        mSnapshotManager = new SnapshotManager(SnapshotManager.DEFAULT_JSON_FILENAME,
+                resX, resY ,hfov, vfov,
+                DEFAULT_PITCH_STEP, DEFAULT_YAW_STEP);
+        mCameraManager.addSnapshotEventListener(mSnapshotManager);
+
+        // Setup OpenGL view & its renderer.
         mCaptureView = new CaptureView(getActivity(), mCameraManager);
 
-        // Populate the layout with GL view.
+        // Populate layout with OpenGL view.
         ViewGroup parent = (ViewGroup) (mCaptureView.getParent());
+
         if (parent != null)
             parent.removeView(mCaptureView);
 
-        ViewGroup container1 = ((ViewGroup) root.findViewById(R.id.gl_renderer_container));
-        container1.addView(mCaptureView);
+        ViewGroup renderer_container = ((ViewGroup) root.findViewById(R.id.renderer_container));
+        renderer_container.addView(mCaptureView);
 
         mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
         mCaptureView.setYawStep(DEFAULT_YAW_STEP);
 
-        // do not set the view as content cause it is bind to layout.
-        // this.setContentView(this.mCaptureView);
-        // mCameraManager.startPreview();
-
         return root;
     }
 
+    /**
+     * Called when the status bar changes visibility because of a call to setSystemUiVisibility().
+     */
     @Override
-    public void onSystemUiVisibilityChange(int visibility)
-    {
+    public void onSystemUiVisibilityChange(int visibility) {
         if ((visibility & NAVIGATION_HIDE_TYPE) == 0) {
             Handler h = new Handler();
 
@@ -180,56 +181,100 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
                 public void run() {
                     toggleImmersive();
                 }
-            }, IMERSIVE_DELAY);
+            }, IMMERSIVE_DELAY);
         }
     }
 
-    @SuppressLint("InlinedApi")
-    public void toggleImmersive()
+    /**
+     * Called when the Fragment is no longer resumed.
+     * This is generally tied to Activity.onPause of the containing Activity's lifecycle.
+     */
+    @Override
+    public void onPause()
     {
+        super.onPause();
+
+        mCaptureView.onPause();
+        mCameraManager.onPause();
+
+        // Save project to JSON file
+        if(mSnapshotManager.getSnapshotsList().size() > 0) {
+            String result = mSnapshotManager.toJSON(SnapshotManager.DEFAULT_JSON_FILENAME);
+            Log.i(TAG, "Saving project to " + result);
+        }
+    }
+
+    /**
+     * Called when user goes in immersive mode.
+     */
+    @SuppressLint("InlinedApi")
+    public void toggleImmersive() {
         // Navigation bar hiding: Backwards compatible to ICS.
         if (Build.VERSION.SDK_INT >= 14) {
-            int uiOptions = getActivity().getWindow().getDecorView().getSystemUiVisibility();
-            int newUiOptions = uiOptions;
-            boolean isImmersiveModeEnabled = ((uiOptions | NAVIGATION_HIDE_TYPE) == uiOptions);
-            if (isImmersiveModeEnabled) {
-                Log.i(TAG, "Turning immersive mode mode off. ");
-            } else {
-                Log.i(TAG, "Turning immersive mode mode on.");
-            }
+            try {
+                int uiOptions = getActivity().getWindow().getDecorView().getSystemUiVisibility();
+                int newUiOptions = uiOptions;
+                boolean isImmersiveModeEnabled = ((uiOptions | NAVIGATION_HIDE_TYPE) == uiOptions);
 
-            newUiOptions ^= NAVIGATION_HIDE_TYPE;
-            getActivity().getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
+                if (isImmersiveModeEnabled) {
+                    Log.i(TAG, "Turning immersive mode on.");
+                } else {
+                    Log.i(TAG, "Turning immersive mode off.");
+                }
+
+                newUiOptions ^= NAVIGATION_HIDE_TYPE;
+                getActivity().getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
+            } catch (NullPointerException e) {}
         } else {
             getActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 0);
         }
     }
 
-    /* ******************
-     * PRIVATE METHODS  *
-     * ******************/
-    private String genWorkingDir(String panoName)
-    {
-        File dir = new File(APP_DIRECTORY + File.separator + panoName);
-        dir.mkdirs();
-        return APP_DIRECTORY + File.separator + panoName;
+    /*******************
+     * PRIVATE METHODS *
+     *******************/
+    /**
+     * Generates a new working directory.
+     * @param panoramaName Given name for the panorama.
+     * @return Current working directory.
+     */
+    private String generateWorkingDirectory(String panoramaName) {
+        File directory = new File(mWorkingDirectory + File.separator + panoramaName);
+        directory.mkdirs();
+
+        return mWorkingDirectory + File.separator + panoramaName;
     }
 
-    private String genPanoName(String prefix)
-    {
+    /**
+     * Generate panorama name.
+     * @param prefix
+     * @return
+     */
+    private String generatePanoramaName() {
         int id = 1;
-        String path = APP_DIRECTORY + File.separator + prefix;
-        File dir = new File(path);
+        String path = mWorkingDirectory + File.separator + TEMP_PREFIX;
+        File directory = new File(path);
 
-        if (dir.exists()) {
+        if (directory.exists()) {
             do {
-                path = APP_DIRECTORY + File.separator + prefix + (id++);
-                dir = new File(path);
+                path = mWorkingDirectory + File.separator + TEMP_PREFIX + (id++);
+                directory = new File(path);
+            } while (directory.exists());
 
-            } while (dir.exists());
-            return prefix + (--id);
+            return TEMP_PREFIX + (--id);
         }
 
-        return prefix;
+        return TEMP_PREFIX;
+    }
+
+    /**********
+     * GETTER *
+     **********/
+    public SnapshotManager getSnapshotManager() {
+        return mSnapshotManager;
+    }
+
+    public String getWorkingDirectory() {
+        return mWorkingDirectory;
     }
 }

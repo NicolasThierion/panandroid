@@ -66,7 +66,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	/** Size of the skybox **/
 	private static final float SKYBOX_SIZE 				= 400f;
 	private static final int DEFAULT_SKYBOX_SAMPLE_SIZE = 4;		//[1 - 8] pow of 2.
-	
+
 	private static final float DEFAULT_PITCH_STEP 		= 360.0f/16.0f;;
 	private static final float DEFAULT_YAW_STEP 		= 360.0f/16.0f;
 
@@ -136,10 +136,10 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
 
 		// hide shutter button for the first shoot.
-		mShutterButton = (ShutterButton) ((Activity)context).findViewById(R.id.btn_shutter);
-		mShutterButton.setVisibility(View.GONE);
-		
-		
+		//mShutterButton = (ShutterButton) ((Activity)context).findViewById(R.id.btn_shutter);
+		//mShutterButton.setVisibility(View.GONE);
+
+
 		RelativeLayout.LayoutParams params = new
 		        RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
 
@@ -231,7 +231,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		super.setEnablePitchRotation(true);
 		super.setEnableRollRotation(true);
 		super.setEnableYawRotation(false);
-		
+
 		//wait for the first snapshot to be taken.
 		mCameraManager.addSnapshotEventListener(this);
 	}
@@ -397,7 +397,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	{
 		mCameraManager.removeSnapshotEventListener(this);
 		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
-		mShutterButton.setVisibility(View.VISIBLE);
+		//mShutterButton.setVisibility(View.VISIBLE);
 
 		//force layout redraw.
 		mStartingProgressSpinner.requestLayout();
