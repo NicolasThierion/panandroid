@@ -23,7 +23,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#237a9a">
-
     <Button
         android:id="@+id/stitch"
         android:layout_width="wrap_content"
@@ -44,5 +43,4 @@
         android:hint="@string/panorama_name"
         android:textColor="@android:color/white"
         android:textColorHint="@android:color/white" />
-
 </RelativeLayout>

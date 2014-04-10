@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2013 Saloua BENSEDDIK, Jean MARGUERITE, Nicolas THIERION
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
+ */
+
 package fr.ensicaen.panandroid.viewer;
 
 import java.io.File;
@@ -41,8 +60,19 @@ import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.AdapterView.OnItemClickListener;
 
+/**
+ * Fragment through what the user car browser gallery of diaporama.
+ * @author Saloua Benseddik <saloua.benseddik@ecole.ensicaen.fr>
+ * @author Nicolas Thierion <nicolas.thierion@ecole.ensicaen.fr>
+ */
 public class GalleryFragment extends Fragment {
-        private View mRoot;
+    /**************
+     * ATTRIBUTES *
+     **************/
+    /** View of the fragment */
+    private View mRoot;
+
+
         private ListView mPanoListView;
         private String mCurrentFolderName;
         private static final String WORKING_DIR = PanandroidApplication.APP_DIRECTORY;
@@ -133,4 +163,11 @@ public class GalleryFragment extends Fragment {
 
         return mRoot;
     }
+
+        @Override
+        public void onResume() {
+            super.onResume();
+            mRoot.requestLayout();
+        }
+
 }

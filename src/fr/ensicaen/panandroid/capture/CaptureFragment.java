@@ -33,9 +33,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.View.OnSystemUiVisibilityChangeListener;
-
 import fr.ensicaen.panandroid.PanandroidApplication;
 import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+import fr.ensicaen.panandroid.snapshot.SnapshotEventListener;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 
 /**
@@ -47,7 +48,7 @@ import fr.ensicaen.panandroid.snapshot.SnapshotManager;
  * @TODO Manually set field of view values of known devices.
  * @TODO Remove SnapshotManager.
  */
-public class CaptureFragment extends Fragment implements OnSystemUiVisibilityChangeListener {
+public class CaptureFragment extends Fragment implements OnSystemUiVisibilityChangeListener/*, SnapshotEventListener*/ {
     /********************
      * DEBUG PARAMETERS *
      ********************/
@@ -96,6 +97,12 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
     /** Name of the panorama */
     private String mPanoramaName;
 
+    /** View of the fragment */
+    private View mRoot;
+
+    /** Shutter button */
+    private ShutterButton mShutterButton;
+
     /**
      * Called to have the fragment instantiate its user interface view.
      * @return Created view.
@@ -104,7 +111,7 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
         // Bind activity to its layout.
-        View root = inflater.inflate(R.layout.activity_capture, container, false);
+        mRoot = inflater.inflate(R.layout.activity_capture, container, false);
 
         View decorView = getActivity().getWindow().getDecorView();
         decorView.setOnSystemUiVisibilityChangeListener(this);
@@ -159,13 +166,18 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
         if (parent != null)
             parent.removeView(mCaptureView);
 
-        ViewGroup renderer_container = ((ViewGroup) root.findViewById(R.id.renderer_container));
+        ViewGroup renderer_container = ((ViewGroup) mRoot.findViewById(R.id.renderer_container));
         renderer_container.addView(mCaptureView);
 
         mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
         mCaptureView.setYawStep(DEFAULT_YAW_STEP);
 
-        return root;
+        // Hide shutter button for the first shoot.
+        //mShutterButton = (ShutterButton) mRoot.findViewById(R.id.shutter);
+        //mShutterButton.setVisibility(View.GONE);
+        //mCameraManager.addSnapshotEventListener(this);
+
+        return mRoot;
     }
 
     /**
@@ -186,6 +198,31 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
     }
 
     /**
+     * Called when the fragment is no longer in use.
+     * This is called after onStop() and before onDetach().
+     */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mCaptureView.onDestroy();
+    }
+
+    /**
+     * Called when the fragment is visible to the user and actively running.
+     * This is generally tied to Activity.onResume of the containing Activity's lifecycle.
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (mCaptureView != null) {
+            mCaptureView.onResume();
+        }
+
+        mRoot.requestFocus();
+    }
+
+    /**
      * Called when the Fragment is no longer resumed.
      * This is generally tied to Activity.onPause of the containing Activity's lifecycle.
      */
@@ -194,6 +231,7 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
     {
         super.onPause();
 
+        // Pause camera and OpenGL context.
         mCaptureView.onPause();
         mCameraManager.onPause();
 
@@ -277,4 +315,12 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
     public String getWorkingDirectory() {
         return mWorkingDirectory;
     }
+
+    /*
+    @Override
+    public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot) {
+        mCameraManager.removeSnapshotEventListener(this);
+        mShutterButton.setVisibility(View.VISIBLE);
+    }
+    */
 }

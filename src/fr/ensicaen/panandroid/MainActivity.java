@@ -39,16 +39,14 @@ import fr.ensicaen.panandroid.viewer.GalleryFragment;
 /**
  * Activity through what the user could switch between capture and gallery.
  * @author Jean Marguerite <jean.marguerite@ecole.ensicaen.fr>
+ * @author Nicolas Thierion <nicolas.thierion@ecole.ensicaen.fr>
  */
 public class MainActivity extends FragmentActivity {
     /**************
      * ATTRIBUTES *
      **************/
-    /** Capture part of the activity */
-    private CaptureFragment mCapture;
-
-    /** Gallery part of the activity */
-    private GalleryFragment mGallery;
+    /** Contains all of the fragment */
+    private Fragment[] mFragments = new Fragment[2];
 
     /**
      * Fragments for each of the two primary sections of the application.
@@ -72,11 +70,13 @@ public class MainActivity extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mFragments[0] = new CaptureFragment();
+        mFragments[1] = new GalleryFragment();
+
         mPager = (ViewPager) findViewById(R.id.pager);
-        mCapture = new CaptureFragment();
-        mGallery = new GalleryFragment();
         mAppSectionsAdapter = new AppSectionsAdapter(getSupportFragmentManager());
         mPager.setAdapter(mAppSectionsAdapter);
+        mPager.setOnPageChangeListener(new PageChangeListener());
     }
 
     /**
@@ -94,10 +94,10 @@ public class MainActivity extends FragmentActivity {
                     new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     // If we have at least 2 snapshots to stitch, switch to stitcher activity.
-                    if (mCapture.getSnapshotManager().getSnapshotsList().size() > 1) {
+                    if (((CaptureFragment) mFragments[0]).getSnapshotManager().getSnapshotsList().size() > 1) {
                         Intent intent = new Intent(MainActivity.this, StitcherActivity.class);
 
-                        intent.putExtra("PROJECT_FILE", mCapture.getWorkingDirectory()
+                        intent.putExtra("PROJECT_FILE", ((CaptureFragment) mFragments[0]).getWorkingDirectory()
                                 + File.separator + SnapshotManager.DEFAULT_JSON_FILENAME);
                         startActivity(intent);
 
@@ -141,7 +141,7 @@ public class MainActivity extends FragmentActivity {
          */
         @Override
         public Fragment getItem(int i) {
-            return i == 0 ? mCapture : mGallery;
+            return mFragments[i];
         }
 
         /**
@@ -150,7 +150,47 @@ public class MainActivity extends FragmentActivity {
          */
         @Override
         public int getCount() {
-            return 2;
+            return mFragments.length;
+        }
+    }
+
+    private class PageChangeListener implements ViewPager.OnPageChangeListener {
+        private int mSelectedFragment = 0;
+
+        /**
+         * Called when the scroll state changes.
+         * @param state Current state of the ViewPager
+         */
+        @Override
+        public void onPageScrollStateChanged(int state) {
+            if (state == ViewPager.SCROLL_STATE_DRAGGING) {
+                for (int i = 0; i < mFragments.length; ++i) {
+                    if (i != mSelectedFragment)
+                        mFragments[i].onResume();
+                }
+            } else if (state == ViewPager.SCROLL_STATE_IDLE) {
+                for (int i = 0; i < mFragments.length; ++i) {
+                    if (i != mSelectedFragment)
+                        mFragments[i].onPause();
+                    }
+                }
+            }
+
+        /**
+         * This method will be invoked when the current page is scrolled,
+         * either as part of a programmatically initiated smooth scroll or a user initiated touch scroll.
+         */
+        @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixel) {
+        }
+
+        /**
+         * This method will be invoked when a new page becomes selected.
+         * @param id Current page index.
+         */
+        @Override
+        public void onPageSelected(int id) {
+            mSelectedFragment  = id;
         }
     }
 }
