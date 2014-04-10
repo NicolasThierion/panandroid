@@ -135,9 +135,6 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		mStartingProgressSpinner.setIndeterminate(true);
 		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
 
-		// hide shutter button for the first shoot.
-		mShutterButton = (ShutterButton) ((Activity)context).findViewById(R.id.btn_shutter);
-		mShutterButton.setVisibility(View.GONE);
 		
 		
 		RelativeLayout.LayoutParams params = new
@@ -397,7 +394,6 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	{
 		mCameraManager.removeSnapshotEventListener(this);
 		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
-		mShutterButton.setVisibility(View.VISIBLE);
 
 		//force layout redraw.
 		mStartingProgressSpinner.requestLayout();

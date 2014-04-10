@@ -18,6 +18,7 @@
  */
 package fr.ensicaen.panandroid;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -49,6 +50,7 @@ public class MainActivity extends FragmentActivity {
      */
     private ViewPager mPager;
 
+    private static Fragment[] mFragments = new Fragment[2];
     /**
      * Called when MainActivity is starting.
      * @param savedInstanceState Contains the data it most recently supplied in.
@@ -60,15 +62,18 @@ public class MainActivity extends FragmentActivity {
 
         mPager = (ViewPager) findViewById(R.id.pager);
 
-        mAppSectionsAdapter = new AppSectionsAdapter(getSupportFragmentManager());
-        mPager.setAdapter(mAppSectionsAdapter);
+        mPager.setAdapter(new AppSectionsAdapter(getSupportFragmentManager()));
+        mPager.setOnPageChangeListener(new PageChangeListener());
+        
+        mFragments[0] = new CaptureFragment() ;
+        mFragments[1] = new DummyFragment() ;
     }
 
     /**
      * Implementation of PagerAdapter that represents each page as a Fragment that is
      * persistently kept in the fragment manager as long as the user can return to the page.
      */
-    public static class AppSectionsAdapter extends FragmentPagerAdapter {
+    private static class AppSectionsAdapter extends FragmentPagerAdapter {
         public AppSectionsAdapter(FragmentManager fm) {
             super(fm);
         }
@@ -78,10 +83,7 @@ public class MainActivity extends FragmentActivity {
          */
         @Override
         public Fragment getItem(int i) {
-            Fragment fragment;
-
-            fragment = (i == 0) ? new CaptureFragment() : new DummyFragment();
-            return fragment;
+            return mFragments[i];
         }
 
         /**
@@ -90,11 +92,63 @@ public class MainActivity extends FragmentActivity {
          */
         @Override
         public int getCount() {
-            return 2;
+            return mFragments.length;
         }
 
     }
 
+    private static class PageChangeListener implements ViewPager.OnPageChangeListener
+    {
+
+		private int mSelectedFragment = 0;
+
+		@Override
+		public void onPageScrollStateChanged(int state)
+		{
+			if(state==ViewPager.SCROLL_STATE_DRAGGING)
+			{
+				for(int i=0; i<mFragments.length; ++i)
+				{
+					if(i!=mSelectedFragment)
+						
+						mFragments[i].onResume();
+					
+				}
+			}
+			else if (state == ViewPager.SCROLL_STATE_IDLE)
+			{
+				for(int i=0; i<mFragments.length; ++i)
+				{
+					if(i!=mSelectedFragment)
+						mFragments[i].onPause();
+					
+				}
+			}
+		}
+
+		@Override
+		public void onPageScrolled(int position, float positionOffset, int positionOffsetPixel) {
+			
+			//System.out.println("position "+position+" positionOffset "+positionOffset+ "positionOffsetPixel "+positionOffsetPixel);
+			
+			/*for(int i=0; i<mFragments.length; ++i)
+			{
+				if(i==id)
+				{
+					mFragments[i].onResume();
+				}
+				else
+					mFragments[i].onPause();
+			}*/			
+		}
+
+		@Override
+		public void onPageSelected(int id) {
+			mSelectedFragment  = id;
+		}
+    	
+    }
+    
     // Only use for debug purpose.
     /**
      * A dummy fragment representing a section of the application,
@@ -102,15 +156,22 @@ public class MainActivity extends FragmentActivity {
      */
     public static class DummyFragment extends Fragment {
         public static final String APP_SECTION_NUMBER = "section_number";
+		private View mRoot;
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
-            View root = inflater.inflate(R.layout.dummy_fragment, container, false);
+            mRoot = inflater.inflate(R.layout.dummy_fragment, container, false);
+            ((TextView) mRoot.findViewById(R.id.text_dummy)).setText("Gallerie");
 
-            ((TextView) root.findViewById(R.id.text_dummy)).setText("Gallerie");
+            return mRoot;
+        }
+        @Override
+        public void onResume()
+        {
+        	super.onResume();
+        	mRoot.requestLayout();
 
-            return root;
         }
     }
 }

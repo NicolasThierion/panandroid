@@ -21,10 +21,19 @@ package fr.ensicaen.panandroid.capture;
 import java.io.File;
 import java.io.IOException;
 
+import junit.framework.Assert;
 import fr.ensicaen.panandroid.R;
+import fr.ensicaen.panandroid.snapshot.Snapshot;
+import fr.ensicaen.panandroid.snapshot.SnapshotEventListener;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
+import fr.ensicaen.panandroid.stitcher.StitcherActivity;
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.hardware.SensorEventListener;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -49,7 +58,7 @@ import android.view.View.OnSystemUiVisibilityChangeListener;
 * @author Nicolas THIERION.
 *
 */
-public class CaptureFragment extends Fragment implements OnSystemUiVisibilityChangeListener {
+public class CaptureFragment extends Fragment implements OnSystemUiVisibilityChangeListener, SnapshotEventListener {
     /* *******************
      * DEBUG PARAMETERS  *
      * *******************/
@@ -97,6 +106,10 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
     private PowerManager mPowerManager;
 
     private WakeLock mWakeLock;
+
+	private ShutterButton mShutterButton;
+
+	private View mStartingProgressSpinner;
 
     public CaptureFragment() {
         // View in full screen, and don't turn screen off.
@@ -162,6 +175,13 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
         mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
         mCaptureView.setYawStep(DEFAULT_YAW_STEP);
 
+    	// hide shutter button for the first shoot.
+ 		mShutterButton = (ShutterButton) root.findViewById(R.id.btn_shutter);
+		mShutterButton.setVisibility(View.GONE);
+		
+		//wait for the first snapshot to be taken.
+		mCameraManager.addSnapshotEventListener(this);
+
         // do not set the view as content cause it is bind to layout.
         // this.setContentView(this.mCaptureView);
         // mCameraManager.startPreview();
@@ -205,9 +225,105 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
         }
     }
 
+    
+    /**
+	 * Remember to resume the glSurface.
+	 */
+	@Override
+	public void onResume()
+	{
+		Assert.assertTrue(mCaptureView!=null);
+		mCaptureView.onResume();
+		mWakeLock.acquire();
+		super.onResume();
+
+	}
+
+	/**
+	 * Also pause the glSurface.
+	 */
+	@Override
+	public void onPause()
+	{
+		Log.i(TAG, "onPause()");
+		mWakeLock.release();
+		Assert.assertTrue(mCaptureView!=null);
+		//pause camera, GL context, etc.
+		mCaptureView.onPause();
+		mCameraManager.onPause();
+		//save project to json
+		if(mSnapshotManager.getSnapshotsList().size()>0)
+		{
+			String res = mSnapshotManager.toJSON(SnapshotManager.DEFAULT_JSON_FILENAME);
+			Log.i(TAG,  "saving project to "+res);
+		}
+		//call parent
+		super.onPause();
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		mCaptureView.onDestroy();
+		super.onDestroy();
+	}
+	
+	/**
+	 * Show a confirmation dialog before exit. Exit to stitcher activity.
+	 */
+	public void onBackPressed()
+	{
+		final Activity thisActivity = getActivity();
+		AlertDialog.Builder alertDialog = new AlertDialog.Builder(thisActivity);
+		alertDialog.setMessage(getString(R.string.exit_confrm)).setCancelable(false);
+
+		alertDialog.setPositiveButton(getString(R.string.exit_yes), new DialogInterface.OnClickListener()
+		{
+			public void onClick(DialogInterface dialog, int id)
+			{
+				//if we have at least 2 snapshots to stitch, switch to stitcher activity
+				if(mSnapshotManager.getSnapshotsList().size()>1)
+				{
+				    Intent intent = new Intent(thisActivity,
+				            StitcherActivity.class);
+				    intent.putExtra("projectFile",mWorkingDir+File.separator+SnapshotManager.DEFAULT_JSON_FILENAME);
+				    intent.putExtra("commingFrom",CaptureActivity.class.getSimpleName());
+				    //intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+				    thisActivity.startActivity(intent);
+				    //finish this activity in order to free maximum of memory
+				    thisActivity.finish();
+				}
+				else
+				{
+					thisActivity.onBackPressed();
+				}
+			}
+		});
+		alertDialog.setNegativeButton(R.string.exit_no, new DialogInterface.OnClickListener()
+		{
+			public void onClick(DialogInterface dialog, int id)
+			{
+				dialog.cancel();
+			}
+		});
+
+		AlertDialog alert = alertDialog.create();
+		alert.show();
+		
+
+	}
+
     /* ******************
      * PRIVATE METHODS  *
      * ******************/
+    @Override
+	public void onSnapshotTaken(byte[] pictureData, Snapshot snapshot)
+	{
+		mCameraManager.removeSnapshotEventListener(this);
+		mShutterButton.setVisibility(View.VISIBLE);
+		
+	}
+    
     private String genWorkingDir(String panoName)
     {
         File dir = new File(APP_DIRECTORY + File.separator + panoName);

@@ -130,8 +130,8 @@ public class CameraManager /* implements SnapshotObserver */
 	private final PictureCallback mJpegCallback = new JpegCallback();
 	private final AutoFocusCallback mAutoFocusCallback = new OnFocusCallback();
 	
-	private LinkedList<SnapshotEventListener> mListeners = new LinkedList<SnapshotEventListener>();
-	private ReentrantLock mListenersLock;
+	private LinkedList<SnapshotEventListener> mListeners ;
+	private static ReentrantLock mListenersLock;
 
 
 	
@@ -185,6 +185,8 @@ public class CameraManager /* implements SnapshotObserver */
 		mSensorListener = new SensorListener();
 		mListenersLock = new ReentrantLock();
 		mTargetsLock = new ReentrantLock();
+		mListeners = new LinkedList<SnapshotEventListener>();
+
 	}
 	
 
@@ -938,7 +940,7 @@ public class CameraManager /* implements SnapshotObserver */
 			if(takenSnapshot!=null)
 			{
 				mListenersLock.lock();
-				for (SnapshotEventListener listener : mListeners)
+				for (SnapshotEventListener listener : new LinkedList<SnapshotEventListener>(mListeners))
 					listener.onSnapshotTaken(data, takenSnapshot);
 				mListenersLock.unlock();
 

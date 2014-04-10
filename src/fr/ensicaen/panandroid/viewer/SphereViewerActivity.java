@@ -87,16 +87,7 @@ public class SphereViewerActivity extends Activity
 
   		ViewGroup container = ((ViewGroup) findViewById(R.id.gl_renderer_container));
   		container.addView(mSphereView);
-	    
-	    
-		/*
-		String textureFile = getIntent().getStringExtra("jpg");
-		float minPitch,minYaw,maxPitch, maxYaw;
-		minPitch = getIntent().getFloatExtra("minPitch", -1000.0f);
-	    minYaw = getIntent().getFloatExtra("minYaw", -1000.0f);
-	    maxPitch = getIntent().getFloatExtra("maxPitch", 1000.0f);
-	    maxYaw = getIntent().getFloatExtra("maxYaw", 1000.0f);
-	    */
+	
 		// Load project & put panorama as texture
 	    String projectFile = getIntent().getStringExtra("projectFile");
 	    if(projectFile!="" && projectFile!=null)
