@@ -40,6 +40,7 @@ import android.view.View.OnClickListener;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 import fr.ensicaen.panandroid.viewer.SphereViewerActivity;
@@ -105,15 +106,18 @@ public class StitcherActivity extends Activity {
         }
 
         mProjectFilename = mProjectFile.substring(mProjectFile.lastIndexOf(File.separator));
-        mStitchButton = (Button) findViewById(R.id.stitch);
 
-        final EditText panorama = ((EditText)StitcherActivity.super.findViewById(R.id.panorama_name));
-        panorama.requestFocus();
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
 
-        mStitchButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String panoramaName = panorama.getText().toString();
+        alert.setTitle("Saisir le nom de votre panorama");
+
+        final EditText input = new EditText(this);
+        alert.setView(input);
+
+        alert.setCancelable(false);
+        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                String panoramaName = input.getText().toString();
                 mSnapshotManager.setProjectName(panoramaName);
                 mSnapshotManager.toJSON(mProjectFilename);
 
@@ -122,14 +126,7 @@ public class StitcherActivity extends Activity {
             }
         });
 
-        // Hide keyboard if we touch the screen
-        findViewById(R.id.stitcher_layout).setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(panorama.getWindowToken(), 0);
-            }
-        });
+        alert.show();
     }
 
     /**

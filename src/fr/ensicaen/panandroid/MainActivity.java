@@ -119,6 +119,7 @@ public class MainActivity extends FragmentActivity {
             alert.show();
         } else {
             mPager.setCurrentItem(0);
+            mFragments[0].onResume();
         }
     }
 

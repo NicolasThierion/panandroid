@@ -5,7 +5,6 @@
     <string name="launch_app">Panandroid</string>
     <string name="btn_shutter">take a picture</string>
     <string name="btn_sensorial_rotation">enable sensorial rotation</string>
-    <string name="panorama_name">Saisir le nom de votre panorama</string>
     <string name="exit_capture">Voulez-vous mettre fin à la capture ?</string>
     <string name="exit_yes">Oui</string>
     <string name="exit_no">Non</string>

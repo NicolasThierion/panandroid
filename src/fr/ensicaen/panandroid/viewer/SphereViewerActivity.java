@@ -23,12 +23,14 @@ import java.io.IOException;
 
 import org.json.JSONException;
 
+import fr.ensicaen.panandroid.MainActivity;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
 import fr.ensicaen.panandroid.meshs.Sphere;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 import fr.ensicaen.panandroid.tools.BitmapDecoder;
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -163,6 +165,12 @@ public class SphereViewerActivity extends Activity
 	    mSphereView.setPitchRange(new float[]{minPitch, maxPitch});
 	    mSphereView.setYawRange(new float[]{minYaw, maxYaw});
   }
+
+	@Override
+	public void onBackPressed() {
+	    Intent intent = new Intent(SphereViewerActivity.this, MainActivity.class);
+	    startActivity(intent);
+	}
 
 
   /**

@@ -219,7 +219,7 @@ public class CaptureFragment extends Fragment implements OnSystemUiVisibilityCha
             mCaptureView.onResume();
         }
 
-        mRoot.requestFocus();
+        mRoot.requestLayout();
     }
 
     /**

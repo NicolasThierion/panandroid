@@ -23,24 +23,4 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#237a9a">
-    <Button
-        android:id="@+id/stitch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:text="@string/stitch"
-        android:textColor="@android:color/white" />
-
-    <EditText
-        android:id="@+id/panorama_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/stitch"
-        android:layout_alignParentLeft="true"
-        android:layout_marginBottom="20dp"
-        android:ems="10"
-        android:hint="@string/panorama_name"
-        android:textColor="@android:color/white"
-        android:textColorHint="@android:color/white" />
 </RelativeLayout>
