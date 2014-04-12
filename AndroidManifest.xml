@@ -42,7 +42,10 @@ or revised without written permission of the authors.
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance" >
-               
+               <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
            
         </activity>
         
@@ -51,10 +54,7 @@ or revised without written permission of the authors.
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance" >
-               <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+               
             
             
         </activity>
