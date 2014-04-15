@@ -307,9 +307,9 @@ public class Inside3dView extends GLSurfaceView implements SensorEventListener
 		
 		int surfaceWidth = mRenderer.getSurfaceWidth();
 		int surfaceHeight = mRenderer.getSurfaceHeight();
-		Assert.assertTrue(surfaceWidth>0);
-		Assert.assertTrue(surfaceHeight>0);
-		
+		if(!(surfaceWidth>0 && surfaceHeight>0))
+			return;
+			
 		float aspect = (float) surfaceWidth/(float) surfaceHeight;
 		float pitch = mRenderer.getPitch();
 		float yaw = mRenderer.getYaw();

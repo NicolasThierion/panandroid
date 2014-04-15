@@ -23,11 +23,14 @@ import java.io.IOException;
 
 import org.json.JSONException;
 
+import fr.ensicaen.panandroid.MainActivity;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.insideview.Inside3dView;
 import fr.ensicaen.panandroid.meshs.Sphere;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
+import fr.ensicaen.panandroid.tools.BitmapDecoder;
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -42,16 +45,16 @@ public class SphereViewerActivity extends Activity
 {
 
 	private static final String TAG = SphereViewerActivity.class.getSimpleName();
-	
+
 	private static final float YAW_RANGE = 30.0f;
 	private static final float PITCH_RANGE = 15.0f;
-	
+
 	/** Size of the sphere **/
 	private static final float SPHERE_RADIUS = 0.15f;
-	
+
 	/** Resolution of the sphere **/
 	private static final int SPHERE_RESOLUTION = 4;
-			
+
 	/** The OpenGL view. */
 	private Inside3dView mSphereView;
 
@@ -65,21 +68,21 @@ public class SphereViewerActivity extends Activity
 	public void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-	
+
 		// view in fullscreen
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-	    
+
 		//bind activity to its layout
 		setContentView(R.layout.viewer_activity);
 
 		// init the sphere
 		mSphere = new Sphere(SPHERE_RESOLUTION, SPHERE_RADIUS);
-	
+
 		//set GL view & its renderer
 	    mSphereView = new Inside3dView(this, mSphere);
 	    //setContentView(mSphereView);
-	    
+
 	    //and populate the layout with it.
   		ViewGroup parent = (ViewGroup) (mSphereView.getParent());
   		if(parent !=null)
@@ -87,15 +90,18 @@ public class SphereViewerActivity extends Activity
 
   		ViewGroup container = ((ViewGroup) findViewById(R.id.gl_renderer_container));
   		container.addView(mSphereView);
-	
+
 		// Load project & put panorama as texture
-	    String projectFile = getIntent().getStringExtra("projectFile");
+	    String projectFile = getIntent().getStringExtra("PROJECT_FILE");
 	    if(projectFile!="" && projectFile!=null)
+	    {
+	    	Log.i(TAG, "loading "+projectFile);
 	    	loadPanorama(projectFile);
+	    }
 	    else
 	    	Log.w(TAG, "created viewer without passing projectFile to intent");
-	    	
-	    
+
+
     	//loadPanorama("/sdcard/sampleCafet/PanoData.json");
 
 	    mSphereView.setEnableInertialRotation(true);
@@ -104,7 +110,7 @@ public class SphereViewerActivity extends Activity
 	    mSphereView.setEnablePinchZoom(true);
 	    mSphereView.setSensorialButtonVisible(true);
 	}
-  
+
 	private void loadPanorama(String projectFile)
 	{
 		SnapshotManager manager;
@@ -114,7 +120,7 @@ public class SphereViewerActivity extends Activity
 		catch (JSONException e)
 		{
 			e.printStackTrace();
-			
+
 			return;
 		}
 		catch (IOException e)
@@ -124,20 +130,20 @@ public class SphereViewerActivity extends Activity
 		}
 	    String textureFile = manager.getPanoramaJpgPath();
 	    float minPitch,minYaw,maxPitch, maxYaw;
-	
+
 	    minPitch = manager.getMinPitch();
 	    minYaw= manager.getMinYaw();
 	    maxPitch = manager.getMaxPitch();
 	    maxYaw = manager.getMaxYaw();
-	
+
 	    Log.i(TAG, "loading panorama "+textureFile);
-	    Bitmap texture = BitmapFactory.decodeFile(textureFile);
+	    Bitmap texture = BitmapDecoder.safeDecodeBitmap(textureFile);
 	    mSphere.setGlTexture(texture);
-	   
-	    
+
+
 	    minPitch = (minPitch<-89?-1000 : Math.max(minPitch-PITCH_RANGE, -90));
 	    maxPitch = (maxPitch>89?1000 : Math.min(maxPitch+PITCH_RANGE, 90));
-	   
+
 	    if(maxYaw-minYaw>360-YAW_RANGE)
 	    {
 	    	maxYaw=1000 ; minYaw =-1000;
@@ -150,11 +156,19 @@ public class SphereViewerActivity extends Activity
 	    //mSphereView.setReferenceRotation(0.0f,270-manager.getCameraHFov()/2);
 
 	    //TODO re enable & debug
-	    mSphereView.setPitchRange(new float[]{minPitch, maxPitch});
-	    mSphereView.setYawRange(new float[]{minYaw, maxYaw});
+	    //mSphereView.setPitchRange(new float[]{minPitch, maxPitch});
+	    //mSphereView.setYawRange(new float[]{minYaw, maxYaw});
   }
 
-  
+	@Override
+	public void onBackPressed() {
+	    Intent intent = new Intent(SphereViewerActivity.this, MainActivity.class);
+	    startActivity(intent);
+	    finish();
+	    onDestroy();
+	}
+
+
   /**
    * Remember to resume the glSurface.
    */

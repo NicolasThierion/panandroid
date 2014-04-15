@@ -15,7 +15,7 @@ public class ShutterButton extends ImageView
 	 * ******/
     @SuppressWarnings("unused")
 	private final String TAG = ShutterButton.class.getSimpleName();
-	private static final int SHUTTER_BUTTON_ID= R.drawable.btn_shutter_photo;
+	private static final int SHUTTER_BUTTON_ID= R.drawable.btn_shutter_photo_pressed;
 
 	/* ******
 	 * ATTRIBUTES
@@ -47,7 +47,7 @@ public class ShutterButton extends ImageView
     
     private void initShutterButton(Context context)
     {
-        super.setImageDrawable(getResources().getDrawable(SHUTTER_BUTTON_ID));
+        //super.setImageDrawable(getResources().getDrawable(SHUTTER_BUTTON_ID));
         mCameraManager=CameraManager.getInstance(context);
     }
     

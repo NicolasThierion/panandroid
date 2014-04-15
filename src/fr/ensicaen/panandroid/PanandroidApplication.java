@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Nicolas THIERION, Saloua BENSEDDIK, Jean Marguerite.
+ * Copyright (C) 2013 Saloua BENSEDDIK, Jean MARGUERITE, Nicolas THIERION
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -8,22 +8,25 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA  02110-1301, USA.
+ * MA 02110-1301, USA.
  */
 
 package fr.ensicaen.panandroid;
 
+import java.io.File;
 
-import fr.ensicaen.panandroid.capture.CameraManager;
 import android.app.Application;
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
+
+import fr.ensicaen.panandroid.capture.CameraManager;
 
 /**
  * Based on Guillaume Lesniak's Focal application.
@@ -32,49 +35,64 @@ import android.util.Log;
  */
 public class PanandroidApplication extends Application
 {
-	/* *******
-	 * PARAMETERS
-	 * ******/
+    /**************
+     * PARAMETERS *
+     **************/
+    public static final String APP_DIRECTORY = Environment.getExternalStorageDirectory()
+            + File.separator + "Panandroid";
     private final static String TAG = PanandroidApplication.class.getSimpleName();
 
-	/* *******
-	 * ATTRIBUTES
-	 * ******/
-    /** this application **/
-    private static Context mContext;
-    
-    /** Exception handler **/
-    private Thread.UncaughtExceptionHandler mDefaultExHandler;
-    private CameraManager mCamManager;
+    /**************
+     * ATTRIBUTES *
+     **************/
+    /** Default exception handler */
+    private Thread.UncaughtExceptionHandler mDefaultHandler;
 
-    private Thread.UncaughtExceptionHandler mExHandler = new Thread.UncaughtExceptionHandler()
-    {
-        public void uncaughtException(Thread thread, Throwable ex)
-        {
-            if (mCamManager != null)
-            {
-                Log.e(TAG, "Uncaught exception! Closing down camera safely firsthand");
-                ex.printStackTrace();
-                mCamManager.close();
+    /** Camera manager */
+    private CameraManager mCameraManager;
+
+    /** Application context */
+    private static Context mContext;
+
+    /** Exception handler */
+    private Thread.UncaughtExceptionHandler mExceptionHandler =
+            new Thread.UncaughtExceptionHandler() {
+        public void uncaughtException(Thread thread, Throwable e) {
+            if (mCameraManager != null) {
+                Log.e(TAG, "Uncaught exception! Closing down camera safely firsthand...");
+                e.printStackTrace();
+                mCameraManager.close();
             }
-            mDefaultExHandler.uncaughtException(thread, ex);
+
+            mDefaultHandler.uncaughtException(thread, e);
         }
     };
 
-
+    /******************
+     * PUBLIC METHODS *
+     ******************/
+    /**
+     * Called when the application is starting, before any activity, service,
+     * or receiver objects (excluding content providers) have been created.
+     */
     @Override
-    public void onCreate()
-    {
+    public void onCreate() {
         super.onCreate();
-        mDefaultExHandler = Thread.getDefaultUncaughtExceptionHandler();
-        Thread.setDefaultUncaughtExceptionHandler(mExHandler);
-        mCamManager = CameraManager.getInstance(this);
+
+        mDefaultHandler = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler(mExceptionHandler);
+        mCameraManager = CameraManager.getInstance(this);
         mContext = this;
     }
-    
-    public static Context getContext()
-    {
+
+    /**********
+     * GETTER *
+     **********/
+    /**
+     * Getter of the context of the application.
+     * @return context of the application.
+     */
+    public static Context getContext() {
     	return mContext;
     }
-
 }

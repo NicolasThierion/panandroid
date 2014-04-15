@@ -66,7 +66,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 	/** Size of the skybox **/
 	private static final float SKYBOX_SIZE 				= 400f;
 	private static final int DEFAULT_SKYBOX_SAMPLE_SIZE = 4;		//[1 - 8] pow of 2.
-	
+
 	private static final float DEFAULT_PITCH_STEP 		= 360.0f/16.0f;;
 	private static final float DEFAULT_YAW_STEP 		= 360.0f/16.0f;
 
@@ -135,8 +135,6 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		mStartingProgressSpinner.setIndeterminate(true);
 		mStartingProgressSpinner.setVisibility(View.INVISIBLE);
 
-		
-		
 		RelativeLayout.LayoutParams params = new
 		        RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT);
 
@@ -228,7 +226,7 @@ public class CaptureView extends Inside3dView implements SensorEventListener, Sn
 		super.setEnablePitchRotation(true);
 		super.setEnableRollRotation(true);
 		super.setEnableYawRotation(false);
-		
+
 		//wait for the first snapshot to be taken.
 		mCameraManager.addSnapshotEventListener(this);
 	}

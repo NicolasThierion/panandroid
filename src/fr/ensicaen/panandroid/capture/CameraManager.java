@@ -49,12 +49,12 @@ import android.util.Log;
  * Helper to instantiate Camera, initialize parameter and redirect camera preview to a GL-Compatible texture.
  * Capable of tagging pictures (formally Snapshots objects) with their pitch and yaw).
  * Can automate capture with autoShoot(), given a list of targets.
- * 
+ *
  * @author Nicolas THIERION.
  * @author Saloua BENSEDDIK.
- * 
+ *
  * @bug : raw callback stores 0 bytes files (IOException, NullPointerException)
- * 
+ *
  * TODO : remove automatic exposure, zoom, etc..
  *
  */
@@ -66,9 +66,9 @@ public class CameraManager /* implements SnapshotObserver */
 	 * GLOBAL PARAMETERS
 	 * *************/
 	public static final int DEFAULT_PREVIEW_FORMAT = ImageFormat.NV21;
-	
+
 	private static final int JPEG_COMPRESSION = 90;
-	
+
 	/** filename prefixes for stored images **/
 	public static final String DEFAULT_FILE_PREFIX = "img";
 
@@ -77,13 +77,13 @@ public class CameraManager /* implements SnapshotObserver */
 
 	/** vibration tolerance for autoShoot **/
 	public static final float DEFAULT_AUTOSHOOT_PRECISION = 0.3f;
-	
+
 	/** raw callback enabled by default?? ie : if we want to save raw picture **/
 	public static final boolean DEFAULT_SAVE_RAW = false;	//TODO : debug raw callback
-	
+
 	/** jpeg callback enabled by default?? **/
 	public static final boolean DEFAULT_SAVE_JPEG = true;
-	
+
 	//tricky workaround to ensure that camera opening has finished before using it
 	public static final int CAMERA_INIT_DELAY = 10000;
 	private boolean mCameraIsBusy = true;
@@ -92,14 +92,14 @@ public class CameraManager /* implements SnapshotObserver */
 	/* *************
 	 * ATTRIBUTES
 	 * *************/
-	
+
 	/** Unique instance of CameraManager **/
 	private static CameraManager mInstance = null;
-	
+
 	/** context f the application **/
 	private Context mContext;
-	
-	
+
+
 	/* ***
 	 * camera
 	 * ***/
@@ -113,17 +113,17 @@ public class CameraManager /* implements SnapshotObserver */
 	 * ***/
 	/** SurfaceTexture where preview is redirected **/
 	private SurfaceTexture mSurfaceTexturePreview;
-	
+
 	/** if preview is started **/
 	private boolean mPreviewStarted;
-	
+
 	/* ***
 	 * callbacks
 	 * ***/
 	/** callback enabled **/
 	private boolean mRawCallbackEnabled = DEFAULT_SAVE_RAW;
 	private boolean mJpegCallbackEnabled = DEFAULT_SAVE_JPEG;
-	
+
 	/**callbacks **/
 	private final ShutterCallback mShutterCallback = new OnShutterCallback();
 	private final PictureCallback mRawCallback = new RawCallback();
@@ -134,23 +134,24 @@ public class CameraManager /* implements SnapshotObserver */
 	private static ReentrantLock mListenersLock;
 
 
-	
+
+
 	/* ***
 	 * auto shoot
 	 * ***/
 	/** Sensor manager used if sensorial capture is enabled **/
 	private SensorFusionManager mSensorFusionManager = null;
-		
+
 	/** autoshoot precision **/
 	private float mAutoShootPrecision = DEFAULT_AUTOSHOOT_PRECISION;
-	
+
 	/** autoshoot tolerance **/
 	private float mAutoShootThreshold = DEFAULT_AUTOSHOOT_THRESHOLD;
-	
+
 	/** targeted points by auto shoot **/
 	private LinkedList<Snapshot> mAutoShootTargets;
 	private ReentrantLock mTargetsLock;
-	
+
 	private final SensorListener mSensorListener;
 
 	/* ***
@@ -158,27 +159,27 @@ public class CameraManager /* implements SnapshotObserver */
 	 * ***/
 	/** current Filename **/
 	private volatile String mTempFilename;
-	
+
 	/** directory where to store captured pictures. Must be set through setDirectory**/
 	private File mDirectory = null;
-	
+
 	/** current snapshot if sensorial capture is enabled **/
 	private Snapshot mTempSnapshot;
-	
+
 	/** prefix of stored image files **/
 	private String mPrefix = DEFAULT_FILE_PREFIX;
-	
+
 	/** current picture file id **/
 	private int mFileId = 0;
-	
+
 	private int mJpegCompression = JPEG_COMPRESSION;
-	
+
 	//TODO : remove
 	//private int mTempExifOrientation;
 
-	
-	
-	
+
+
+
 
 	private CameraManager()
 	{
@@ -188,9 +189,9 @@ public class CameraManager /* implements SnapshotObserver */
 		mListeners = new LinkedList<SnapshotEventListener>();
 
 	}
-	
 
-	
+
+
 	 /* **************
 	  * PUBLIC METHODS
 	  * *************/
@@ -214,32 +215,36 @@ public class CameraManager /* implements SnapshotObserver */
 		return mInstance;
 
 	}
-	
+
 	/**
 	 * Try to open default (facing back) camera.
-	 * 
+	 *
 	 * @return true if open succeed.
 	 */
 	public boolean open()
 	{
 		return mInstance.open(Camera.CameraInfo.CAMERA_FACING_BACK);
 	}
-	
+
 	/**
 	 * Try to open the given camera.
-	 * 
+	 *
 	 * @return true if open succeed.
 	 */
 	public synchronized boolean open(int camId)
 	{
+		if(isOpen())
+		{
+			return true;
+		}
 		int nbCam = Camera.getNumberOfCameras();
-		
+
 		if(nbCam<=0)
 		{
 			Log.e(TAG, "opening camera "+camId+" failed");
 			return false;
 		}
-		
+
 		mCameraId = camId;
 		mCamera = Camera.open(camId);
 
@@ -250,16 +255,16 @@ public class CameraManager /* implements SnapshotObserver */
 		setPreviewFormat(DEFAULT_PREVIEW_FORMAT);
 
 		Log.i(TAG, "opening camera "+camId);
-		
+
 		mCameraIsBusy = false;
 		return true;
 	}
-	
+
 	public synchronized boolean isOpen()
 	{
 		return mCamera!=null;
 	}
-	
+
 	/**
 	 * reopen the camera.
 	 * @return
@@ -274,7 +279,7 @@ public class CameraManager /* implements SnapshotObserver */
 			if(!res)
 				return res;
 		}
-		
+
 		if(mCameraParameters!=null)
 		{
 			mCamera.setParameters(mCameraParameters);
@@ -293,11 +298,11 @@ public class CameraManager /* implements SnapshotObserver */
 		return res;
 	}
 
-	
+
 	 /* **************
 	  * ACCESSORS
 	  * *************/
-	
+
 	/**
 	 * saves raw image on SD.
 	 * @param enabled
@@ -306,7 +311,7 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		mRawCallbackEnabled = enabled;
 	}
-	
+
 	/**
 	 * saves jpeg image on SD.
 	 * @param enabled
@@ -315,33 +320,33 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		mJpegCallbackEnabled = enabled;
 	}
-	
+
 	/**
 	 * Set the directory where to store the captured pictures.
 	 * @param dir
 	 * @throws IOException - if the given directory is invalid or don't have write access.
 	 */
-	public void setTargetDir(String dir) throws IOException
+	public void setTargetDirectory(String dir) throws IOException
 	{
 		mDirectory = new File(dir);
 		if(mDirectory == null)
 			throw new IOException("the directory "+dir+"is not valid");
-		
+
 
 		if(!mDirectory.exists())
 			mDirectory.mkdirs();
-		
+
 		if( !mDirectory.isDirectory())
 			throw new IOException("the file "+dir+"is not a directory");
-		
+
 		if(!mDirectory.canWrite())
 		{
 			throw new IOException("unable to write in the directory "+dir);
 		}
-		
+
 		Log.d(TAG, "Setting camera dir to "+mDirectory.getAbsolutePath());
 	}
-	
+
 	/**
 	 * Set the image format of the Camera's preview.
 	 * If given format not supported, default to DEFAULT_PREVIEW_FORMAT.
@@ -354,18 +359,18 @@ public class CameraManager /* implements SnapshotObserver */
 		if(mCameraParameters.getSupportedPreviewFormats().contains(imageFormat))
 		{
 			res = true;
-			mCameraParameters.setPreviewFormat(imageFormat);		
+			mCameraParameters.setPreviewFormat(imageFormat);
 		}
 		else
 		{
 			res = false;
 			mCameraParameters.setPreviewFormat(DEFAULT_PREVIEW_FORMAT);
-			
-		}	
+
+		}
 
 		return res;
 	}
-	
+
 
 	/**
 	 * Camera render to display by default. Redirect the preview to a custom surtfaceTexture.
@@ -382,19 +387,19 @@ public class CameraManager /* implements SnapshotObserver */
 		if(!isOpen())
 			throw new IOException("Cannot open camera.");
 
-		//restart preview 
+		//restart preview
 		mCamera.stopPreview();
-		
+
 		//reset params
         mCamera.setParameters(mCameraParameters);
 
         //redirect preview
         mSurfaceTexturePreview = texture;
-        
+
         mCamera.setPreviewTexture(mSurfaceTexturePreview);
 
-      
-		
+
+
 		startPreview();
 	}
 
@@ -413,33 +418,37 @@ public class CameraManager /* implements SnapshotObserver */
 			throw new IOException("Cannot open camera.");
 		return mCameraParameters.getPreviewSize();
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @return HFov in degrees.
 	 */
 	public float getHorizontalViewAngle()
 	{
 		return mCamera.getParameters().getHorizontalViewAngle();
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @return VFov in degrees.
 	 */
 	public float getVerticalViewAngle()
 	{
 		return mCamera.getParameters().getVerticalViewAngle();
 	}
-	
-	
-	
+
+
+	public boolean isReady()
+	{
+		return !mCameraIsBusy;
+	}
+
 	public boolean setSensorialCaptureEnabled(boolean enable)
-	{	
-		
+	{
+
 		if(enable)
 		{
-			mSensorFusionManager = SensorFusionManager.getInstance(mContext);	
+			mSensorFusionManager = SensorFusionManager.getInstance(mContext);
 			boolean res = mSensorFusionManager.start();
 			if (!res)
 				mSensorFusionManager=null;
@@ -450,9 +459,9 @@ public class CameraManager /* implements SnapshotObserver */
 			mSensorFusionManager.stop();
 		}
 		return true;
-		
+
 	}
-	
+
 	/**
 	 * Set prefix for the filename of stored pictures.
 	 * @param prefix
@@ -461,14 +470,14 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		mFileId = 0;
 		mPrefix = prefix;
-		
+
 		if(prefix == null)
 		{
 			mPrefix = DEFAULT_FILE_PREFIX;
 		}
 	}
 
-	 
+
 	/**
 	 * Capture is sensorial when a sensorFusionManager has been set.
 	 * @return
@@ -477,7 +486,7 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		return mSensorFusionManager!=null;
 	}
-	
+
 	/**
 	 * Tell if autoShoot is enabled (if sensorial capture enabled and valid target list provided)
 	 * @return true if autoshoot is enabled
@@ -486,7 +495,7 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		return (isSensorialCaptureEnabled() && mAutoShootTargets!=null && mAutoShootTargets.size() !=0);
 	}
-	
+
 	/**
 	 * Provide a list of target that cameraManager will shoot automatically when the device will be correctly oriented.
 	 * Must have called setSensorFusionManager once first. Setting target to null disable autoShoot.
@@ -495,11 +504,11 @@ public class CameraManager /* implements SnapshotObserver */
 	public void setAutoShootTargetList(LinkedList<EulerAngles> targets )
 	{
 		mTargetsLock.lock();
-		
-		mAutoShootTargets = new LinkedList<Snapshot>();	
+
+		mAutoShootTargets = new LinkedList<Snapshot>();
 		for(EulerAngles a : targets)
 			mAutoShootTargets.add(new Snapshot(a.getPitch(), a.getYaw()));
-		
+
 		mTargetsLock.unlock();
 
 		if(isAutoShootEnabled())
@@ -508,7 +517,7 @@ public class CameraManager /* implements SnapshotObserver */
 			mSensorFusionManager.removeSensorEventListener(mSensorListener);
 
 	}
-	
+
 	/**
 	 * Configure threshold for autoShoot (Distance tolerance between target and current orientation).
 	 * @param threshold
@@ -517,7 +526,7 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		mAutoShootThreshold = threshold;
 	}
-	
+
 	/**
 	 * Configure autoShoot precision (movement tolerance at capture time).
 	 * @param precision
@@ -526,19 +535,19 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		mAutoShootPrecision = precision;
 	}
-	
+
 	public void setPreviewOrientation(int degrees)
 	{
 		if(!isOpen())
 			open();
 		mCamera.setDisplayOrientation(degrees);
 	}
-	
+
 	public void setJpegCompression(int compression)
 	{
 		mJpegCompression = compression;
 	}
-	
+
 	 /* **************
 	  * ACTIVITY-RELATED METHODS
 	  * *************/
@@ -548,7 +557,7 @@ public class CameraManager /* implements SnapshotObserver */
 		this.startPreview();
 		mSensorFusionManager.onResume();
 	}
-	
+
 	public void onPause()
 	{
 		mCameraIsBusy = true;
@@ -559,12 +568,12 @@ public class CameraManager /* implements SnapshotObserver */
 		}
 		mSensorFusionManager.onPauseOrStop();
 	}
-	
+
 	public void onClose()
 	{
 		close();
 	}
-	
+
 	public void close()
 	{
 		if(mCamera!=null)
@@ -572,7 +581,7 @@ public class CameraManager /* implements SnapshotObserver */
 		mCamera = null;
 		mCameraIsBusy = false;
 	}
-	
+
 	public void startPreview()
 	{
 		try
@@ -580,7 +589,7 @@ public class CameraManager /* implements SnapshotObserver */
 			mCameraIsBusy=true;
 			//start preview in a separate thread to avoid random pause of main activity
 			new Thread(new Runnable(){
-	
+
 				@Override
 				public void run()
 				{
@@ -593,14 +602,14 @@ public class CameraManager /* implements SnapshotObserver */
 						}
 						catch(Exception e)
 						{}
-			    }		
+			    }
 			}).start();
 		}
 		catch(RuntimeException e)
 		{
 			e.printStackTrace();
 		}
-		
+
 
 	}
 
@@ -610,7 +619,7 @@ public class CameraManager /* implements SnapshotObserver */
 		mCamera.stopPreview();
 
 	}
-	
+
 	/**
 	 * take a picture, and store it to the current target directory.
 	 * setTargetDir() must have been called once first.
@@ -620,7 +629,7 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		return this.takePicture(mPrefix);
 	}
-	
+
 	/**
 	 * take a picture, and store it to the current target directory.
 	 * setTargetDir() must have been called once first.
@@ -629,19 +638,19 @@ public class CameraManager /* implements SnapshotObserver */
 	 */
 	public String takePicture(String filename)
 	{
-		
+
 		if(mCameraIsBusy)
 		{
 			Log.e(TAG, "trying to take a picture while camera is busy");
 			return null;
 		}
-		
+
 		if(!isOpen())
 		{
 			Log.e(TAG, "trying to take a picture while camera is closed");
 			return null;
 		}
-		
+
 		mCameraIsBusy = true;
 
 		if(mDirectory == null)
@@ -652,24 +661,24 @@ public class CameraManager /* implements SnapshotObserver */
 		Assert.assertTrue(mShutterCallback!=null);
 		Assert.assertTrue(mRawCallback!=null);
 		Assert.assertTrue(mJpegCallback!=null);
-		
+
 		mTempFilename = genAbsoluteFilename(filename);
 		filename = mTempFilename;
-		
+
 		//TODO : remove
 		//take a picture in separated thread
 	/*	try
 		{
 			new Thread(new Runnable(){
-	
+
 				@Override
 				public void run() {
-					// Call to garbage collector to avoid bug http://code.opencv.org/issues/2961 
+					// Call to garbage collector to avoid bug http://code.opencv.org/issues/2961
 				    //System.gc();
-		   
+
 				    }
-			
-				
+
+
 			}).start();
 		}
 		catch(RuntimeException e)
@@ -678,11 +687,11 @@ public class CameraManager /* implements SnapshotObserver */
 		}*/
         mCamera.autoFocus(mAutoFocusCallback);
 
-		
+
 		return filename;
 	}
-	
-	
+
+
 	/**
 	 * Take a picture, and store current pitch and yaw side by the picture into a Snapshot object.
 	 * setSensorFusionManager() must have been called once first, as setTargetDir().
@@ -692,7 +701,7 @@ public class CameraManager /* implements SnapshotObserver */
 	{
 		return this.takeSnapshot(mPrefix);
 	}
-	
+
 	/**
 	 * Take a picture, and store current pitch and yaw side by the picture into a Snapshot object.
 	 * setSensorFusionManager() must have been called once first, as setTargetDir().
@@ -714,11 +723,11 @@ public class CameraManager /* implements SnapshotObserver */
 	/* *************
 	 * LISTENER STUFFS
 	 * ************/
-	
-	
+
+
 	/**
 	 * Methods triggered when a snapshot will be taken.
-	 * @param listener - listener 
+	 * @param listener - listener
 	 * @return true if the listener correctly added.
 	 */
 	public boolean addSnapshotEventListener(SnapshotEventListener listener)
@@ -729,9 +738,9 @@ public class CameraManager /* implements SnapshotObserver */
 		mListenersLock.unlock();
 		return false;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @param listener
 	 * @return
 	 */
@@ -743,7 +752,7 @@ public class CameraManager /* implements SnapshotObserver */
 		return res;
 
 	}
-	
+
 	/* *************
 	 * PRIVATE CALLBACK CLASSES
 	 * ************/
@@ -755,7 +764,7 @@ public class CameraManager /* implements SnapshotObserver */
         public void onAutoFocus(boolean success, Camera camera) {
 			mCamera.takePicture(mShutterCallback, mRawCallback, mJpegCallback);
         }
-		
+
 	}
 	/**
 	 * If capture is sensorial, get current pitch and current yaw, and fill mTempSnapshot with it.
@@ -767,22 +776,22 @@ public class CameraManager /* implements SnapshotObserver */
 
 
 		@Override
-		public void onShutter() 
+		public void onShutter()
 		{
-			
+
 			if(!isSensorialCaptureEnabled())
 				return;
-			
+
 			// get snapshot's pitch and yaw
 			float pitch = mSensorFusionManager.getPitch();
             float yaw =  mSensorFusionManager.getYaw();
             float roll =  mSensorFusionManager.getRoll();
-			
+
 			// create the Snapshot Object corresponding
-            mTempSnapshot = new Snapshot(pitch, yaw, roll);		
+            mTempSnapshot = new Snapshot(pitch, yaw, roll);
         }
 	}
-	
+
 	/**
 	 * if raw callback enabled, save raw to sd.
 	 * @author Nicolas THIERION.
@@ -796,46 +805,46 @@ public class CameraManager /* implements SnapshotObserver */
 		{
 			if(!mRawCallbackEnabled)
 				return;
-			
+
 			Assert.assertTrue(mTempFilename!=null);;
 			//synchronized(mTempFilename)
 			{
 				try
 				{
 					Log.d(TAG, "OnPictureTaken()");
-										
+
 					//save to sd card
 					String rawFile = mTempFilename+".raw";
-					
-					try 
+
+					try
 					{
 		        		Log.i(TAG, "Saving file at "+rawFile);
-	
+
 				        FileOutputStream fos = new FileOutputStream(rawFile);
 				        fos.write(data);
 				        fos.close();
-	
-				    } 
-					catch (FileNotFoundException e) 
+
+				    }
+					catch (FileNotFoundException e)
 					{
 				        Log.d(TAG, "File not found: " + e.getMessage());
 				    }
-					catch (IOException e) 
+					catch (IOException e)
 					{
 				        Log.d(TAG, "Error accessing file: " + e.getMessage());
 				    }
-			
-				} 
-				catch(Exception e) 
+
+				}
+				catch(Exception e)
 				{
 		                e.getMessage();
-		                e.printStackTrace();       
+		                e.printStackTrace();
 				}
 			}
 		}
-		
+
 	}
-	
+
 	/**
 	 * if jpeg callback enabled, save jpeg to sd.
 	 * @author Nicolas
@@ -843,41 +852,41 @@ public class CameraManager /* implements SnapshotObserver */
 	 */
 	private class JpegCallback implements PictureCallback
 	{
-		
+
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera)
 		{
 			Assert.assertTrue(mTempFilename!=null);
 			Snapshot takenSnapshot = null;
-			
+
 			if(mJpegCallbackEnabled)
 			{
-				
-				
-				try 
+
+
+				try
 				{
 					//save to sd card
 					final String jpegFile = mTempFilename+".jpg";
-					
-					try 
+
+					try
 					{
 		        		Log.i(TAG, "Saving file at "+jpegFile);
 		        		Log.i(TAG, "setting file orientation at " +mTempSnapshot.getOrientation() + " degrees");
-		        		
-		        		
+
+
 		        		FileOutputStream fos = new FileOutputStream(jpegFile);
 						fos.write(data);
 						fos.close();
-						
+
 						//perform image rotation in a separate thread
-						//since cameraParams.setRotation don't work the same on all device, we can only rely on ourselves and implement 
+						//since cameraParams.setRotation don't work the same on all device, we can only rely on ourselves and implement
 						//snapshot rotation by rotating Jpeg file.
 						//exif won't work with openCV, the only solution is to rotate raw data.
 						//Matrix rotation with java makes the heap to overflow, we hate to pass through JNI to rotate image.
 						//Java matrix cannot be converted to OpenCV matrix, we need to transit through a file.
 						//Matrix rotaion freeze the UI, need to launch processing on separate thread.... BUT
 						//What a bad day!!
-						final int orientation = mTempSnapshot.getOrientation();						
+						final int orientation = mTempSnapshot.getOrientation();
 							new Thread(new Runnable()
 							{
 								public void run()
@@ -891,17 +900,17 @@ public class CameraManager /* implements SnapshotObserver */
 									}
 								}
 							}).start();
-						
-						
+
+
 						//StitcherWrapper.rotateImage(jpegFile, mTempSnapshot.getOrientation());
-				
+
 						mTempSnapshot.setFileName(jpegFile);
 						takenSnapshot = mTempSnapshot;
 						mTempSnapshot = null;
 						mTempFilename = null;
-						
-						
-						
+
+
+
 						//put exifs
 						//TODO : remove
 						/*
@@ -911,29 +920,29 @@ public class CameraManager /* implements SnapshotObserver */
 		        		exif.saveAttributes();
 		        		exif = new ExifInterface(jpegFile);
 						*/
-						
-						
-				    } 
-					catch (FileNotFoundException e) 
+
+
+				    }
+					catch (FileNotFoundException e)
 					{
 				        Log.d(TAG, "File not found: " + e.getMessage());
-				    } 
-					catch (IOException e) 
+				    }
+					catch (IOException e)
 					{
 				        Log.d(TAG, "Error accessing file: " + e.getMessage());
 				    }
 				}
-				catch(Exception e) 
+				catch(Exception e)
 				{
 		                e.getMessage();
-		                e.printStackTrace();       
+		                e.printStackTrace();
 				}
 			}
-			
+
 			//Reset camera preview : on some devices, camera preview sometimes stops.
 			startPreview();
-			
-			
+
+
 			//tell camera is ready now
 			mCameraIsBusy = false;
 
@@ -947,9 +956,9 @@ public class CameraManager /* implements SnapshotObserver */
 			}
 		}
 	}
-	
 
-	
+
+
 	/* *************
 	 * PRIVATE SENSORLISTENER CLASS
 	 * ************/
@@ -964,11 +973,11 @@ public class CameraManager /* implements SnapshotObserver */
 		public void onSensorChanged(SensorEvent event)
 		{
 			if(!isOpen() || mCameraIsBusy)
-				return;	
-			
+				return;
+
 			Assert.assertTrue(isAutoShootEnabled());
 			Assert.assertTrue(mCamera!=null);
-			
+
 			float oPitch = mSensorFusionManager.getPitch();
 			float oYaw = mSensorFusionManager.getYaw();
 			float oRoll = mSensorFusionManager.getRelativeRoll();
@@ -978,7 +987,7 @@ public class CameraManager /* implements SnapshotObserver */
 			//seek targets of a near one
 			for (Snapshot snap: mAutoShootTargets)
 			{
-				
+
 				distance = os.getDistanceRoll(snap);
 
 		        if(distance<mAutoShootThreshold)
@@ -995,27 +1004,27 @@ public class CameraManager /* implements SnapshotObserver */
 			}
 		}
 	}
-	
-	
 
-	
+
+
+
 	/* *************
 	 * PRIVATE FUNCTIONS
 	 * ************/
-	
+
 	/**
 	 * Generate a complete filename given the provided prefix.
 	 */
 	private String genAbsoluteFilename(String prefix)
 	{
-		
+
 		final String path=mDirectory.getAbsolutePath()+File.separator;
 		int id = 0;
-		
+
 		if(prefix.equals(mPrefix))
 			id = mFileId;
-		
-		
+
+
 		File fJpeg, fRaw;
 		String absoluteFilename = path+prefix;
 		/*
@@ -1031,7 +1040,7 @@ public class CameraManager /* implements SnapshotObserver */
 
 			}while(fJpeg.exists() || fRaw.exists());
 		}
-		
+
 		mFileId = id;
 		return absoluteFilename;
 	}
@@ -1039,7 +1048,7 @@ public class CameraManager /* implements SnapshotObserver */
 
 	public double getCameraResolution() {
 		Camera.Size size = mCameraParameters.getPictureSize();
-		
+
 		double mpx = (double)(size.height * size.width) /1024000.0 ;
 		return mpx;
 	}
@@ -1051,7 +1060,7 @@ public class CameraManager /* implements SnapshotObserver */
 
 		return size.width;
 	}
-	
+
 	public int getCameraResY() {
 		Camera.Size size = mCameraParameters.getPictureSize();
 
@@ -1068,13 +1077,13 @@ public class CameraManager /* implements SnapshotObserver */
 			rotation+=0;
 			break;
 		case Surface.ROTATION_90:
-			rotation-=90;			
+			rotation-=90;
 			break;
 		case Surface.ROTATION_180:
-			rotation-=180;			
+			rotation-=180;
 			break;
 		case Surface.ROTATION_270:
-			rotation-=270;			
+			rotation-=270;
 			break;
 		}
 		rotation+=360;
@@ -1089,16 +1098,16 @@ public class CameraManager /* implements SnapshotObserver */
 			exifOrientation=6;
 			break;
 		case Surface.ROTATION_90:
-			exifOrientation=1;			
+			exifOrientation=1;
 			break;
 		case Surface.ROTATION_180:
-			exifOrientation=0;			
+			exifOrientation=0;
 			break;
 		case Surface.ROTATION_270:
-			exifOrientation=3;			
+			exifOrientation=3;
 			break;
 		}
 		return exifOrientation;
 	}
-*/	
+*/
 }

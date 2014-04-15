@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
+
 import junit.framework.Assert;
 
 import org.json.JSONArray;
@@ -32,6 +33,7 @@ import org.json.JSONObject;
 import com.adobe.xmp.XMPException;
 import com.adobe.xmp.XMPMeta;
 import com.adobe.xmp.XMPMetaFactory;
+
 import fr.ensicaen.panandroid.PanandroidApplication;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.tools.XmpUtil;
@@ -573,6 +575,15 @@ public class SnapshotManager implements SnapshotEventListener
 
 	public String getPanoramaJpgPath() {
 		return mPanoFilePath;
+	}
+
+	public String getPreview() 
+	{
+		File f = new File(mWorkingDir+File.separator+"preview.jpg");
+		if(f.exists())
+			return f.getAbsolutePath();
+		
+		return null;
 	}
 	
 }

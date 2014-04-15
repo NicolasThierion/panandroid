@@ -21,6 +21,7 @@ package fr.ensicaen.panandroid.capture;
 import java.io.File;
 import java.io.IOException;
 
+import fr.ensicaen.panandroid.PanandroidApplication;
 import fr.ensicaen.panandroid.R;
 import fr.ensicaen.panandroid.snapshot.SnapshotManager;
 import fr.ensicaen.panandroid.stitcher.StitcherActivity;
@@ -69,7 +70,6 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	 * *********/
 
 	/** Directory where pictures will be saved **/
-	private static final String APP_DIRECTORY = Environment.getExternalStorageDirectory() + File.separator + "Panandroid";
 	private static final String TEMP_PREFIX = "temp";
 	/** immersive mode will hide status bar and navigation bar **/
 	private static boolean IMMERSIVE_ENABLE = true;
@@ -96,7 +96,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	private SnapshotManager mSnapshotManager;
 
 	/** directory where images and JSon file are stored **/
-	private String mWorkingDir = APP_DIRECTORY;
+	private String mWorkingDir ;
 	private String mPanoName;
 
 	private PowerManager mPowerManager;
@@ -116,12 +116,12 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		//view in fullscreen, and don't turn screen off
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		
+
 		mPowerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		mWakeLock = mPowerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
 
 		//bind activity to its layout
-		setContentView(R.layout.capture_activity);
+		setContentView(R.layout.activity_capture);
 
 		// Hide both the navigation bar and the status bar.
 		View decorView = getWindow().getDecorView();
@@ -139,10 +139,10 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		//setup camera manager
 		mCameraManager = CameraManager.getInstance(this);
-		
+
 		try
 		{
-			mCameraManager.setTargetDir(mWorkingDir);
+			mCameraManager.setTargetDirectory(mWorkingDir);
 			mCameraManager.open();
 		}
 		catch (IOException e)
@@ -155,7 +155,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		int resY = mCameraManager.getCameraResY();
 		float hfov = mCameraManager.getHorizontalViewAngle();
 		float vfov = mCameraManager.getVerticalViewAngle();
-		
+
 		if(hfov<1)
 		{
 			Log.e(TAG, "Invalid hfov : "+hfov+"\nSetting hfov to "+DEFAULT_HFOV);
@@ -169,7 +169,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 		mSnapshotManager = new SnapshotManager(SnapshotManager.DEFAULT_JSON_FILENAME,
 												resX, resY ,hfov, vfov,
 												DEFAULT_PITCH_STEP, DEFAULT_YAW_STEP);
-		
+
 		mCameraManager.addSnapshotEventListener(mSnapshotManager);
 
 		//setup GL view & its renderer
@@ -186,7 +186,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		mCaptureView.setPitchStep(DEFAULT_PITCH_STEP);
 		mCaptureView.setYawStep(DEFAULT_YAW_STEP);
-	
+
 
 		//do not set the view as content cause it is bind to layout.
 		//this.setContentView(this.mCaptureView);
@@ -287,7 +287,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	public void onBackPressed()
 	{
 		AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
-		alertDialog.setMessage(getString(R.string.exit_confrm)).setCancelable(false);
+		alertDialog.setMessage(getString(R.string.exit_capture)).setCancelable(false);
 
 		alertDialog.setPositiveButton(getString(R.string.exit_yes), new DialogInterface.OnClickListener()
 		{
@@ -307,7 +307,7 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 				}
 				else
 				{
-					
+
 					CaptureActivity.this._onBackPressed();
 				}
 			}
@@ -322,12 +322,12 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		AlertDialog alert = alertDialog.create();
 		alert.show();
-		
+
 
 	}
 	private void _onBackPressed()
 	{
-		
+
 		super.onBackPressed();
 	}
 
@@ -356,9 +356,9 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 	private String genWorkingDir(String panoName)
 	{
 
-		File dir = new File(APP_DIRECTORY+File.separator+panoName);
+		File dir = new File(PanandroidApplication.APP_DIRECTORY+File.separator+panoName);
 		dir.mkdirs();
-		return APP_DIRECTORY+File.separator+panoName;
+		return dir.getAbsolutePath();
 	}
 
 
@@ -367,14 +367,14 @@ public class CaptureActivity extends Activity implements OnSystemUiVisibilityCha
 
 		int id = 1;
 
-		String path = APP_DIRECTORY+File.separator+prefix;
+		String path = PanandroidApplication.APP_DIRECTORY+File.separator+prefix;
 
 		File dir = new File(path);
 		if(dir.exists())
 		{
 			do
 			{
-				path = APP_DIRECTORY+File.separator+prefix+(id++);
+				path = PanandroidApplication.APP_DIRECTORY+File.separator+prefix+(id++);
 				dir = new File(path);
 
 			}while(dir.exists());

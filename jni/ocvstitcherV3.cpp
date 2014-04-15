@@ -100,7 +100,7 @@ double work_megapix = 0.35;
 double seam_megapix = 0.2;
 
 /** final panorama resolution **/
-double compose_megapix = 1.0;
+double compose_megapix = 1.2;
 
 /** Threshold for two images are from the same panorama confidence. **/
 float conf_thresh = 0.7f;	// frequent crashes when < 0.7
@@ -130,7 +130,7 @@ string warp_type = "spherical";
 int expos_comp_type = ExposureCompensator::GAIN;
 
 /** Confidence for feature matching step. **/
-float match_conf = 0.27f;
+float match_conf = 0.25f;
 
 /** Seam estimation method. **/
 string seam_find_type = "dp_colorgrad";	//dp_** is WAY faster!!!

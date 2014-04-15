@@ -106,9 +106,7 @@ public class StitcherWrapper
     	mOrientations = new float[size][3];
     	//convert hashmap into array
     	for(i=0; i<mSnapshotMap.size(); ++i)
-    	{
-    		System.out.println(i);
-    		
+    	{    		
     		Snapshot s = mSnapshotMap.get(i);
     		Assert.assertTrue(s!=null);
     		mFilenames[i] = s.getFilename();

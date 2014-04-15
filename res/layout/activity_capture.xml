@@ -9,7 +9,7 @@
     <!-- gl renderer -->
 
     <RelativeLayout
-        android:id="@+id/gl_renderer_container"
+        android:id="@+id/renderer_container"
         android:layout_width="match_parent"
         android:layout_height="348dp"
         android:layout_alignParentBottom="true"
